@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NPB AI 分析儀表板</title>
+  <meta name="description" content="日本職棒賽事AI分析與投注建議平台 — 蒙地卡羅模擬、ELO評分、即時賠率整合" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     LOADING OVERLAY
+     ════════════════════════════════════════════════════════════ -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">AI 正在分析中...</div>
+  <div class="loading-sub">請稍候，這可能需要幾秒鐘</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     API KEY MODAL
+     ════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="api-key-modal">
+  <div class="modal">
+    <div class="modal-title">
+      <i class="fa-solid fa-key"></i>
+      設定 The Odds API Key
+    </div>
+    <p class="modal-desc">
+      請前往 <a href="https://the-odds-api.com" target="_blank" rel="noopener">the-odds-api.com</a>
+      免費註冊並取得 API Key（免費方案每月 500 次請求）。<br/>
+      API Key 只儲存在您的瀏覽器本機，不會傳送至任何伺服器。
+    </p>
+    <div class="form-group">
+      <label for="modal-api-key-input">API Key</label>
+      <input
+        type="text"
+        id="modal-api-key-input"
+        class="form-control"
+        placeholder="請貼上您的 API Key..."
+        autocomplete="off"
+      />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveApiKeyFromModal()">
+        <i class="fa-solid fa-check"></i> 儲存並載入賠率
+      </button>
+      <button class="btn btn-secondary" onclick="closeApiKeyModal()">
+        取消
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     NOTICE CONTAINER (toast messages)
+     ════════════════════════════════════════════════════════════ -->
+<div id="notice-container" style="position:fixed;top:70px;right:16px;z-index:500;display:flex;flex-direction:column;gap:8px;max-width:340px;"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     NAV BAR
+     ════════════════════════════════════════════════════════════ -->
+<nav class="nav-bar">
+  <div class="nav-logo">
+    <div class="logo-icon"><i class="fa-solid fa-baseball" style="color:#fff"></i></div>
+    <span class="logo-text">NPB AI 分析</span>
+  </div>
+
+  <ul class="nav-links">
+    <li><a href="#odds-section">即時賠率</a></li>
+    <li><a href="#analysis-form-section">手動分析</a></li>
+    <li><a href="#results-section">分析結果</a></li>
+  </ul>
+
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="nav-btn" onclick="loadSampleData()">
+      <i class="fa-solid fa-flask"></i> 載入範例
+    </button>
+    <button class="nav-btn nav-btn-primary" onclick="openApiKeyModal()">
+      <i class="fa-solid fa-key"></i> API Key
+    </button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════
+     HERO SECTION
+     ════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-badge">
+    <i class="fa-solid fa-robot" style="color:var(--cyan)"></i>
+    AI 驅動 · 蒙地卡羅模擬 10,000次 · 即時賠率整合
+  </div>
+  <h1>NPB 職棒 AI 分析儀表板</h1>
+  <p>結合9項分析模組、ELO評分、Kelly公式與蒙地卡羅模擬，為您提供日本職棒最精準的賽事分析與投注建議。</p>
+  <div class="hero-actions">
+    <button class="btn btn-primary btn-lg" onclick="document.getElementById('analysis-form-section').scrollIntoView({behavior:'smooth'})">
+      <i class="fa-solid fa-chart-bar"></i> 開始分析
+    </button>
+    <button class="btn btn-secondary btn-lg" onclick="loadSampleData()">
+      <i class="fa-solid fa-flask"></i> 載入範例資料
+    </button>
+    <button class="btn btn-outline btn-lg" onclick="openApiKeyModal()">
+      <i class="fa-solid fa-satellite-dish"></i> 設定即時賠率
+    </button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     LIVE ODDS PANEL
+     ════════════════════════════════════════════════════════════ -->
+<section class="section" id="odds-section">
+  <div class="section-header">
+    <div>
+      <h2 class="section-title">
+        <i class="fa-solid fa-satellite-dish"></i>
+        即時 NPB 賠率
+      </h2>
+      <p class="section-subtitle">由 The Odds API 提供 · 點擊「分析此場」快速帶入賠率資料</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="loadOdds()">
+        <i class="fa-solid fa-rotate"></i> 重新整理
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="openApiKeyModal()">
+        <i class="fa-solid fa-key"></i> API Key
+      </button>
+    </div>
+  </div>
+
+  <div class="odds-scroll" id="odds-cards-container">
+    <div class="no-games-msg">
+      <i class="fa-solid fa-rotate fa-spin" style="margin-right:8px"></i>載入賠率中...
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     ANALYSIS FORM
+     ════════════════════════════════════════════════════════════ -->
+<section class="section" id="analysis-form-section">
+  <div class="form-panel">
+    <!-- Collapsible header -->
+    <div class="form-panel-header" id="form-panel-header">
+      <h2>
+        <i class="fa-solid fa-clipboard-list"></i>
+        手動輸入比賽資料
+        <span class="pill pill-cyan" style="font-size:0.7rem;margin-left:8px;">5個分類</span>
+      </h2>
+      <i class="fa-solid fa-chevron-down toggle-icon" style="color:var(--text-muted);transition:transform 0.3s;transform:rotate(180deg);"></i>
+    </div>
+
+    <div class="form-panel-body" id="form-panel-body">
+
+      <!-- Tabs -->
+      <div class="tab-group">
+        <button class="tab-btn active" data-tab="basic">
+          <i class="fa-solid fa-circle-info"></i> 比賽基本資訊
+        </button>
+        <button class="tab-btn" data-tab="pitcher">
+          <i class="fa-solid fa-baseball-bat-ball"></i> 先發投手
+        </button>
+        <button class="tab-btn" data-tab="bullpen">
+          <i class="fa-solid fa-users"></i> 牛棚
+        </button>
+        <button class="tab-btn" data-tab="batting">
+          <i class="fa-solid fa-chart-bar"></i> 打線守備
+        </button>
+        <button class="tab-btn" data-tab="odds-tab">
+          <i class="fa-solid fa-dollar-sign"></i> 賠率
+        </button>
+      </div>
+
+      <!-- Tab: Basic -->
+      <div class="tab-pane active" id="tab-basic">
+        <div class="form-section-title"><i class="fa-solid fa-circle-info"></i> 比賽基本資訊</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>主隊名稱</label>
+            <input type="text" id="home_team" class="form-control" placeholder="例: 阪神" value="阪神" />
+          </div>
+          <div class="form-group">
+            <label>客隊名稱</label>
+            <input type="text" id="away_team" class="form-control" placeholder="例: 巨人" value="巨人" />
+          </div>
+          <div class="form-group">
+            <label>球場</label>
+            <input type="text" id="stadium" class="form-control" placeholder="例: 甲子園" value="甲子園" />
+          </div>
+          <div class="form-group">
+            <label>比賽日期時間</label>
+            <input type="text" id="datetime" class="form-control" placeholder="2024-07-20 18:00" value="2024-07-20 18:00" />
+          </div>
+          <div class="form-group">
+            <label>日場/夜場</label>
+            <select id="is_day_game" class="form-control">
+              <option value="false">夜場</option>
+              <option value="true">日場</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>草皮類型</label>
+            <select id="turf_type" class="form-control">
+              <option value="natural">天然草皮</option>
+              <option value="artificial">人工草皮</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="form-section-title"><i class="fa-solid fa-tree"></i> 球場因子</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>球場得分因子</label>
+            <input type="number" id="park_factor" class="form-control" step="0.01" value="0.95" />
+          </div>
+          <div class="form-group">
+            <label>全壘打因子</label>
+            <input type="number" id="hr_factor" class="form-control" step="0.01" value="0.85" />
+          </div>
+          <div class="form-group">
+            <label>整體得分因子</label>
+            <input type="number" id="scoring_factor" class="form-control" step="0.01" value="0.93" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="form-section-title"><i class="fa-solid fa-cloud-sun"></i> 天氣條件</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>氣溫 (°C)</label>
+            <input type="number" id="temperature" class="form-control" value="28" />
+          </div>
+          <div class="form-group">
+            <label>濕度 (%)</label>
+            <input type="number" id="humidity" class="form-control" value="72" />
+          </div>
+          <div class="form-group">
+            <label>降雨機率 (%)</label>
+            <input type="number" id="rain_pct" class="form-control" value="10" />
+          </div>
+          <div class="form-group">
+            <label>風向</label>
+            <select id="wind_direction" class="form-control">
+              <option value="none">無風</option>
+              <option value="outfield">吹向外野</option>
+              <option value="infield" selected>吹向內野</option>
+              <option value="cross">橫向風</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>風速 (km/h)</label>
+            <input type="number" id="wind_speed_kmh" class="form-control" value="12" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="form-section-title"><i class="fa-solid fa-calendar-days"></i> 賽程疲勞</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>是否長途客場</label>
+            <select id="is_travel_game" class="form-control">
+              <option value="false">否</option>
+              <option value="true">是</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>連續客場場數</label>
+            <input type="number" id="consecutive_away_games" class="form-control" value="4" />
+          </div>
+          <div class="form-group">
+            <label>連續出賽場數</label>
+            <input type="number" id="consecutive_games_played" class="form-control" value="6" />
+          </div>
+          <div class="form-group">
+            <label>距上場天數</label>
+            <input type="number" id="days_since_last_game" class="form-control" value="1" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Pitcher -->
+      <div class="tab-pane" id="tab-pitcher">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <!-- Home Pitcher -->
+          <div>
+            <div class="form-section-title" style="color:var(--cyan);">
+              <i class="fa-solid fa-house"></i> 主隊先發投手
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="form-group"><label>ERA</label><input type="number" id="home_era" class="form-control" step="0.01" value="2.45" /></div>
+              <div class="form-group"><label>WHIP</label><input type="number" id="home_whip" class="form-control" step="0.01" value="0.98" /></div>
+              <div class="form-group"><label>FIP</label><input type="number" id="home_fip" class="form-control" step="0.01" value="2.80" /></div>
+              <div class="form-group"><label>xERA</label><input type="number" id="home_xera" class="form-control" step="0.01" value="2.90" /></div>
+              <div class="form-group"><label>K/9</label><input type="number" id="home_k9" class="form-control" step="0.1" value="9.8" /></div>
+              <div class="form-group"><label>BB/9</label><input type="number" id="home_bb9" class="form-control" step="0.1" value="2.1" /></div>
+              <div class="form-group"><label>休息天數</label><input type="number" id="home_rest_days" class="form-control" value="6" /></div>
+              <div class="form-group">
+                <label>投球慣用手</label>
+                <select id="home_handedness" class="form-control">
+                  <option value="R">右投</option>
+                  <option value="L">左投</option>
+                </select>
+              </div>
+              <div class="form-group"><label>主場ERA</label><input type="number" id="home_pitcher_home_era" class="form-control" step="0.01" value="2.10" /></div>
+              <div class="form-group"><label>對戰本隊ERA</label><input type="number" id="home_pitcher_vs_opp_era" class="form-control" step="0.01" value="2.15" /></div>
+              <div class="form-group"><label>對戰場次</label><input type="number" id="home_pitcher_vs_opp_games" class="form-control" value="8" /></div>
+              <div class="form-group"><label>對左打OPS</label><input type="number" id="home_vs_lhb_ops" class="form-control" step="0.001" value="0.640" /></div>
+              <div class="form-group"><label>對右打OPS</label><input type="number" id="home_vs_rhb_ops" class="form-control" step="0.001" value="0.680" /></div>
+            </div>
+            <div class="form-group mt-2">
+              <label>近5場ERA (逗號分隔)</label>
+              <input type="text" id="home_recent_5_games" class="form-control" placeholder="1.8, 3.6, 2.0, 1.5, 2.7" value="1.8, 3.6, 2.0, 1.5, 2.7" />
+            </div>
+          </div>
+
+          <!-- Away Pitcher -->
+          <div>
+            <div class="form-section-title" style="color:var(--purple);">
+              <i class="fa-solid fa-plane"></i> 客隊先發投手
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="form-group"><label>ERA</label><input type="number" id="away_era" class="form-control" step="0.01" value="3.85" /></div>
+              <div class="form-group"><label>WHIP</label><input type="number" id="away_whip" class="form-control" step="0.01" value="1.22" /></div>
+              <div class="form-group"><label>FIP</label><input type="number" id="away_fip" class="form-control" step="0.01" value="3.70" /></div>
+              <div class="form-group"><label>xERA</label><input type="number" id="away_xera" class="form-control" step="0.01" value="3.95" /></div>
+              <div class="form-group"><label>K/9</label><input type="number" id="away_k9" class="form-control" step="0.1" value="7.2" /></div>
+              <div class="form-group"><label>BB/9</label><input type="number" id="away_bb9" class="form-control" step="0.1" value="3.1" /></div>
+              <div class="form-group"><label>休息天數</label><input type="number" id="away_rest_days" class="form-control" value="5" /></div>
+              <div class="form-group">
+                <label>投球慣用手</label>
+                <select id="away_handedness" class="form-control">
+                  <option value="R">右投</option>
+                  <option value="L" selected>左投</option>
+                </select>
+              </div>
+              <div class="form-group"><label>客場ERA</label><input type="number" id="away_pitcher_away_era" class="form-control" step="0.01" value="4.30" /></div>
+              <div class="form-group"><label>對戰本隊ERA</label><input type="number" id="away_pitcher_vs_opp_era" class="form-control" step="0.01" value="4.20" /></div>
+              <div class="form-group"><label>對戰場次</label><input type="number" id="away_pitcher_vs_opp_games" class="form-control" value="6" /></div>
+              <div class="form-group"><label>對左打OPS</label><input type="number" id="away_vs_lhb_ops" class="form-control" step="0.001" value="0.720" /></div>
+              <div class="form-group"><label>對右打OPS</label><input type="number" id="away_vs_rhb_ops" class="form-control" step="0.001" value="0.760" /></div>
+            </div>
+            <div class="form-group mt-2">
+              <label>近5場ERA (逗號分隔)</label>
+              <input type="text" id="away_recent_5_games" class="form-control" placeholder="5.2, 3.1, 4.8, 3.6, 4.1" value="5.2, 3.1, 4.8, 3.6, 4.1" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Bullpen -->
+      <div class="tab-pane" id="tab-bullpen">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <!-- Home Bullpen -->
+          <div>
+            <div class="form-section-title" style="color:var(--cyan);"><i class="fa-solid fa-house"></i> 主隊牛棚</div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="form-group"><label>牛棚ERA</label><input type="number" id="home_bullpen_era" class="form-control" step="0.01" value="2.88" /></div>
+              <div class="form-group"><label>近7天投球局數</label><input type="number" id="home_bullpen_7ip" class="form-control" step="0.1" value="8.2" /></div>
+              <div class="form-group"><label>近3天投球局數</label><input type="number" id="home_bullpen_3ip" class="form-control" step="0.1" value="2.1" /></div>
+              <div class="form-group"><label>連續出賽天數</label><input type="number" id="home_bullpen_consec" class="form-control" value="1" /></div>
+              <div class="form-group">
+                <label>終結者可用</label>
+                <select id="home_closer_available" class="form-control">
+                  <option value="true">是</option>
+                  <option value="false">否</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>中繼投手疲勞</label>
+                <select id="home_setup_fatigued" class="form-control">
+                  <option value="false">否</option>
+                  <option value="true">是</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Away Bullpen -->
+          <div>
+            <div class="form-section-title" style="color:var(--purple);"><i class="fa-solid fa-plane"></i> 客隊牛棚</div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="form-group"><label>牛棚ERA</label><input type="number" id="away_bullpen_era" class="form-control" step="0.01" value="4.15" /></div>
+              <div class="form-group"><label>近7天投球局數</label><input type="number" id="away_bullpen_7ip" class="form-control" step="0.1" value="12.1" /></div>
+              <div class="form-group"><label>近3天投球局數</label><input type="number" id="away_bullpen_3ip" class="form-control" step="0.1" value="5.2" /></div>
+              <div class="form-group"><label>連續出賽天數</label><input type="number" id="away_bullpen_consec" class="form-control" value="3" /></div>
+              <div class="form-group">
+                <label>終結者可用</label>
+                <select id="away_closer_available" class="form-control">
+                  <option value="true">是</option>
+                  <option value="false" selected>否</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>中繼投手疲勞</label>
+                <select id="away_setup_fatigued" class="form-control">
+                  <option value="false">否</option>
+                  <option value="true" selected>是</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Batting & Defense -->
+      <div class="tab-pane" id="tab-batting">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <!-- Home Team -->
+          <div>
+            <div class="form-section-title" style="color:var(--cyan);"><i class="fa-solid fa-house"></i> 主隊打線守備</div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="form-group"><label>OPS</label><input type="number" id="home_ops" class="form-control" step="0.001" value="0.768" /></div>
+              <div class="form-group"><label>wRC+</label><input type="number" id="home_wrc_plus" class="form-control" value="112" /></div>
+              <div class="form-group"><label>SLG</label><input type="number" id="home_slg" class="form-control" step="0.001" value="0.410" /></div>
+              <div class="form-group"><label>OBP</label><input type="number" id="home_obp" class="form-control" step="0.001" value="0.348" /></div>
+              <div class="form-group"><label>近5場戰績</label><input type="text" id="home_last_5" class="form-control" placeholder="4-1" value="4-1" /></div>
+              <div class="form-group"><label>近10場戰績</label><input type="text" id="home_last_10" class="form-control" placeholder="7-3" value="7-3" /></div>
+              <div class="form-group"><label>近20場戰績</label><input type="text" id="home_last_20" class="form-control" placeholder="14-6" value="14-6" /></div>
+              <div class="form-group"><label>守備率</label><input type="number" id="home_fielding_pct" class="form-control" step="0.001" value="0.988" /></div>
+              <div class="form-group"><label>DRS</label><input type="number" id="home_drs" class="form-control" step="0.1" value="12.0" /></div>
+              <div class="form-group"><label>UZR</label><input type="number" id="home_uzr" class="form-control" step="0.1" value="8.5" /></div>
+            </div>
+          </div>
+
+          <!-- Away Team -->
+          <div>
+            <div class="form-section-title" style="color:var(--purple);"><i class="fa-solid fa-plane"></i> 客隊打線守備</div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="form-group"><label>OPS</label><input type="number" id="away_ops" class="form-control" step="0.001" value="0.735" /></div>
+              <div class="form-group"><label>wRC+</label><input type="number" id="away_wrc_plus" class="form-control" value="98" /></div>
+              <div class="form-group"><label>SLG</label><input type="number" id="away_slg" class="form-control" step="0.001" value="0.385" /></div>
+              <div class="form-group"><label>OBP</label><input type="number" id="away_obp" class="form-control" step="0.001" value="0.328" /></div>
+              <div class="form-group"><label>近5場戰績</label><input type="text" id="away_last_5" class="form-control" placeholder="2-3" value="2-3" /></div>
+              <div class="form-group"><label>近10場戰績</label><input type="text" id="away_last_10" class="form-control" placeholder="4-6" value="4-6" /></div>
+              <div class="form-group"><label>近20場戰績</label><input type="text" id="away_last_20" class="form-control" placeholder="9-11" value="9-11" /></div>
+              <div class="form-group"><label>守備率</label><input type="number" id="away_fielding_pct" class="form-control" step="0.001" value="0.981" /></div>
+              <div class="form-group"><label>DRS</label><input type="number" id="away_drs" class="form-control" step="0.1" value="3.0" /></div>
+              <div class="form-group"><label>UZR</label><input type="number" id="away_uzr" class="form-control" step="0.1" value="1.2" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Odds -->
+      <div class="tab-pane" id="tab-odds-tab">
+        <div class="form-section-title"><i class="fa-solid fa-dollar-sign"></i> 賠率與投注設定</div>
+        <div class="form-grid">
+          <div class="form-group"><label>主隊獨贏賠率</label><input type="number" id="home_ml" class="form-control" step="0.01" value="1.72" /></div>
+          <div class="form-group"><label>客隊獨贏賠率</label><input type="number" id="away_ml" class="form-control" step="0.01" value="2.15" /></div>
+          <div class="form-group"><label>開盤讓分</label><input type="number" id="open_line" class="form-control" step="0.5" value="-1.5" /></div>
+          <div class="form-group"><label>目前讓分</label><input type="number" id="current_line" class="form-control" step="0.5" value="-1.8" /></div>
+          <div class="form-group"><label>開盤總分</label><input type="number" id="open_total" class="form-control" step="0.5" value="7.5" /></div>
+          <div class="form-group"><label>目前總分</label><input type="number" id="current_total" class="form-control" step="0.5" value="7.0" /></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="form-section-title"><i class="fa-solid fa-piggy-bank"></i> 投注計算設定</div>
+        <div class="form-grid">
+          <div class="form-group"><label>本金金額 (¥)</label><input type="number" id="bankroll" class="form-control" value="10000" /></div>
+          <div class="form-group"><label>您的投注賠率 (主隊)</label><input type="number" id="your_odds" class="form-control" step="0.01" value="1.76" /></div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-lg" onclick="submitAnalysis()">
+          <i class="fa-solid fa-rocket"></i> 開始 AI 分析
+        </button>
+        <button class="btn btn-secondary btn-lg" onclick="loadSampleData()">
+          <i class="fa-solid fa-flask"></i> 載入範例資料
+        </button>
+      </div>
+
+    </div><!-- /form-panel-body -->
+  </div><!-- /form-panel -->
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     RESULTS SECTION
+     ════════════════════════════════════════════════════════════ -->
+<section class="section" id="results-section">
+
+  <!-- Match Header -->
+  <div class="match-header mb-3">
+    <div class="match-teams">
+      <div class="match-team home">主隊</div>
+      <div class="match-vs">VS</div>
+      <div class="match-team away">客隊</div>
+    </div>
+    <div class="match-meta">
+      <span><i class="fa-solid fa-location-dot"></i> <span class="match-stadium">球場</span></span>
+      <span><i class="fa-regular fa-clock"></i> <span class="match-datetime">時間</span></span>
+      <span><i class="fa-solid fa-sun"></i> <span class="match-day-night">夜場</span></span>
+    </div>
+  </div>
+
+  <!-- WIN PROBABILITY GAUGES -->
+  <div class="win-prob-section">
+    <div class="win-gauge-card home">
+      <div class="card-title"><i class="fa-solid fa-chart-pie"></i> 主隊勝率</div>
+      <div class="win-gauge-wrapper">
+        <svg class="win-gauge-svg" viewBox="0 0 140 140">
+          <circle class="win-gauge-track" cx="70" cy="70" r="60" />
+          <circle class="win-gauge-fill home-fill" id="win-gauge-fill-home" cx="70" cy="70" r="60" />
+        </svg>
+        <div class="win-gauge-label">
+          <span class="win-gauge-pct home" id="win-gauge-pct-home">—</span>
+          <span class="win-gauge-sub">勝率</span>
+        </div>
+      </div>
+      <div class="win-gauge-team home" id="win-gauge-team-home">主隊</div>
+      <div class="text-secondary text-sm mt-1" id="win-gauge-composite-home"></div>
+    </div>
+
+    <div class="win-gauge-card away">
+      <div class="card-title"><i class="fa-solid fa-chart-pie"></i> 客隊勝率</div>
+      <div class="win-gauge-wrapper">
+        <svg class="win-gauge-svg" viewBox="0 0 140 140">
+          <circle class="win-gauge-track" cx="70" cy="70" r="60" />
+          <circle class="win-gauge-fill away-fill" id="win-gauge-fill-away" cx="70" cy="70" r="60" />
+        </svg>
+        <div class="win-gauge-label">
+          <span class="win-gauge-pct away" id="win-gauge-pct-away">—</span>
+          <span class="win-gauge-sub">勝率</span>
+        </div>
+      </div>
+      <div class="win-gauge-team away" id="win-gauge-team-away">客隊</div>
+    </div>
+  </div>
+
+  <!-- BET SCORE DIAL + STAR RATING -->
+  <div class="bet-score-section mb-3">
+    <div class="bet-score-title"><i class="fa-solid fa-star"></i> 投注品質評分 (Bet Score)</div>
+    <div class="bet-score-dial-wrap">
+      <canvas id="bet-score-canvas" width="220" height="130"></canvas>
+      <div class="dial-center-text">
+        <div class="dial-score-num" id="dial-score-num" style="color:var(--cyan);">—</div>
+        <div class="dial-grade text-secondary" id="dial-grade">Grade</div>
+      </div>
+    </div>
+
+    <div id="star-rating-display" class="star-rating"></div>
+    <div id="rec-text" class="text-secondary text-sm mt-1">—</div>
+  </div>
+
+  <!-- SCORE BARS OVERVIEW -->
+  <div class="glass-card mb-3">
+    <div class="card-title"><i class="fa-solid fa-sliders"></i> 各項分析分數對比</div>
+
+    <div id="pitcher-bar" class="score-bar-wrap mb-2">
+      <div class="score-bar-header">
+        <span class="score-bar-label"><i class="fa-solid fa-baseball-bat-ball"></i> 先發投手</span>
+        <div class="score-bar-values">
+          <span class="score-val home home-val">—</span>
+          <span class="text-muted">vs</span>
+          <span class="score-val away away-val">—</span>
+        </div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill home-fill"></div></div>
+      <div class="score-bar-track mt-1"><div class="score-bar-fill away-fill away-bar"></div></div>
+    </div>
+
+    <div id="bullpen-bar" class="score-bar-wrap mb-2">
+      <div class="score-bar-header">
+        <span class="score-bar-label"><i class="fa-solid fa-users"></i> 牛棚</span>
+        <div class="score-bar-values">
+          <span class="score-val home home-val">—</span>
+          <span class="text-muted">vs</span>
+          <span class="score-val away away-val">—</span>
+        </div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill home-fill"></div></div>
+      <div class="score-bar-track mt-1"><div class="score-bar-fill away-fill away-bar"></div></div>
+    </div>
+
+    <div id="lineup-bar" class="score-bar-wrap mb-2">
+      <div class="score-bar-header">
+        <span class="score-bar-label"><i class="fa-solid fa-chart-bar"></i> 打線</span>
+        <div class="score-bar-values">
+          <span class="score-val home home-val">—</span>
+          <span class="text-muted">vs</span>
+          <span class="score-val away away-val">—</span>
+        </div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill home-fill"></div></div>
+      <div class="score-bar-track mt-1"><div class="score-bar-fill away-fill away-bar"></div></div>
+    </div>
+
+    <div id="defense-bar" class="score-bar-wrap mb-2">
+      <div class="score-bar-header">
+        <span class="score-bar-label"><i class="fa-solid fa-shield"></i> 守備</span>
+        <div class="score-bar-values">
+          <span class="score-val home home-val">—</span>
+          <span class="text-muted">vs</span>
+          <span class="score-val away away-val">—</span>
+        </div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill home-fill"></div></div>
+      <div class="score-bar-track mt-1"><div class="score-bar-fill away-fill away-bar"></div></div>
+    </div>
+
+    <div id="form-bar" class="score-bar-wrap">
+      <div class="score-bar-header">
+        <span class="score-bar-label"><i class="fa-solid fa-fire"></i> 近期狀態</span>
+        <div class="score-bar-values">
+          <span class="score-val home home-val">—</span>
+          <span class="text-muted">vs</span>
+          <span class="score-val away away-val">—</span>
+        </div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill home-fill"></div></div>
+      <div class="score-bar-track mt-1"><div class="score-bar-fill away-fill away-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- 12 ANALYSIS CARDS GRID -->
+  <div class="analysis-grid mb-3">
+
+    <!-- Pitcher Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-baseball-bat-ball"></i> 先發投手分析</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div style="text-align:center;">
+          <div class="text-cyan font-black" id="pitcher-home-team" style="font-size:1rem;margin-bottom:4px;">主隊</div>
+          <div class="text-cyan" style="font-size:2rem;font-weight:900;" id="pitcher-home-score">—</div>
+          <div class="text-xs text-muted" id="pitcher-home-stats">ERA / WHIP / K9</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="text-purple font-black" id="pitcher-away-team" style="font-size:1rem;margin-bottom:4px;">客隊</div>
+          <div class="text-purple" style="font-size:2rem;font-weight:900;" id="pitcher-away-score">—</div>
+          <div class="text-xs text-muted" id="pitcher-away-stats">ERA / WHIP / K9</div>
+        </div>
+      </div>
+      <ul class="notes-list" id="pitcher-notes"></ul>
+    </div>
+
+    <!-- Bullpen Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-users"></i> 牛棚分析</div>
+      </div>
+      <table class="stats-table">
+        <thead>
+          <tr><th></th><th class="text-cyan">主隊</th><th class="text-purple">客隊</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="text-muted">ERA</td><td class="stat-highlight" id="bullpen-home-era">—</td><td style="color:var(--purple);font-weight:700" id="bullpen-away-era">—</td></tr>
+          <tr><td class="text-muted">疲勞指數</td><td id="bullpen-home-fatigue">—</td><td id="bullpen-away-fatigue">—</td></tr>
+          <tr><td class="text-muted">終結者</td><td id="bullpen-home-closer">—</td><td id="bullpen-away-closer">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Lineup Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-chart-bar"></i> 打線分析</div>
+      </div>
+      <table class="stats-table">
+        <thead>
+          <tr><th></th><th class="text-cyan">主隊</th><th class="text-purple">客隊</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="text-muted">預期得分</td><td class="stat-highlight" id="lineup-home-re">—</td><td style="color:var(--purple);font-weight:700" id="lineup-away-re">—</td></tr>
+          <tr><td class="text-muted">wRC+</td><td id="lineup-home-wrc">—</td><td id="lineup-away-wrc">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Park Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-tree"></i> 球場因子</div>
+      </div>
+      <table class="stats-table">
+        <tbody>
+          <tr><td class="text-muted">球場類型</td><td class="stat-highlight" id="park-type">—</td></tr>
+          <tr><td class="text-muted">球場因子</td><td id="park-factor">—</td></tr>
+          <tr><td class="text-muted">全壘打因子</td><td id="park-hr-factor">—</td></tr>
+          <tr><td class="text-muted">得分調整</td><td id="park-run-adj">—</td></tr>
+        </tbody>
+      </table>
+      <ul class="notes-list mt-2" id="park-notes"></ul>
+    </div>
+
+    <!-- Weather Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-cloud-sun"></i> 天氣分析</div>
+      </div>
+      <table class="stats-table">
+        <tbody>
+          <tr><td class="text-muted">HR影響</td><td class="stat-highlight" id="weather-hr-impact">—</td></tr>
+          <tr><td class="text-muted">得分影響</td><td id="weather-run-impact">—</td></tr>
+          <tr><td class="text-muted">投手影響</td><td id="weather-pitcher-impact">—</td></tr>
+          <tr><td class="text-muted">氣溫</td><td id="weather-temp">—</td></tr>
+          <tr><td class="text-muted">降雨機率</td><td id="weather-rain">—</td></tr>
+          <tr><td class="text-muted">風速/方向</td><td id="weather-wind">—</td></tr>
+        </tbody>
+      </table>
+      <ul class="notes-list mt-2" id="weather-notes"></ul>
+    </div>
+
+    <!-- Form Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-fire"></i> 近期狀態</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div class="text-cyan text-sm font-bold mb-1">主隊</div>
+          <div class="mb-1"><span class="pill" id="form-home-trend">—</span></div>
+          <div class="text-xs text-muted" id="form-home-records">—</div>
+        </div>
+        <div>
+          <div class="text-purple text-sm font-bold mb-1">客隊</div>
+          <div class="mb-1"><span class="pill" id="form-away-trend">—</span></div>
+          <div class="text-xs text-muted" id="form-away-records">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-calendar-days"></i> 賽程疲勞</div>
+      </div>
+      <div id="schedule-home-bar" class="score-bar-wrap mb-2">
+        <div class="score-bar-header">
+          <span class="score-bar-label fatigue-label">主隊</span>
+          <span class="score-val home fatigue-val">—</span>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill fatigue-fill" style="width:0%"></div></div>
+      </div>
+      <div id="schedule-away-bar" class="score-bar-wrap">
+        <div class="score-bar-header">
+          <span class="score-bar-label fatigue-label">客隊</span>
+          <span class="score-val away fatigue-val">—</span>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill fatigue-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Odds Analysis Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-dollar-sign"></i> 賠率分析</div>
+      </div>
+      <table class="stats-table">
+        <tbody>
+          <tr><td class="text-muted">價值投注</td><td id="odds-value-bet">—</td></tr>
+          <tr><td class="text-muted">精明資金</td><td id="odds-sharp-lean">—</td></tr>
+          <tr><td class="text-muted">蒸汽移動</td><td id="odds-steam">—</td></tr>
+          <tr><td class="text-muted">主隊隱含勝率</td><td id="odds-home-impl">—</td></tr>
+          <tr><td class="text-muted">客隊隱含勝率</td><td id="odds-away-impl">—</td></tr>
+        </tbody>
+      </table>
+      <ul class="notes-list mt-2" id="odds-notes"></ul>
+    </div>
+
+    <!-- Totals Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-calculator"></i> 大小分預測</div>
+      </div>
+      <div style="text-align:center;margin-bottom:12px;">
+        <div class="text-muted text-xs">預測總分</div>
+        <div class="text-cyan" style="font-size:2.5rem;font-weight:900;" id="totals-predicted">—</div>
+        <div class="font-bold" id="totals-ou-lean" style="font-size:1rem;">—</div>
+      </div>
+      <table class="stats-table">
+        <tbody>
+          <tr><td class="text-muted">主隊預測得分</td><td class="stat-highlight" id="totals-home-runs">—</td></tr>
+          <tr><td class="text-muted">客隊預測得分</td><td style="color:var(--purple);font-weight:700" id="totals-away-runs">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ELO / Kelly / CLV Card -->
+    <div class="analysis-card">
+      <div class="card-header">
+        <div class="card-icon-title"><i class="fa-solid fa-chart-line"></i> ELO / Kelly / CLV</div>
+      </div>
+      <table class="stats-table">
+        <thead><tr><th></th><th class="text-cyan">主隊</th><th class="text-purple">客隊</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="text-muted">ELO勝率</td>
+            <td class="stat-highlight" id="elo-home-prob">—</td>
+            <td style="color:var(--purple);font-weight:700" id="elo-away-prob">—</td>
+          </tr>
+          <tr>
+            <td class="text-muted">ELO評分</td>
+            <td id="elo-home-elo">—</td>
+            <td id="elo-away-elo">—</td>
+          </tr>
+          <tr>
+            <td class="text-muted">ELO差距</td>
+            <td colspan="2" id="elo-diff" class="stat-highlight">—</td>
+          </tr>
+          <tr><td class="text-muted">Kelly%</td><td id="kelly-home-pct">—</td><td id="kelly-away-pct">—</td></tr>
+          <tr><td class="text-muted">1/4 Kelly%</td><td id="kelly-home-frac">—</td><td id="kelly-away-frac">—</td></tr>
+          <tr><td class="text-muted">建議投注額</td><td id="kelly-home-amt">—</td><td id="kelly-away-amt">—</td></tr>
+          <tr><td class="text-muted">CLV</td><td id="clv-home">—</td><td id="clv-away">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /analysis-grid -->
+
+  <!-- SCORE PREDICTION TOP 3 -->
+  <div class="glass-card mb-3">
+    <div class="card-title"><i class="fa-solid fa-trophy"></i> 最可能比分預測</div>
+    <div id="top3-scores" class="score-prediction-grid"></div>
+  </div>
+
+  <!-- MONTE CARLO SECTION -->
+  <div class="monte-carlo-section mb-3">
+    <div class="section-header" style="margin-bottom:16px;">
+      <h3 class="section-title" style="font-size:1.1rem;">
+        <i class="fa-solid fa-dice"></i> 蒙地卡羅模擬 (10,000 次)
+      </h3>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+      <div class="score-pred-card">
+        <div class="score-pred-rank">主隊勝率</div>
+        <div class="score-pred-val" id="mc-home-win">—</div>
+      </div>
+      <div class="score-pred-card">
+        <div class="score-pred-rank">客隊勝率</div>
+        <div class="score-pred-val" style="color:var(--purple)" id="mc-away-win">—</div>
+      </div>
+      <div class="score-pred-card">
+        <div class="score-pred-rank">平均總分</div>
+        <div class="score-pred-val" style="color:var(--warning)" id="mc-mean-total">—</div>
+      </div>
+      <div class="score-pred-card">
+        <div class="score-pred-rank">大分機率</div>
+        <div class="score-pred-val" style="color:var(--danger)" id="mc-over">—</div>
+      </div>
+      <div class="score-pred-card">
+        <div class="score-pred-rank">小分機率</div>
+        <div class="score-pred-val" style="color:var(--success)" id="mc-under">—</div>
+      </div>
+      <div class="score-pred-card">
+        <div class="score-pred-rank">95% 信賴區間</div>
+        <div class="score-pred-val" style="font-size:1.1rem" id="mc-ci">—</div>
+      </div>
+    </div>
+    <div style="height:220px;position:relative;">
+      <canvas id="mc-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- FINAL RECOMMENDATION -->
+  <div class="recommendation-box mb-3">
+    <div class="rec-label"><i class="fa-solid fa-star"></i> AI 最終建議</div>
+    <div class="rec-winner" id="rec-winner">—</div>
+    <div id="star-rating-rec" class="star-rating mb-3" style="font-size:1.5rem;"></div>
+    <div class="rec-details">
+      <div class="rec-detail-item">
+        <div class="rec-detail-label">讓分建議</div>
+        <div class="rec-detail-value" id="rec-spread">—</div>
+      </div>
+      <div class="rec-detail-item">
+        <div class="rec-detail-label">大小分建議</div>
+        <div class="rec-detail-value" id="rec-total">—</div>
+      </div>
+      <div class="rec-detail-item">
+        <div class="rec-detail-label">主隊勝率</div>
+        <div class="rec-detail-value text-cyan" id="rec-home-prob">—</div>
+      </div>
+      <div class="rec-detail-item">
+        <div class="rec-detail-label">客隊勝率</div>
+        <div class="rec-detail-value text-purple" id="rec-away-prob">—</div>
+      </div>
+    </div>
+    <p class="rec-reasoning" id="rec-reasoning">—</p>
+  </div>
+
+</section><!-- /results-section -->
+
+<!-- ════════════════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <p>
+    NPB AI 分析儀表板 &nbsp;·&nbsp;
+    資料由 <a href="https://the-odds-api.com" target="_blank">The Odds API</a> 提供 &nbsp;·&nbsp;
+    僅供參考，投注請量力而為
+  </p>
+</footer>
+
+<!-- App JS -->
+<script src="/static/js/app.js"></script>
+
+<script>
+  // After results are rendered, also update the star rating in recommendation box
+  const _origRender = window.renderResults;
+  // Sync star rating in recommendation box with main star rating after render
+  document.addEventListener('DOMContentLoaded', () => {
+    const origRender = window.renderResults;
+    // Wrap renderResults to also sync rec star rating
+    window.renderResults = function(result) {
+      origRender(result);
+      // Sync star rating in recommendation box
+      const recStars = document.getElementById('star-rating-rec');
+      if (recStars) {
+        recStars.innerHTML = '';
+        for (let i = 1; i <= 5; i++) {
+          const star = document.createElement('span');
+          star.className = `star${i <= result.star_rating ? ' lit' : ''}`;
+          star.textContent = '★';
+          recStars.appendChild(star);
+        }
+      }
+    };
+  });
+</script>
+
+</body>
+</html>
