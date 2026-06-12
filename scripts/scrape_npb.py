@@ -85,6 +85,16 @@ SPORTS_YAHOO_URLS = {
     'indv_pitching': 'https://sports.yahoo.co.jp/baseball/npb/stats/player/?kind=pit',
     'schedule':      'https://sports.yahoo.co.jp/baseball/npb/schedule/',
 }
+# baseballdata.jp current-season league pages (Google-indexed for 2026)
+BDJP_LEAGUE_URLS = [
+    'https://baseballdata.jp/en/p/index.html',   # Pacific League
+    'https://baseballdata.jp/en/c/index.html',   # Central League
+]
+# Yakyu Cosmopolitan — English NPB stats, updated regularly
+YAKYUCOSMO_URLS = {
+    'batting':  f'https://www.yakyucosmo.com/batting-stats/{SEASON}-npb/',
+    'pitching': f'https://www.yakyucosmo.com/pitching-stats/{SEASON}-npb/',
+}
 
 # Yahoo Japan NPB stats (Japanese — uses existing Japanese column parsers)
 YAHOO_URLS = {
@@ -1098,6 +1108,194 @@ def scrape_wikipedia_standings() -> dict:
     return {}
 
 
+def parse_yakyucosmo_batting(soup: BeautifulSoup) -> dict:
+    """
+    Parse individual batting stats from yakyucosmo.com and aggregate to team level.
+    Columns expected: Player/Name, Team/Tm, G, PA, AB, H, HR, R, BB, SO, AVG, OBP, SLG, OPS
+    """
+    team_stats: dict = {}
+    if soup is None:
+        return {}
+
+    for headers, rows in extract_tables(soup):
+        h_lower = [h.lower() for h in headers]
+        if not any(k in h_lower for k in ['avg', 'ops', 'obp', 'slg']):
+            continue
+        col = {h.lower(): i for i, h in enumerate(headers)}
+        team_col = next((col[k] for k in ('team', 'tm') if k in col), None)
+        if team_col is None:
+            continue
+
+        for cells in rows:
+            if not cells or len(cells) < 5:
+                continue
+            raw = cells[team_col] if team_col < len(cells) else ''
+            team = normalize_team(raw)
+            if not team or team not in ALL_TEAMS:
+                continue
+
+            def gc(key, default=0.0, cast=safe_float):
+                k = key.lower()
+                return cast(cells[col[k]], default) if k in col and col[k] < len(cells) else default
+
+            pa  = gc('pa', 1, safe_int) or 1
+            obp = gc('obp', 0.0)
+            slg = gc('slg', 0.0)
+            ops = gc('ops', 0.0)
+            avg = gc('avg', 0.0)
+            hr  = gc('hr', 0, safe_int)
+            r   = gc('r', 0, safe_int)
+
+            if team not in team_stats:
+                team_stats[team] = {'pa': 0, 'obp_sum': 0.0, 'slg_sum': 0.0,
+                                    'ops_sum': 0.0, 'avg_sum': 0.0, 'hr': 0, 'r': 0}
+            ts = team_stats[team]
+            ts['pa'] += pa
+            ts['obp_sum'] += obp * pa
+            ts['slg_sum'] += slg * pa
+            ts['ops_sum'] += ops * pa
+            ts['avg_sum'] += avg * pa
+            ts['hr'] += hr
+            ts['r'] += r
+
+        if team_stats:
+            break
+
+    results = {}
+    for team, ts in team_stats.items():
+        pa = ts['pa'] or 1
+        results[team] = {
+            'avg': round(ts['avg_sum'] / pa, 3),
+            'obp': round(ts['obp_sum'] / pa, 3),
+            'slg': round(ts['slg_sum'] / pa, 3),
+            'ops': round(ts['ops_sum'] / pa, 3),
+            'hr': ts['hr'],
+            'runs': ts['r'],
+        }
+    return results
+
+
+def parse_yakyucosmo_pitching(soup: BeautifulSoup) -> tuple[dict, dict]:
+    """
+    Parse individual pitching from yakyucosmo.com.
+    Returns (team_pitching_dict, pitcher_data_dict).
+    Columns: Player/Name, Team/Tm, W, L, ERA, G, GS, SV, IP, H, BB, SO, WHIP
+    """
+    team_agg: dict = {}
+    pitcher_data: dict = {}
+    if soup is None:
+        return {}, {}
+
+    for headers, rows in extract_tables(soup):
+        h_lower = [h.lower() for h in headers]
+        if not any(k in h_lower for k in ['era', 'whip', 'ip']):
+            continue
+        col = {h.lower(): i for i, h in enumerate(headers)}
+        team_col = next((col[k] for k in ('team', 'tm') if k in col), None)
+        name_col = next((col[k] for k in ('player', 'name', 'pitcher') if k in col), None)
+        if team_col is None:
+            continue
+
+        for cells in rows:
+            if not cells or len(cells) < 5:
+                continue
+            raw = cells[team_col] if team_col < len(cells) else ''
+            team = normalize_team(raw)
+            if not team or team not in ALL_TEAMS:
+                continue
+            name = cells[name_col] if name_col is not None and name_col < len(cells) else '?'
+
+            def gc(key, default=0.0, cast=safe_float):
+                k = key.lower()
+                return cast(cells[col[k]], default) if k in col and col[k] < len(cells) else default
+
+            era  = gc('era', 4.00)
+            ip   = parse_ip(cells[col['ip']] if 'ip' in col and col['ip'] < len(cells) else '0')
+            h_a  = gc('h', 0, safe_int)
+            bb   = gc('bb', 0, safe_int)
+            so   = gc('so', 0, safe_int) or gc('k', 0, safe_int)
+            sv   = gc('sv', 0, safe_int)
+            g    = gc('g', 0, safe_int)
+            w    = gc('w', 0, safe_int)
+            l_v  = gc('l', 0, safe_int)
+            whip = gc('whip', 0.0)
+            if whip == 0 and ip > 0:
+                whip = calc_whip(h_a, bb, ip)
+
+            if team not in pitcher_data:
+                pitcher_data[team] = []
+            pitcher_data[team].append({
+                'name': name, 'era': era,
+                'whip': whip if whip > 0 else 1.30,
+                'fip_est': estimate_fip(era, whip if whip > 0 else 1.30),
+                'k9': calc_k9(so, ip) if ip > 0 else 7.0,
+                'bb9': calc_bb9(bb, ip) if ip > 0 else 3.0,
+                'ip': round(ip, 1), 'games': g, 'wins': w, 'losses': l_v, 'handedness': 'R',
+            })
+
+            if team not in team_agg:
+                team_agg[team] = {'ip': 0.0, 'er': 0.0, 'h': 0, 'bb': 0, 'so': 0, 'sv': 0}
+            ta = team_agg[team]
+            ta['ip'] += ip
+            ta['er'] += era * ip / 9 if ip > 0 else 0
+            ta['h']  += h_a
+            ta['bb'] += bb
+            ta['so'] += so
+            ta['sv'] += sv
+
+        if pitcher_data:
+            for t in pitcher_data:
+                pitcher_data[t].sort(key=lambda p: p['ip'], reverse=True)
+            break
+
+    team_pitching = {}
+    for team, ta in team_agg.items():
+        ip = ta['ip'] or 1
+        team_pitching[team] = {
+            'era':   round(ta['er'] / ip * 9, 2),
+            'whip':  calc_whip(ta['h'], ta['bb'], ip),
+            'k9':    calc_k9(ta['so'], ip),
+            'bb9':   calc_bb9(ta['bb'], ip),
+            'saves': ta['sv'],
+            'holds': 0,
+        }
+    return team_pitching, pitcher_data
+
+
+def scrape_yakyucosmo() -> tuple[dict, dict, dict]:
+    """Scrape yakyucosmo.com for 2026 NPB batting and pitching (individual → aggregated)."""
+    batting, pitching, pitchers = {}, {}, {}
+
+    print(f'\n[yakyucosmo.com] batting {SEASON}...')
+    s = fetch_page(YAKYUCOSMO_URLS['batting'])
+    if s is None:
+        s = fetch_page_alt(YAKYUCOSMO_URLS['batting'], referer='https://www.yakyucosmo.com/')
+    if s:
+        parsed = parse_yakyucosmo_batting(s)
+        if not parsed:
+            parsed = parse_bdjp_team_batting(s)
+        print(f'  → {len(parsed)} teams')
+        batting.update(parsed)
+    time.sleep(0.5)
+
+    print(f'[yakyucosmo.com] pitching {SEASON}...')
+    s = fetch_page(YAKYUCOSMO_URLS['pitching'])
+    if s is None:
+        s = fetch_page_alt(YAKYUCOSMO_URLS['pitching'], referer='https://www.yakyucosmo.com/')
+    if s:
+        parsed_pit, parsed_ind = parse_yakyucosmo_pitching(s)
+        if not parsed_pit:
+            parsed_pit = parse_bdjp_team_pitching(s)
+        if not parsed_ind:
+            parsed_ind = parse_bdjp_individual_pitchers(s)
+        print(f'  → teams={len(parsed_pit)} pitchers={len(parsed_ind)}')
+        pitching.update(parsed_pit)
+        pitchers.update(parsed_ind)
+    time.sleep(0.5)
+
+    return batting, pitching, pitchers
+
+
 def scrape_nikkansports() -> tuple[dict, dict, dict, dict]:
     """Scrape nikkansports.com for NPB standings, batting, pitching, pitcher stats."""
     batting, pitching, pitchers, standings = {}, {}, {}, {}
@@ -1623,6 +1821,31 @@ def scrape_all_stats():
     print(f'  baseballdata.jp: bat={len(batting_data)} pit={len(pitching_data)} '
           f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
 
+    # ── Source 1b: baseballdata.jp current-season league pages ─────
+    # /en/p/ = Pacific League, /en/c/ = Central League (Google-indexed 2026)
+    print('\n[Source 1b] baseballdata.jp current league pages...')
+    for bdjp_url in BDJP_LEAGUE_URLS:
+        print(f'  GET {bdjp_url}')
+        s = fetch_page(bdjp_url)
+        if s is None:
+            s = fetch_page_alt(bdjp_url, referer='https://baseballdata.jp/en/')
+        if s:
+            parsed_std = parse_bdjp_standings(s)
+            parsed_bat = parse_bdjp_team_batting(s)
+            parsed_pit = parse_bdjp_team_pitching(s)
+            parsed_ind = parse_bdjp_individual_pitchers(s)
+            if parsed_std:
+                standings_data.update({k: v for k, v in parsed_std.items() if k not in standings_data})
+            if parsed_bat:
+                batting_data.update({k: v for k, v in parsed_bat.items() if k not in batting_data})
+            if parsed_pit:
+                pitching_data.update({k: v for k, v in parsed_pit.items() if k not in pitching_data})
+            if parsed_ind:
+                pitcher_data.update({k: v for k, v in parsed_ind.items() if k not in pitcher_data})
+            print(f'  → std={len(parsed_std)} bat={len(parsed_bat)} '
+                  f'pit={len(parsed_pit)} ind={len(parsed_ind)}')
+        time.sleep(0.8)
+
     # ── Source 2: Yahoo Japan baseball ────────────────────────────
     print(f'\n[Source 2] Yahoo Japan baseball...')
 
@@ -1703,6 +1926,18 @@ def scrape_all_stats():
         if sy_pitchers:
             pitcher_data.update({k: v for k, v in sy_pitchers.items() if k not in pitcher_data})
         print(f'  sports.yahoo: bat={len(batting_data)} pit={len(pitching_data)} '
+              f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+
+    # ── Source 2e: yakyucosmo.com (English NPB, individual → team) ────
+    if len(batting_data) < 6 or len(pitching_data) < 6 or len(pitcher_data) < 6:
+        yc_bat, yc_pit, yc_pitchers = scrape_yakyucosmo()
+        if yc_bat:
+            batting_data.update({k: v for k, v in yc_bat.items() if k not in batting_data})
+        if yc_pit:
+            pitching_data.update({k: v for k, v in yc_pit.items() if k not in pitching_data})
+        if yc_pitchers:
+            pitcher_data.update({k: v for k, v in yc_pitchers.items() if k not in pitcher_data})
+        print(f'  yakyucosmo: bat={len(batting_data)} pit={len(pitching_data)} '
               f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
 
     # ── Source 3: npb.jp — current year, then previous year fallback ──
