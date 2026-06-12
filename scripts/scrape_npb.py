@@ -42,12 +42,13 @@ HEADERS = {
 JST = pytz.timezone('Asia/Tokyo')
 SEASON = datetime.now(JST).year
 
-# ── API-Sports (primary real-time source) ────────────────────────────────────────
-API_SPORTS_KEY  = os.environ.get('API_SPORTS_KEY', '').strip()
-API_SPORTS_BASE = 'https://v1.baseball.api-sports.io'
-# NPB league IDs in API-Sports (Central=4, Pacific=5 — confirmed via /leagues)
-# Set to None to auto-discover on first run; hardcode after you confirm the ID.
-NPB_LEAGUE_IDS  = [4, 5]   # try both; filter by country=Japan
+# ── Wikipedia (Source 0 — always free, never blocked) ────────────────────────────
+WIKI_URLS = [
+    f'https://en.wikipedia.org/wiki/{SEASON}_Nippon_Professional_Baseball_season',
+    f'https://en.wikipedia.org/wiki/{SEASON}_NPB_season',
+    # Japanese Wikipedia as fallback
+    f'https://ja.wikipedia.org/wiki/{SEASON}年のプロ野球',
+]
 
 BDJP_TOP = 'https://baseballdata.jp/en/'
 
@@ -111,19 +112,53 @@ NPB_SCHEDULE_CANDIDATES = [
 ]
 
 # Canonical team names used throughout the UI
+# Includes full English names used on Wikipedia / international sites
 TEAM_NAMES_JA = {
-    '阪神': '阪神', 'Ｔ': '阪神', 'Tigers': '阪神', 'T': '阪神', 'Hanshin': '阪神',
-    '巨人': '巨人', 'Ｇ': '巨人', 'Giants': '巨人', 'G': '巨人', 'Yomiuri': '巨人',
-    'ＤｅＮＡ': 'DeNA', 'DeNA': 'DeNA', 'Ｄ': 'DeNA', 'D': 'DeNA', 'Yokohama': 'DeNA',
+    # 阪神
+    '阪神': '阪神', 'Ｔ': '阪神', 'T': '阪神',
+    'Tigers': '阪神', 'Hanshin': '阪神', 'Hanshin Tigers': '阪神',
+    # 巨人
+    '巨人': '巨人', 'Ｇ': '巨人', 'G': '巨人',
+    'Giants': '巨人', 'Yomiuri': '巨人', 'Yomiuri Giants': '巨人',
+    # DeNA
+    'ＤｅＮＡ': 'DeNA', 'DeNA': 'DeNA', 'Ｄ': 'DeNA', 'D': 'DeNA',
+    'Yokohama': 'DeNA', 'BayStars': 'DeNA', 'DeNA BayStars': 'DeNA',
+    'Yokohama DeNA BayStars': 'DeNA', 'Yokohama BayStars': 'DeNA',
     '中日': '中日', 'Ｃ': '中日', 'Dragons': '中日', 'C': '中日', 'Chunichi': '中日',
-    'ヤクルト': 'ヤクルト', 'Ｓ': 'ヤクルト', 'Swallows': 'ヤクルト', 'S': 'ヤクルト', 'Yakult': 'ヤクルト',
+    # 中日
+    '中日': '中日', 'Ｃ': '中日', 'C': '中日',
+    'Dragons': '中日', 'Chunichi': '中日', 'Chunichi Dragons': '中日',
+    # ヤクルト
+    'ヤクルト': 'ヤクルト', 'Ｓ': 'ヤクルト', 'S': 'ヤクルト',
+    'Swallows': 'ヤクルト', 'Yakult': 'ヤクルト', 'Yakult Swallows': 'ヤクルト',
+    'Tokyo Yakult Swallows': 'ヤクルト', 'Tokyo Yakult': 'ヤクルト',
+    # 広島
     '広島': '広島', 'Carp': '広島', 'Hiroshima': '広島',
-    'ソフトバンク': 'ソフトバンク', 'Ｈ': 'ソフトバンク', 'Hawks': 'ソフトバンク', 'H': 'ソフトバンク', 'Fukuoka': 'ソフトバンク', 'SoftBank': 'ソフトバンク',
-    '日本ハム': '日本ハム', 'Ｆ': '日本ハム', 'Fighters': '日本ハム', 'F': '日本ハム', 'Hokkaido': '日本ハム', 'Nippon-Ham': '日本ハム',
-    'ロッテ': 'ロッテ', 'Ｍ': 'ロッテ', 'Marines': 'ロッテ', 'M': 'ロッテ', 'Chiba': 'ロッテ', 'Lotte': 'ロッテ',
-    '西武': '西武', 'Ｌ': '西武', 'Lions': '西武', 'L': '西武', 'Saitama': '西武', 'Seibu': '西武',
-    '楽天': '楽天', 'Ｅ': '楽天', 'Eagles': '楽天', 'E': '楽天', 'Tohoku': '楽天', 'Rakuten': '楽天',
-    'オリックス': 'オリックス', 'Ｂ': 'オリックス', 'Buffaloes': 'オリックス', 'B': 'オリックス', 'Orix': 'オリックス',
+    'Hiroshima Toyo Carp': '広島', 'Hiroshima Carp': '広島',
+    # ソフトバンク
+    'ソフトバンク': 'ソフトバンク', 'Ｈ': 'ソフトバンク', 'H': 'ソフトバンク',
+    'Hawks': 'ソフトバンク', 'Fukuoka': 'ソフトバンク', 'SoftBank': 'ソフトバンク',
+    'Fukuoka SoftBank Hawks': 'ソフトバンク', 'Fukuoka SoftBank': 'ソフトバンク',
+    # 日本ハム
+    '日本ハム': '日本ハム', 'Ｆ': '日本ハム', 'F': '日本ハム',
+    'Fighters': '日本ハム', 'Hokkaido': '日本ハム', 'Nippon-Ham': '日本ハム',
+    'Hokkaido Nippon-Ham Fighters': '日本ハム', 'Nippon Ham': '日本ハム',
+    # ロッテ
+    'ロッテ': 'ロッテ', 'Ｍ': 'ロッテ', 'M': 'ロッテ',
+    'Marines': 'ロッテ', 'Chiba': 'ロッテ', 'Lotte': 'ロッテ',
+    'Chiba Lotte Marines': 'ロッテ', 'Lotte Marines': 'ロッテ',
+    # 西武
+    '西武': '西武', 'Ｌ': '西武', 'L': '西武',
+    'Lions': '西武', 'Saitama': '西武', 'Seibu': '西武',
+    'Saitama Seibu Lions': '西武', 'Seibu Lions': '西武',
+    # 楽天
+    '楽天': '楽天', 'Ｅ': '楽天', 'E': '楽天',
+    'Eagles': '楽天', 'Tohoku': '楽天', 'Rakuten': '楽天',
+    'Tohoku Rakuten Golden Eagles': '楽天', 'Rakuten Eagles': '楽天',
+    # オリックス
+    'オリックス': 'オリックス', 'Ｂ': 'オリックス', 'B': 'オリックス',
+    'Buffaloes': 'オリックス', 'Orix': 'オリックス',
+    'Orix Buffaloes': 'オリックス',
 }
 
 STADIUMS = {
@@ -901,6 +936,109 @@ def get_fallback_bullpens() -> dict:
     }
 
 
+# ─── Wikipedia Parser ────────────────────────────────────────────────────────────
+def parse_wikipedia_standings(soup: BeautifulSoup) -> dict:
+    """
+    Parse NPB standings from the English (or Japanese) Wikipedia season page.
+    Wikipedia tables for NPB standings typically have columns:
+      Pos | Team | W | L | T | Pct | GB   (English)
+      or in Japanese:  順位 | チーム | 試 | 勝 | 負 | 分 | 勝率 | 差
+    """
+    results = {}
+    if soup is None:
+        return results
+
+    for headers, rows in extract_tables(soup):
+        h_lower = [h.lower().strip() for h in headers]
+
+        # Match English Wikipedia standings table
+        is_en = any(k in h_lower for k in ['pct', 'w', 'l', 'gb', 'win%', 'wpct'])
+        # Match Japanese Wikipedia standings table
+        is_ja = any(k in headers for k in ['勝率', '勝', '負', '順位', 'チーム'])
+
+        if not (is_en or is_ja):
+            continue
+
+        # Map column headers
+        col = {h.lower().strip(): i for i, h in enumerate(headers)}
+        col_ja = {h: i for i, h in enumerate(headers)}
+
+        team_col = None
+        for tc in ['team', 'club', 'チーム', '球団']:
+            k = tc.lower()
+            if k in col:
+                team_col = col[k]
+                break
+            if tc in col_ja:
+                team_col = col_ja[tc]
+                break
+        if team_col is None:
+            team_col = 0
+
+        parsed_count = 0
+        for cells in rows:
+            if not cells or len(cells) < 3:
+                continue
+            raw = cells[team_col].strip()
+            # Remove footnotes like [1], [a], etc.
+            raw = re.sub(r'\[.*?\]', '', raw).strip()
+            team = normalize_team(raw)
+            if not team or team not in ALL_TEAMS:
+                continue
+
+            def gc(keys, default=0, cast=safe_int):
+                for k in keys:
+                    ki = col.get(k.lower())
+                    if ki is None:
+                        ki = col_ja.get(k)
+                    if ki is not None and ki < len(cells):
+                        v = cells[ki].strip()
+                        v = re.sub(r'\[.*?\]', '', v).strip()
+                        if v and v != '—' and v != '-':
+                            return cast(v, default)
+                return default
+
+            w   = gc(['w', 'wins', '勝', '勝利'], 0)
+            l   = gc(['l', 'losses', '負', '敗'], 0)
+            t   = gc(['t', 'ties', 'draws', '分', '引分'], 0)
+            pct_raw = ''
+            for k in ['pct', 'win%', 'wpct', '勝率']:
+                ki = col.get(k.lower()) if k.lower() in col else col_ja.get(k)
+                if ki is not None and ki < len(cells):
+                    pct_raw = cells[ki].strip()
+                    break
+            pct_raw = re.sub(r'\[.*?\]', '', pct_raw).strip()
+            win_pct = safe_float(pct_raw, 0.0)
+            if win_pct == 0.0 and (w + l) > 0:
+                win_pct = round(w / (w + l), 3)
+
+            if w == 0 and l == 0:
+                continue
+
+            results[team] = {'w': w, 'l': l, 't': t, 'win_pct': win_pct}
+            parsed_count += 1
+
+        if parsed_count >= 3:
+            print(f'  Wikipedia: parsed {len(results)} teams from standings table')
+            break
+
+    return results
+
+
+def scrape_wikipedia_standings() -> dict:
+    """Try each Wikipedia URL until we get standings data."""
+    for url in WIKI_URLS:
+        print(f'  GET {url}')
+        soup = fetch_page(url)
+        if soup is None:
+            continue
+        results = parse_wikipedia_standings(soup)
+        if results:
+            return results
+        print(f'  → page exists but no standings table found')
+    return {}
+
+
 # ─── API-Sports Integration ──────────────────────────────────────────────────────
 def api_request(endpoint: str, params: dict = None) -> dict | None:
     """Authenticated GET to API-Sports baseball API. Returns parsed JSON or None."""
@@ -1187,7 +1325,22 @@ def discover_bdjp_links(soup: BeautifulSoup) -> dict:
                     found[key] = href
                 break
 
-    print(f'  Discovered links: {found}')
+    # Log ALL links found for debugging (helps find correct paths)
+    all_links = []
+    for a in soup.find_all('a', href=True):
+        href = a['href'].strip()
+        if href.startswith('/'):
+            href = 'https://baseballdata.jp' + href
+        if 'baseballdata.jp' in href and href not in all_links:
+            all_links.append(href)
+    if all_links:
+        print(f'  All baseballdata.jp links found ({len(all_links)}):')
+        for lnk in all_links[:20]:  # show first 20
+            print(f'    {lnk}')
+    else:
+        print('  No internal links found (page may be JS-rendered)')
+
+    print(f'  Keyword-matched links: {found}')
     return found
 
 
@@ -1218,40 +1371,30 @@ def scrape_all_stats():
     pitcher_data = {}
     standings_data = {}
 
-    # ── Source 0: API-Sports ─────────────────────────────────────
-    if API_SPORTS_KEY:
-        print(f'\n[Source 0] API-Sports (key set, {len(API_SPORTS_KEY[:6])}…)...')
-        league_ids = api_find_npb_leagues()
-        print(f'  Using league IDs: {league_ids}')
+    # ── Source 0: Wikipedia ───────────────────────────────────────
+    print('\n[Source 0] Wikipedia NPB season page...')
+    wiki_standings = scrape_wikipedia_standings()
+    if wiki_standings:
+        print(f'  → {len(wiki_standings)} teams from Wikipedia')
+        standings_data.update(wiki_standings)
+    else:
+        print('  → No standings found on Wikipedia')
 
+    # ── Source 0b: API-Sports (only if key set AND season ≤ 2024) ──
+    API_SPORTS_KEY = os.environ.get('API_SPORTS_KEY', '').strip()
+    if API_SPORTS_KEY and SEASON <= 2024:
+        print(f'\n[Source 0b] API-Sports (season {SEASON} is within free tier)...')
+        league_ids = api_find_npb_leagues()
         sd = api_standings(league_ids)
         if sd:
-            print(f'  Standings: {len(sd)} teams — {list(sd.keys())}')
-            standings_data.update(sd)
-
+            standings_data.update({k: v for k, v in sd.items() if k not in standings_data})
         bat, pit = api_team_stats(league_ids)
-        if bat:
-            print(f'  Team batting: {len(bat)} teams')
-            batting_data.update(bat)
-        if pit:
-            print(f'  Team pitching: {len(pit)} teams')
-            pitching_data.update(pit)
-
+        batting_data.update({k: v for k, v in bat.items() if k not in batting_data})
+        pitching_data.update({k: v for k, v in pit.items() if k not in pitching_data})
         pd = api_pitcher_stats(league_ids)
-        if pd:
-            print(f'  Individual pitchers: {len(pd)} teams')
-            pitcher_data.update(pd)
-
-        print(f'  API-Sports result: bat={len(batting_data)} pit={len(pitching_data)} '
-              f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
-
-        # If API-Sports gave us complete data, skip web scraping to save quota
-        if (len(batting_data) >= 10 and len(pitching_data) >= 10
-                and len(standings_data) >= 10):
-            print('  → Complete data from API-Sports, skipping web scraping.')
-            return batting_data, pitching_data, pitcher_data, standings_data
-    else:
-        print('\n[Source 0] API-Sports — no API_SPORTS_KEY set, skipping.')
+        pitcher_data.update({k: v for k, v in pd.items() if k not in pitcher_data})
+    elif API_SPORTS_KEY and SEASON > 2024:
+        print(f'\n[Source 0b] API-Sports — free plan only covers ≤2024, skipping {SEASON}.')
 
     # ── Source 1: baseballdata.jp (dynamic URL discovery) ─────────
     print('\n[Source 1] baseballdata.jp/en/ — discovering URLs from main page...')
