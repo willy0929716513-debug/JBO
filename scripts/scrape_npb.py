@@ -2064,6 +2064,128 @@ def scrape_all_stats():
     return batting_data, pitching_data, pitcher_data, standings_data
 
 
+# ─── SofaScore Schedule Scraper ─────────────────────────────────────────────────
+def scrape_sofascore_schedule(today_str: str) -> list:
+    """Fetch today's NPB schedule from SofaScore public API (international — rarely blocked)."""
+    url = f'https://api.sofascore.com/api/v1/sport/baseball/scheduled-events/{today_str}'
+    hdrs = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                      '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://www.sofascore.com/',
+        'Origin': 'https://www.sofascore.com',
+    }
+    try:
+        resp = requests.get(url, headers=hdrs, timeout=20)
+        print(f'  SofaScore HTTP {resp.status_code}')
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+        games = []
+        for event in data.get('events', []):
+            tournament = event.get('tournament', {})
+            t_name     = tournament.get('name', '').lower()
+            category   = tournament.get('category', {})
+            country    = category.get('country', {}).get('name', '').lower()
+            if 'japan' not in country and 'npb' not in t_name and 'nippon' not in t_name:
+                continue
+            home_name = event.get('homeTeam', {}).get('name', '')
+            away_name = event.get('awayTeam', {}).get('name', '')
+            home = normalize_team(home_name)
+            away = normalize_team(away_name)
+            if not home or not away or home not in ALL_TEAMS or away not in ALL_TEAMS:
+                continue
+            start_ts = event.get('startTimestamp', 0)
+            if start_ts:
+                from datetime import timezone, timedelta as _td
+                jst_tz = timezone(_td(hours=9))
+                from datetime import datetime as _dt2
+                game_dt   = _dt2.fromtimestamp(start_ts, tz=jst_tz)
+                game_time = game_dt.strftime('%H:%M')
+            else:
+                game_time = '18:00'
+            games.append({'home_team': home, 'away_team': away,
+                          'stadium': STADIUMS.get(home, ''), 'time': game_time})
+        if games:
+            print(f'  → SofaScore: {len(games)} NPB games')
+        return games
+    except Exception as e:
+        print(f'  SofaScore error: {e}')
+        return []
+
+
+# ─── Date-Aware Schedule Template ────────────────────────────────────────────────
+def get_template_schedule(today) -> list:
+    """
+    Return today's schedule based on calendar date.
+
+    During 交流戦 (interleague: approx May 26–Jun 15) the six series are inferred from
+    the CONFIRMED June 12, 2026 pairings (user-verified screenshot) and a valid
+    Latin-square rotation that gives each CL team exactly 3 unique PL opponents at home.
+    Outside 交流戦 the schedule rotates within-league by week.
+    """
+    from datetime import date as _d
+    KORYUSEN_START = _d(SEASON, 5, 26)
+    KORYUSEN_END   = _d(SEASON, 6, 15)
+
+    # Each inner list is (home_team, away_team) pairs for one 3-game series block.
+    # 4-day blocks (3 game days + 1 off day) → blocks 0-5 cover May 26 – Jun 15.
+    KORYUSEN_SERIES = [
+        # Block 0 — May 26-29, CL home (Set A)
+        [('阪神','ロッテ'),     ('巨人','日本ハム'),   ('DeNA','楽天'),
+         ('ヤクルト','西武'),   ('中日','ソフトバンク'), ('広島','オリックス')],
+        # Block 1 — May 30-Jun 2, PL home (reverse of Set A)
+        [('ロッテ','阪神'),     ('日本ハム','巨人'),   ('楽天','DeNA'),
+         ('西武','ヤクルト'),   ('ソフトバンク','中日'), ('オリックス','広島')],
+        # Block 2 — Jun 3-6, CL home (Set B)
+        [('阪神','日本ハム'),   ('巨人','楽天'),       ('DeNA','ソフトバンク'),
+         ('ヤクルト','オリックス'), ('中日','西武'),   ('広島','ロッテ')],
+        # Block 3 — Jun 7-10, PL home (reverse of Set B)
+        [('日本ハム','阪神'),   ('楽天','巨人'),       ('ソフトバンク','DeNA'),
+         ('オリックス','ヤクルト'), ('西武','中日'),   ('ロッテ','広島')],
+        # Block 4 — Jun 11-14, CL home (Set C) ← CONFIRMED from user screenshot Jun 12 2026
+        [('阪神','オリックス'), ('巨人','西武'),       ('DeNA','ロッテ'),
+         ('ヤクルト','ソフトバンク'), ('中日','日本ハム'), ('広島','楽天')],
+        # Block 5 — Jun 15+, PL home (reverse of Set C)
+        [('オリックス','阪神'), ('西武','巨人'),       ('ロッテ','DeNA'),
+         ('ソフトバンク','ヤクルト'), ('日本ハム','中日'), ('楽天','広島')],
+    ]
+
+    # Regular-season within-league rotations (vary by week so not identical every day)
+    REGULAR_CL = [
+        [('阪神','巨人'),   ('DeNA','広島'),   ('ヤクルト','中日')],
+        [('巨人','阪神'),   ('広島','DeNA'),   ('中日','ヤクルト')],
+        [('阪神','DeNA'),   ('巨人','中日'),   ('広島','ヤクルト')],
+        [('DeNA','阪神'),   ('中日','巨人'),   ('ヤクルト','広島')],
+        [('阪神','中日'),   ('巨人','ヤクルト'), ('DeNA','広島')],
+        [('中日','阪神'),   ('ヤクルト','巨人'), ('広島','DeNA')],
+    ]
+    REGULAR_PL = [
+        [('ソフトバンク','楽天'), ('オリックス','ロッテ'), ('日本ハム','西武')],
+        [('楽天','ソフトバンク'), ('ロッテ','オリックス'), ('西武','日本ハム')],
+        [('ソフトバンク','ロッテ'), ('オリックス','西武'), ('楽天','日本ハム')],
+        [('ロッテ','ソフトバンク'), ('西武','オリックス'), ('日本ハム','楽天')],
+        [('ソフトバンク','西武'), ('楽天','ロッテ'),   ('日本ハム','オリックス')],
+        [('西武','ソフトバンク'), ('ロッテ','楽天'),   ('オリックス','日本ハム')],
+    ]
+
+    game_time = '14:00' if today.weekday() in (5, 6) else '18:00'
+
+    if KORYUSEN_START <= today <= KORYUSEN_END:
+        days_in   = (today - KORYUSEN_START).days
+        series_idx = min(days_in // 4, len(KORYUSEN_SERIES) - 1)
+        pairs = KORYUSEN_SERIES[series_idx]
+        print(f'  [Schedule] 交流戦 block {series_idx} (day {days_in} of 交流戦)')
+    else:
+        week  = today.timetuple().tm_yday // 7
+        pairs = REGULAR_CL[week % len(REGULAR_CL)] + REGULAR_PL[week % len(REGULAR_PL)]
+        print(f'  [Schedule] Regular season rotation (week slot {week % 6})')
+
+    return [{'home_team': h, 'away_team': a, 'stadium': STADIUMS.get(h, ''), 'time': game_time}
+            for h, a in pairs]
+
+
 # ─── Schedule Fetching ───────────────────────────────────────────────────────────
 def scrape_schedule(today_str: str = '') -> list:
     # Try API-Sports first (free plan only covers ≤2024)
@@ -2073,6 +2195,13 @@ def scrape_schedule(today_str: str = '') -> list:
         games = api_schedule_today(league_ids, today_str)
         if games:
             print(f'  → {len(games)} games from API-Sports')
+            return games
+
+    # Try SofaScore — international service, rarely blocks non-JP IPs
+    if today_str:
+        print(f'\n[Schedule] Trying SofaScore...')
+        games = scrape_sofascore_schedule(today_str)
+        if games:
             return games
 
     print(f'\n[Schedule] Trying web sources...')
@@ -2250,22 +2379,22 @@ def main():
     }
 
     # ── Schedule ──────────────────────────────────────────────────
-    # Web scraping for NPB schedule is unreliable (sources block or return garbage).
-    # Use a fixed within-league rotation so matchups are always correct.
-    # Team stats (OPS/ERA/W-L) in each card are still real scraped data.
-    print('\n[Schedule] Using fixed schedule template with real team stats...')
-    raw_games = [
-        {'home_team': '阪神',     'away_team': '巨人',   'stadium': '甲子園',                     'time': '18:00'},
-        {'home_team': 'DeNA',    'away_team': '広島',   'stadium': '横浜スタジアム',               'time': '18:00'},
-        {'home_team': 'ヤクルト', 'away_team': '中日',   'stadium': '神宮球場',                    'time': '18:00'},
-        {'home_team': 'ソフトバンク', 'away_team': '楽天', 'stadium': 'PayPayドーム',              'time': '18:00'},
-        {'home_team': 'オリックス', 'away_team': 'ロッテ', 'stadium': '京セラドーム大阪',          'time': '18:00'},
-        {'home_team': '日本ハム', 'away_team': '西武',   'stadium': 'エスコンフィールドHOKKAIDO', 'time': '18:00'},
-    ]
+    # Try live sources first; fall back to date-aware template that correctly handles
+    # 交流戦 interleague period (May 26–Jun 15) with confirmed Jun 12 matchups.
+    print('\n[Schedule] Fetching today\'s schedule...')
+    scraped_games = scrape_schedule(today_str)
+
+    from datetime import date as _date
+    _today_date = datetime.now(JST).date()
+    if scraped_games:
+        raw_games = scraped_games
+        print(f'  → Using scraped schedule ({len(raw_games)} games)')
+    else:
+        raw_games = get_template_schedule(_today_date)
+        print(f'  → Using date-aware template ({len(raw_games)} games)')
 
     # Rotation index: NPB uses ~6-man rotation; offset by season day so pitcher changes daily
-    from datetime import date as _date
-    _season_day = max(0, (datetime.now(JST).date() - _date(SEASON, 3, 29)).days)
+    _season_day = max(0, (_today_date - _date(SEASON, 3, 29)).days)
 
     def pick_pitcher(team_name: str, offset: int = 0) -> dict | None:
         plist = pitchers_out.get(team_name) or []
