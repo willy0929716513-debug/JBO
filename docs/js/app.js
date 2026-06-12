@@ -1296,9 +1296,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') { closeApiKeyModal(); hideLoading(); }
   });
 
-  // Pre-load NPB stats in the background on page load
-  loadNpbStats();
+  // Load and render NPB data on page load
+  renderSchedule();
+  renderStandings();
 });
+
+// ─── Schedule game index for onclick handlers ────────────────────────────────
+let _scheduleGames = [];
 
 // ─── NPB Stats Auto-loader ────────────────────────────────────────────────────
 let npbStatsCache = null;
@@ -1427,4 +1431,207 @@ async function autoFillFromTeamNames() {
   showLoading('載入球隊統計資料...');
   await autoFillStatsForGame(home, away);
   hideLoading();
+}
+
+// ─── Render Today's Schedule ──────────────────────────────────────────────────
+async function renderSchedule() {
+  const container = document.getElementById('npb-schedule-container');
+  if (!container) return;
+
+  const sched = await loadNpbSchedule();
+  if (!sched || !sched.games || sched.games.length === 0) {
+    container.innerHTML = '<div class="no-games-msg" style="grid-column:1/-1;">今日無賽事資料</div>';
+    return;
+  }
+
+  _scheduleGames = sched.games;
+
+  const dateLabel = document.getElementById('schedule-date-label');
+  if (dateLabel && sched.date) {
+    const d = new Date(sched.date);
+    dateLabel.textContent = `${d.getMonth() + 1}月${d.getDate()}日`;
+  }
+
+  container.innerHTML = '';
+  sched.games.forEach((game, idx) => {
+    const hp = game.home_probable_pitcher;
+    const ap = game.away_probable_pitcher;
+    const hs = game.home_stats || {};
+    const as_ = game.away_stats || {};
+    const hb = hs.batting || {};
+    const ab = as_.batting || {};
+    const hpi = hs.pitching || {};
+    const api = as_.pitching || {};
+    const hr = hs.record || {};
+    const ar = as_.record || {};
+
+    const card = document.createElement('div');
+    card.className = 'glass-card sched-game-card';
+    card.innerHTML = `
+      <div class="sched-time"><i class="fa-regular fa-clock"></i> ${game.time || '18:00'}</div>
+      <div class="sched-teams-row">
+        <div class="sched-team-name home">${game.home_team}</div>
+        <div class="sched-vs-sep">VS</div>
+        <div class="sched-team-name away">${game.away_team}</div>
+      </div>
+      <div class="sched-venue">${game.stadium || ''}</div>
+      <div style="border-top:1px solid rgba(255,255,255,.06);margin:.4rem 0;"></div>
+      <div style="font-size:.72rem;color:var(--text-secondary);margin-bottom:.2rem;">先發投手</div>
+      <div class="sched-pitcher-line">
+        <span style="color:#00d4ff;">${hp ? hp.name : '未公佈'}</span>
+        <span style="color:var(--text-secondary);">${hp ? `ERA ${hp.era.toFixed(2)} WHIP ${hp.whip.toFixed(2)}` : ''}</span>
+      </div>
+      <div class="sched-pitcher-line">
+        <span style="color:#a78bfa;">${ap ? ap.name : '未公佈'}</span>
+        <span style="color:var(--text-secondary);">${ap ? `ERA ${ap.era.toFixed(2)} WHIP ${ap.whip.toFixed(2)}` : ''}</span>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,.06);margin:.4rem 0;"></div>
+      <div class="sched-stat-line">
+        <span style="color:#00d4ff;">主</span>
+        <span>OPS ${hb.ops != null ? hb.ops.toFixed(3) : '—'}</span>
+        <span>ERA ${hpi.era != null ? hpi.era.toFixed(2) : '—'}</span>
+        <span>${hr.w != null ? hr.w + 'W ' + hr.l + 'L' : '—'}</span>
+      </div>
+      <div class="sched-stat-line" style="margin-top:.15rem;">
+        <span style="color:#a78bfa;">客</span>
+        <span>OPS ${ab.ops != null ? ab.ops.toFixed(3) : '—'}</span>
+        <span>ERA ${api.era != null ? api.era.toFixed(2) : '—'}</span>
+        <span>${ar.w != null ? ar.w + 'W ' + ar.l + 'L' : '—'}</span>
+      </div>
+      <button class="btn btn-primary btn-sm btn-full" style="margin-top:.5rem;" onclick="analyzeScheduleGame(${idx})">
+        <i class="fa-solid fa-brain"></i> 一鍵分析
+      </button>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// ─── Render Standings Table ───────────────────────────────────────────────────
+async function renderStandings() {
+  const container = document.getElementById('npb-standings-container');
+  if (!container) return;
+
+  const stats = await loadNpbStats();
+  if (!stats || !stats.teams) {
+    container.innerHTML = '<div class="no-games-msg">無法載入球隊數據</div>';
+    return;
+  }
+
+  const CL = ['阪神', '巨人', 'DeNA', 'ヤクルト', '中日', '広島'];
+  const PL = ['ソフトバンク', '日本ハム', 'ロッテ', '西武', '楽天', 'オリックス'];
+
+  function sortLeague(names) {
+    return names
+      .filter(n => stats.teams[n])
+      .sort((a, b) => (stats.teams[b].record?.win_pct || 0) - (stats.teams[a].record?.win_pct || 0));
+  }
+
+  function buildRows(names) {
+    return sortLeague(names).map(name => {
+      const d = stats.teams[name];
+      const r = d.record || {};
+      const b = d.batting || {};
+      const p = d.pitching || {};
+      const wpct = r.win_pct != null ? r.win_pct.toFixed(3) : '—';
+      return `<tr>
+        <td>${name}</td>
+        <td>${r.w ?? '—'}</td>
+        <td>${r.l ?? '—'}</td>
+        <td>${r.t ?? '—'}</td>
+        <td style="font-weight:700;color:var(--primary);">${wpct}</td>
+        <td>${b.ops != null ? b.ops.toFixed(3) : '—'}</td>
+        <td>${p.era != null ? p.era.toFixed(2) : '—'}</td>
+        <td>${p.whip != null ? p.whip.toFixed(2) : '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  container.innerHTML = `
+    <table class="standings-table">
+      <thead><tr>
+        <th style="text-align:left;">球隊</th>
+        <th>勝</th><th>負</th><th>平</th><th>勝率</th>
+        <th>OPS</th><th>ERA</th><th>WHIP</th>
+      </tr></thead>
+      <tbody>
+        <tr class="league-header"><td colspan="8">── セ・リーグ (Central) ──</td></tr>
+        ${buildRows(CL)}
+        <tr class="league-header"><td colspan="8">── パ・リーグ (Pacific) ──</td></tr>
+        ${buildRows(PL)}
+      </tbody>
+    </table>`;
+}
+
+// ─── Analyze a game from today's schedule ────────────────────────────────────
+function analyzeScheduleGame(idx) {
+  const game = _scheduleGames[idx];
+  if (!game) return;
+
+  setVal('home_team', game.home_team);
+  setVal('away_team', game.away_team);
+
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')} ${game.time || '18:00'}`;
+  setVal('datetime', dateStr);
+
+  const stadiumEl = document.getElementById('stadium');
+  if (stadiumEl && game.stadium) {
+    for (const opt of stadiumEl.options) {
+      if (opt.value === game.stadium) { opt.selected = true; break; }
+    }
+  }
+
+  const hs = game.home_stats || {};
+  const as_ = game.away_stats || {};
+
+  if (hs.batting) {
+    setVal('home_ops', hs.batting.ops || '');
+    setVal('home_slg', hs.batting.slg || '');
+    setVal('home_obp', hs.batting.obp || '');
+    setVal('home_wrc_plus', hs.batting.wrc_plus_est || 100);
+  }
+  if (hs.pitching) setVal('home_bullpen_era', hs.pitching.era || '');
+  if (hs.defense) setVal('home_fielding_pct', hs.defense.fielding_pct || 0.982);
+  setVal('home_last_5', hs.last_5_record || '');
+  setVal('home_last_10', hs.last_10_record || '');
+  setVal('home_last_20', hs.last_20_record || '');
+
+  if (as_.batting) {
+    setVal('away_ops', as_.batting.ops || '');
+    setVal('away_slg', as_.batting.slg || '');
+    setVal('away_obp', as_.batting.obp || '');
+    setVal('away_wrc_plus', as_.batting.wrc_plus_est || 100);
+  }
+  if (as_.pitching) setVal('away_bullpen_era', as_.pitching.era || '');
+  if (as_.defense) setVal('away_fielding_pct', as_.defense.fielding_pct || 0.982);
+  setVal('away_last_5', as_.last_5_record || '');
+  setVal('away_last_10', as_.last_10_record || '');
+  setVal('away_last_20', as_.last_20_record || '');
+
+  const hp = game.home_probable_pitcher;
+  if (hp) {
+    setVal('home_era', hp.era);
+    setVal('home_whip', hp.whip);
+    setVal('home_fip', hp.fip_est || hp.era);
+    setVal('home_k9', hp.k9);
+    setVal('home_bb9', hp.bb9);
+    setVal('home_handedness', hp.handedness || 'R');
+    setVal('home_rest_days', 5);
+  }
+
+  const ap = game.away_probable_pitcher;
+  if (ap) {
+    setVal('away_era', ap.era);
+    setVal('away_whip', ap.whip);
+    setVal('away_fip', ap.fip_est || ap.era);
+    setVal('away_k9', ap.k9);
+    setVal('away_bb9', ap.bb9);
+    setVal('away_handedness', ap.handedness || 'R');
+    setVal('away_rest_days', 5);
+  }
+
+  openFormPanel();
+  const sec = document.getElementById('analysis-form-section');
+  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showToast(`已載入 ${game.home_team} vs ${game.away_team} 統計資料`, 'success');
 }

@@ -65,6 +65,38 @@
   </div>
 </section>
 
+<!-- ─── Today's Schedule ──────────────────────────────────────────────────── -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title"><i class="fa-solid fa-calendar-day" style="color:var(--primary)"></i> 今日賽程</h2>
+      <span id="schedule-date-label" style="font-size:.82rem;color:var(--text-secondary);"></span>
+    </div>
+    <div class="odds-grid" id="npb-schedule-container">
+      <div class="no-games-msg" style="grid-column:1/-1;">
+        <i class="fa-solid fa-rotate fa-spin" style="margin-right:8px"></i>載入賽程中...
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:.75rem;">
+      <span id="stats-updated-at" style="font-size:.78rem;color:var(--text-secondary);"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Standings & Stats ─────────────────────────────────────────────────── -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title"><i class="fa-solid fa-ranking-star" style="color:var(--warning)"></i> 球隊排名與數據</h2>
+    </div>
+    <div class="glass-card" style="overflow-x:auto;padding:1rem;">
+      <div id="npb-standings-container">
+        <div class="no-games-msg"><i class="fa-solid fa-rotate fa-spin" style="margin-right:8px"></i>載入中...</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ─── Live Odds Panel ───────────────────────────────────────────────────── -->
 <section class="section">
   <div class="container">
@@ -82,9 +114,6 @@
         請先設定 API Key 以載入即時賠率
         <br><button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="openApiKeyModal()">設定 API Key</button>
       </div>
-    </div>
-    <div style="text-align:center;margin-top:.75rem;">
-      <span id="stats-updated-at" style="font-size:.78rem;color:var(--text-secondary);"></span>
     </div>
   </div>
 </section>
@@ -648,6 +677,22 @@
 .section-title { font-size: 1.2rem; font-weight: 700; margin: 0; }
 .no-games-msg { padding: 2rem; text-align: center; color: var(--text-secondary); }
 .mini-score-bar-group {}
+.standings-table { width:100%; border-collapse:collapse; font-size:.85rem; min-width:520px; }
+.standings-table th { color:var(--text-secondary); font-weight:600; padding:.5rem .75rem; text-align:center; border-bottom:1px solid rgba(255,255,255,.12); white-space:nowrap; }
+.standings-table td { padding:.5rem .75rem; text-align:center; border-bottom:1px solid rgba(255,255,255,.04); color:var(--text-primary); }
+.standings-table td:first-child { text-align:left; font-weight:700; color:var(--text-primary); }
+.standings-table tr:hover td { background:rgba(0,212,255,.05); }
+.standings-table .league-header td { background:rgba(0,212,255,.08); color:var(--primary); font-weight:700; font-size:.78rem; letter-spacing:.05em; }
+.sched-game-card { padding:1rem !important; display:flex; flex-direction:column; gap:.5rem; min-width:0; }
+.sched-time { font-size:.75rem; color:var(--text-secondary); }
+.sched-teams-row { display:flex; justify-content:space-between; align-items:center; gap:.4rem; }
+.sched-team-name { font-size:1rem; font-weight:700; }
+.sched-team-name.home { color:#00d4ff; }
+.sched-team-name.away { color:#a78bfa; }
+.sched-vs-sep { color:var(--text-secondary); font-size:.8rem; flex-shrink:0; }
+.sched-venue { font-size:.72rem; color:var(--text-secondary); text-align:center; }
+.sched-pitcher-line { display:flex; justify-content:space-between; font-size:.76rem; padding:.15rem 0; }
+.sched-stat-line { font-size:.76rem; color:var(--text-secondary); display:flex; justify-content:space-between; }
 </style>
 
 <script src="js/analyzer.js"></script>
