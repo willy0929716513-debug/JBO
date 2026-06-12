@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-12T14:27:02.904246+09:00",
+  "updated_at": "2026-06-12T14:34:42.613500+09:00",
   "date": "2026-06-12",
   "games": [
     {
@@ -74,10 +74,10 @@
         "stadium": "楽天生命パーク宮城"
       },
       "home_probable_pitcher": {
-        "name": "1",
+        "name": "Giants",
         "era": 3.07,
-        "whip": 1.3,
-        "fip_est": 3.15,
+        "whip": 1.18,
+        "fip_est": 3.12,
         "k9": 7.0,
         "bb9": 3.0,
         "ip": 0.0,
@@ -87,203 +87,7 @@
         "handedness": "R"
       },
       "away_probable_pitcher": {
-        "name": "6",
-        "era": 3.7,
-        "whip": 1.3,
-        "fip_est": 3.72,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
-        "games": 60,
-        "wins": 22,
-        "losses": 37,
-        "handedness": "R"
-      }
-    },
-    {
-      "home_team": "巨人",
-      "away_team": "楽天",
-      "stadium": "東京ドーム",
-      "time": "18:00",
-      "home_stats": {
-        "batting": {
-          "avg": 0.231,
-          "ops": 0.637,
-          "slg": 0.38,
-          "obp": 0.32,
-          "hr": 50,
-          "runs": 200,
-          "wrc_plus_est": 94
-        },
-        "pitching": {
-          "era": 3.07,
-          "whip": 1.18,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 22,
-          "holds": 70
-        },
-        "defense": {
-          "fielding_pct": 0.985,
-          "errors": 27
-        },
-        "record": {
-          "w": 24,
-          "l": 18,
-          "t": 0,
-          "win_pct": 0.571
-        },
-        "last_5_record": "3-2",
-        "last_10_record": "6-4",
-        "last_20_record": "12-8",
-        "stadium": "東京ドーム"
-      },
-      "away_stats": {
-        "batting": {
-          "avg": 0.241,
-          "ops": 0.649,
-          "slg": 0.38,
-          "obp": 0.32,
-          "hr": 39,
-          "runs": 186,
-          "wrc_plus_est": 95
-        },
-        "pitching": {
-          "era": 3.7,
-          "whip": 1.3,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 13,
-          "holds": 46
-        },
-        "defense": {
-          "fielding_pct": 0.983,
-          "errors": 31
-        },
-        "record": {
-          "w": 18,
-          "l": 24,
-          "t": 1,
-          "win_pct": 0.429
-        },
-        "last_5_record": "3-2",
-        "last_10_record": "5-5",
-        "last_20_record": "9-11",
-        "stadium": "楽天生命パーク宮城"
-      },
-      "home_probable_pitcher": {
-        "name": "1",
-        "era": 3.07,
-        "whip": 1.3,
-        "fip_est": 3.15,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
-        "games": 61,
-        "wins": 33,
-        "losses": 26,
-        "handedness": "R"
-      },
-      "away_probable_pitcher": {
-        "name": "6",
-        "era": 3.7,
-        "whip": 1.3,
-        "fip_est": 3.72,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
-        "games": 60,
-        "wins": 22,
-        "losses": 37,
-        "handedness": "R"
-      }
-    },
-    {
-      "home_team": "巨人",
-      "away_team": "楽天",
-      "stadium": "東京ドーム",
-      "time": "18:00",
-      "home_stats": {
-        "batting": {
-          "avg": 0.231,
-          "ops": 0.637,
-          "slg": 0.38,
-          "obp": 0.32,
-          "hr": 50,
-          "runs": 200,
-          "wrc_plus_est": 94
-        },
-        "pitching": {
-          "era": 3.07,
-          "whip": 1.18,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 22,
-          "holds": 70
-        },
-        "defense": {
-          "fielding_pct": 0.985,
-          "errors": 27
-        },
-        "record": {
-          "w": 24,
-          "l": 18,
-          "t": 0,
-          "win_pct": 0.571
-        },
-        "last_5_record": "3-2",
-        "last_10_record": "6-4",
-        "last_20_record": "12-8",
-        "stadium": "東京ドーム"
-      },
-      "away_stats": {
-        "batting": {
-          "avg": 0.241,
-          "ops": 0.649,
-          "slg": 0.38,
-          "obp": 0.32,
-          "hr": 39,
-          "runs": 186,
-          "wrc_plus_est": 95
-        },
-        "pitching": {
-          "era": 3.7,
-          "whip": 1.3,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 13,
-          "holds": 46
-        },
-        "defense": {
-          "fielding_pct": 0.983,
-          "errors": 31
-        },
-        "record": {
-          "w": 18,
-          "l": 24,
-          "t": 1,
-          "win_pct": 0.429
-        },
-        "last_5_record": "3-2",
-        "last_10_record": "5-5",
-        "last_20_record": "9-11",
-        "stadium": "楽天生命パーク宮城"
-      },
-      "home_probable_pitcher": {
-        "name": "1",
-        "era": 3.07,
-        "whip": 1.3,
-        "fip_est": 3.15,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
-        "games": 61,
-        "wins": 33,
-        "losses": 26,
-        "handedness": "R"
-      },
-      "away_probable_pitcher": {
-        "name": "6",
+        "name": "Eagles",
         "era": 3.7,
         "whip": 1.3,
         "fip_est": 3.72,
@@ -368,216 +172,20 @@
         "stadium": "楽天生命パーク宮城"
       },
       "home_probable_pitcher": {
-        "name": "5",
+        "name": "Carp",
         "era": 2.99,
-        "whip": 1.3,
-        "fip_est": 3.08,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
+        "whip": 1.19,
+        "fip_est": 3.05,
+        "k9": 7.6,
+        "bb9": 2.6,
+        "ip": 524.0,
         "games": 58,
         "wins": 21,
         "losses": 34,
         "handedness": "R"
       },
       "away_probable_pitcher": {
-        "name": "6",
-        "era": 3.7,
-        "whip": 1.3,
-        "fip_est": 3.72,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
-        "games": 60,
-        "wins": 22,
-        "losses": 37,
-        "handedness": "R"
-      }
-    },
-    {
-      "home_team": "広島",
-      "away_team": "楽天",
-      "stadium": "マツダスタジアム",
-      "time": "18:00",
-      "home_stats": {
-        "batting": {
-          "avg": 0.213,
-          "ops": 0.586,
-          "slg": 0.38,
-          "obp": 0.32,
-          "hr": 37,
-          "runs": 169,
-          "wrc_plus_est": 86
-        },
-        "pitching": {
-          "era": 2.99,
-          "whip": 1.19,
-          "k9": 7.6,
-          "bb9": 2.6,
-          "saves": 13,
-          "holds": 53
-        },
-        "defense": {
-          "fielding_pct": 0.984,
-          "errors": 29
-        },
-        "record": {
-          "w": 15,
-          "l": 23,
-          "t": 2,
-          "win_pct": 0.395
-        },
-        "last_5_record": "2-3",
-        "last_10_record": "5-5",
-        "last_20_record": "10-10",
-        "stadium": "マツダスタジアム"
-      },
-      "away_stats": {
-        "batting": {
-          "avg": 0.241,
-          "ops": 0.649,
-          "slg": 0.38,
-          "obp": 0.32,
-          "hr": 39,
-          "runs": 186,
-          "wrc_plus_est": 95
-        },
-        "pitching": {
-          "era": 3.7,
-          "whip": 1.3,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 13,
-          "holds": 46
-        },
-        "defense": {
-          "fielding_pct": 0.983,
-          "errors": 31
-        },
-        "record": {
-          "w": 18,
-          "l": 24,
-          "t": 1,
-          "win_pct": 0.429
-        },
-        "last_5_record": "3-2",
-        "last_10_record": "5-5",
-        "last_20_record": "9-11",
-        "stadium": "楽天生命パーク宮城"
-      },
-      "home_probable_pitcher": {
-        "name": "5",
-        "era": 2.99,
-        "whip": 1.3,
-        "fip_est": 3.08,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
-        "games": 58,
-        "wins": 21,
-        "losses": 34,
-        "handedness": "R"
-      },
-      "away_probable_pitcher": {
-        "name": "6",
-        "era": 3.7,
-        "whip": 1.3,
-        "fip_est": 3.72,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
-        "games": 60,
-        "wins": 22,
-        "losses": 37,
-        "handedness": "R"
-      }
-    },
-    {
-      "home_team": "広島",
-      "away_team": "楽天",
-      "stadium": "マツダスタジアム",
-      "time": "18:00",
-      "home_stats": {
-        "batting": {
-          "avg": 0.213,
-          "ops": 0.586,
-          "slg": 0.38,
-          "obp": 0.32,
-          "hr": 37,
-          "runs": 169,
-          "wrc_plus_est": 86
-        },
-        "pitching": {
-          "era": 2.99,
-          "whip": 1.19,
-          "k9": 7.6,
-          "bb9": 2.6,
-          "saves": 13,
-          "holds": 53
-        },
-        "defense": {
-          "fielding_pct": 0.984,
-          "errors": 29
-        },
-        "record": {
-          "w": 15,
-          "l": 23,
-          "t": 2,
-          "win_pct": 0.395
-        },
-        "last_5_record": "2-3",
-        "last_10_record": "5-5",
-        "last_20_record": "10-10",
-        "stadium": "マツダスタジアム"
-      },
-      "away_stats": {
-        "batting": {
-          "avg": 0.241,
-          "ops": 0.649,
-          "slg": 0.38,
-          "obp": 0.32,
-          "hr": 39,
-          "runs": 186,
-          "wrc_plus_est": 95
-        },
-        "pitching": {
-          "era": 3.7,
-          "whip": 1.3,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 13,
-          "holds": 46
-        },
-        "defense": {
-          "fielding_pct": 0.983,
-          "errors": 31
-        },
-        "record": {
-          "w": 18,
-          "l": 24,
-          "t": 1,
-          "win_pct": 0.429
-        },
-        "last_5_record": "3-2",
-        "last_10_record": "5-5",
-        "last_20_record": "9-11",
-        "stadium": "楽天生命パーク宮城"
-      },
-      "home_probable_pitcher": {
-        "name": "5",
-        "era": 2.99,
-        "whip": 1.3,
-        "fip_est": 3.08,
-        "k9": 7.0,
-        "bb9": 3.0,
-        "ip": 0.0,
-        "games": 58,
-        "wins": 21,
-        "losses": 34,
-        "handedness": "R"
-      },
-      "away_probable_pitcher": {
-        "name": "6",
+        "name": "Eagles",
         "era": 3.7,
         "whip": 1.3,
         "fip_est": 3.72,
