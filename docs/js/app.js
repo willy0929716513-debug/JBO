@@ -1478,48 +1478,58 @@ async function renderSchedule() {
 
     const hpName = (hp && isValidName(hp.name)) ? hp.name : '未公佈';
     const apName = (ap && isValidName(ap.name)) ? ap.name : '未公佈';
-    const hpEst  = hp && hp.estimated ? '<span style="font-size:.65rem;color:#f59e0b;margin-left:.25rem;">(估)</span>' : '';
-    const apEst  = ap && ap.estimated ? '<span style="font-size:.65rem;color:#f59e0b;margin-left:.25rem;">(估)</span>' : '';
-    const hpStats = (hp && isValidName(hp.name)) ? `ERA ${hp.era.toFixed(2)} / WHIP ${hp.whip.toFixed(2)}` : '';
-    const apStats = (ap && isValidName(ap.name)) ? `ERA ${ap.era.toFixed(2)} / WHIP ${ap.whip.toFixed(2)}` : '';
+    const hpEst  = hp && hp.estimated ? '<span class="est-badge">估</span>' : '';
+    const apEst  = ap && ap.estimated ? '<span class="est-badge">估</span>' : '';
+    const hpHand = hp ? `<span class="sgc-hand ${hp.handedness === 'L' ? 'left' : 'right'}">${hp.handedness}</span>` : '';
+    const apHand = ap ? `<span class="sgc-hand ${ap.handedness === 'L' ? 'left' : 'right'}">${ap.handedness}</span>` : '';
+    const hpStatStr = (hp && isValidName(hp.name))
+      ? `ERA ${hp.era.toFixed(2)} · K/9 ${hp.k9.toFixed(1)} · WHIP ${hp.whip.toFixed(2)}` : '先發未定';
+    const apStatStr = (ap && isValidName(ap.name))
+      ? `ERA ${ap.era.toFixed(2)} · K/9 ${ap.k9.toFixed(1)} · WHIP ${ap.whip.toFixed(2)}` : '先發未定';
 
     const card = document.createElement('div');
-    card.className = 'glass-card sched-game-card';
+    card.className = 'glass-card sgc';
     card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span class="sched-team-name home">${game.home_team}</span>
-        <span style="color:var(--text-secondary);font-size:.8rem;">VS</span>
-        <span class="sched-team-name away">${game.away_team}</span>
-      </div>
-      <div style="text-align:center;font-size:.72rem;color:var(--text-secondary);">${game.time || '18:00'} · ${game.stadium || ''}</div>
-      <div style="font-size:.75rem;padding:.4rem 0;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);">
-        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem;">
-          <span style="color:#00d4ff;">${hpName}${hpEst}</span>
-          <span style="color:var(--text-secondary);">${hpStats}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;">
-          <span style="color:#a78bfa;">${apName}${apEst}</span>
-          <span style="color:var(--text-secondary);">${apStats}</span>
-        </div>
-      </div>
-      <div style="font-size:.75rem;color:var(--text-secondary);">
-        <div style="display:flex;justify-content:space-between;margin-bottom:.15rem;">
-          <span style="color:#00d4ff;">主</span>
-          <span>OPS ${hb.ops != null ? hb.ops.toFixed(3) : '—'}</span>
-          <span>ERA ${hpi.era != null ? hpi.era.toFixed(2) : '—'}</span>
-          <span>${hr.w != null ? `${hr.w}W ${hr.l}L` : '—'}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;">
-          <span style="color:#a78bfa;">客</span>
-          <span>OPS ${ab.ops != null ? ab.ops.toFixed(3) : '—'}</span>
-          <span>ERA ${api.era != null ? api.era.toFixed(2) : '—'}</span>
-          <span>${ar.w != null ? `${ar.w}W ${ar.l}L` : '—'}</span>
-        </div>
-      </div>
-      <button class="btn btn-primary btn-sm btn-full" onclick="analyzeScheduleGame(${idx})">
-        <i class="fa-solid fa-brain"></i> 一鍵分析
-      </button>
-    `;
+<div class="sgc-header">
+  <span class="sgc-time"><i class="fa-regular fa-clock"></i> ${game.time || '18:00'}</span>
+  <span class="sgc-venue">${game.stadium || ''}</span>
+</div>
+<div class="sgc-matchup">
+  <div class="sgc-side home">
+    <div class="sgc-badge home">${game.home_team.slice(0, 2)}</div>
+    <div class="sgc-team-name home">${game.home_team}</div>
+    <div class="sgc-wl">${hr.w != null ? `${hr.w}勝 ${hr.l}負` : '—'}</div>
+    <div class="sgc-recent">${hs.last_5_record ? `近5: ${hs.last_5_record}` : ''}</div>
+  </div>
+  <div class="sgc-vs">VS</div>
+  <div class="sgc-side away">
+    <div class="sgc-badge away">${game.away_team.slice(0, 2)}</div>
+    <div class="sgc-team-name away">${game.away_team}</div>
+    <div class="sgc-wl">${ar.w != null ? `${ar.w}勝 ${ar.l}負` : '—'}</div>
+    <div class="sgc-recent">${as_.last_5_record ? `近5: ${as_.last_5_record}` : ''}</div>
+  </div>
+</div>
+<div class="sgc-pitcher-box">
+  <div class="sgc-pitcher home">
+    <div class="sgc-p-row">${hpHand}<span class="sgc-p-name">${hpName}</span>${hpEst}</div>
+    <div class="sgc-p-stats">${hpStatStr}</div>
+  </div>
+  <div class="sgc-ball-icon"><i class="fa-solid fa-baseball"></i></div>
+  <div class="sgc-pitcher away">
+    <div class="sgc-p-row"><span class="sgc-p-name">${apName}</span>${apEst}${apHand}</div>
+    <div class="sgc-p-stats">${apStatStr}</div>
+  </div>
+</div>
+<div class="sgc-chips">
+  <span class="sgc-chip home">打率 ${hb.avg != null ? hb.avg.toFixed(3) : '—'}</span>
+  <span class="sgc-chip home">防 ${hpi.era != null ? hpi.era.toFixed(2) : '—'}</span>
+  <span class="sgc-chip away">打率 ${ab.avg != null ? ab.avg.toFixed(3) : '—'}</span>
+  <span class="sgc-chip away">防 ${api.era != null ? api.era.toFixed(2) : '—'}</span>
+</div>
+<button class="sgc-analyze-btn" onclick="analyzeScheduleGame(${idx})">
+  <i class="fa-solid fa-brain"></i> 一鍵分析
+</button>
+`;
     container.appendChild(card);
   });
 }

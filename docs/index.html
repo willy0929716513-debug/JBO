@@ -49,19 +49,18 @@
 </nav>
 
 <!-- ─── Hero ─────────────────────────────────────────────────────────────── -->
-<section class="hero-section">
+<section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="container">
-    <h1 class="hero-title gradient-text">NPB 日本職棒<br>AI 分析系統</h1>
-    <p class="hero-sub">先發投手 · 牛棚 · 打線 · 守備 · 球場 · 天氣 · 賠率 · Monte Carlo</p>
-    <div class="hero-btns">
-      <button class="btn btn-primary btn-lg" onclick="loadSampleData()">
-        <i class="fa-solid fa-flask"></i> 載入範例分析
-      </button>
-      <button class="btn btn-outline btn-lg" onclick="document.getElementById('analysis-form-section').scrollIntoView({behavior:'smooth'})">
-        <i class="fa-solid fa-keyboard"></i> 輸入比賽資料
-      </button>
-    </div>
+  <div class="hero-badge"><i class="fa-solid fa-circle-dot"></i> LIVE · NPB 2026 交流戦</div>
+  <h1>NPB 日本職棒<br>AI 分析系統</h1>
+  <p>先發投手 · 牛棚 · 打線 · 守備 · 球場 · 天氣 · 賠率 · Monte Carlo 模擬</p>
+  <div class="hero-actions">
+    <button class="btn btn-primary btn-lg" onclick="loadSampleData()">
+      <i class="fa-solid fa-flask"></i> 載入範例分析
+    </button>
+    <button class="btn btn-outline btn-lg" onclick="document.getElementById('analysis-form-section').scrollIntoView({behavior:'smooth'})">
+      <i class="fa-solid fa-keyboard"></i> 輸入比賽資料
+    </button>
   </div>
 </section>
 
@@ -683,16 +682,6 @@
 .standings-table td { padding:.4rem .5rem; text-align:center; border-bottom:1px solid rgba(255,255,255,.04); color:var(--text-primary); }
 .standings-table td:nth-child(2) { text-align:left; }
 .standings-table tr:hover td { background:rgba(0,212,255,.04); }
-.sched-game-card { padding:1rem !important; display:flex; flex-direction:column; gap:.5rem; min-width:0; }
-.sched-time { font-size:.75rem; color:var(--text-secondary); }
-.sched-teams-row { display:flex; justify-content:space-between; align-items:center; gap:.4rem; }
-.sched-team-name { font-size:1rem; font-weight:700; }
-.sched-team-name.home { color:#00d4ff; }
-.sched-team-name.away { color:#a78bfa; }
-.sched-vs-sep { color:var(--text-secondary); font-size:.8rem; flex-shrink:0; }
-.sched-venue { font-size:.72rem; color:var(--text-secondary); text-align:center; }
-.sched-pitcher-line { display:flex; justify-content:space-between; font-size:.76rem; padding:.15rem 0; }
-.sched-stat-line { font-size:.76rem; color:var(--text-secondary); display:flex; justify-content:space-between; }
 </style>
 
 <script src="js/analyzer.js"></script>
