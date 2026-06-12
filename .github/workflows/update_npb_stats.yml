@@ -1,0 +1,45 @@
+name: Update NPB Stats
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # 10:00 JST daily (UTC+9)
+  workflow_dispatch:      # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 lxml pytz
+
+      - name: Run NPB stats scraper
+        run: |
+          python scripts/scrape_npb.py
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --quiet docs/data/ || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "NPB Stats Bot"
+          git config user.email "bot@github.com"
+          git add docs/data/
+          git commit -m "chore: auto-update NPB stats $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
