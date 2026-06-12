@@ -2259,9 +2259,9 @@ def main():
     raw_games = [_g for _g in raw_games
                  if _team_counts[_g['home_team']] == 1 and _team_counts[_g['away_team']] == 1]
 
-    # If fewer than 3 valid games, schedule is unreliable — use fallback
-    if len(raw_games) < 3:
-        print('  → Schedule unreliable — using sample schedule')
+    # Only fall back if no valid games at all
+    if len(raw_games) == 0:
+        print('  → No valid games found — using sample schedule')
         raw_games = [
             {'home_team': '阪神', 'away_team': '巨人', 'stadium': '甲子園', 'time': '18:00'},
             {'home_team': 'DeNA', 'away_team': '広島', 'stadium': '横浜スタジアム', 'time': '18:00'},
