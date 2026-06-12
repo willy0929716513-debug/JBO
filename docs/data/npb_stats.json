@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-12T16:01:34.495196+09:00",
+  "updated_at": "2026-06-12T16:39:22.722344+09:00",
   "season": 2026,
   "source": "baseballdata.jp + npb.jp",
   "teams": {
@@ -64,7 +64,7 @@
         "t": 0,
         "win_pct": 0.571
       },
-      "last_5_record": "3-2",
+      "last_5_record": "2-3",
       "last_10_record": "6-4",
       "last_20_record": "11-9",
       "stadium": "東京ドーム"
@@ -98,8 +98,8 @@
         "win_pct": 0.488
       },
       "last_5_record": "3-2",
-      "last_10_record": "5-5",
-      "last_20_record": "10-10",
+      "last_10_record": "4-6",
+      "last_20_record": "9-11",
       "stadium": "横浜スタジアム"
     },
     "中日": {
@@ -130,7 +130,7 @@
         "t": 1,
         "win_pct": 0.333
       },
-      "last_5_record": "2-3",
+      "last_5_record": "1-4",
       "last_10_record": "3-7",
       "last_20_record": "7-13",
       "stadium": "ナゴヤドーム"
@@ -229,9 +229,9 @@
         "t": 0,
         "win_pct": 0.476
       },
-      "last_5_record": "3-2",
+      "last_5_record": "2-3",
       "last_10_record": "5-5",
-      "last_20_record": "9-11",
+      "last_20_record": "10-10",
       "stadium": "PayPayドーム"
     },
     "日本ハム": {
@@ -296,7 +296,7 @@
         "win_pct": 0.442
       },
       "last_5_record": "2-3",
-      "last_10_record": "4-6",
+      "last_10_record": "5-5",
       "last_20_record": "9-11",
       "stadium": "ZOZOマリン"
     },
@@ -329,7 +329,7 @@
         "win_pct": 0.568
       },
       "last_5_record": "3-2",
-      "last_10_record": "6-4",
+      "last_10_record": "5-5",
       "last_20_record": "11-9",
       "stadium": "ベルーナドーム"
     },
@@ -362,7 +362,7 @@
         "win_pct": 0.429
       },
       "last_5_record": "2-3",
-      "last_10_record": "4-6",
+      "last_10_record": "5-5",
       "last_20_record": "9-11",
       "stadium": "楽天生命パーク宮城"
     },
@@ -396,7 +396,7 @@
       },
       "last_5_record": "3-2",
       "last_10_record": "6-4",
-      "last_20_record": "11-9",
+      "last_20_record": "12-8",
       "stadium": "京セラドーム大阪"
     }
   },
