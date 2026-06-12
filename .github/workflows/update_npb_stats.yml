@@ -27,6 +27,8 @@ jobs:
           pip install requests beautifulsoup4 lxml pytz
 
       - name: Run NPB stats scraper
+        env:
+          API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
         run: |
           python scripts/scrape_npb.py
 

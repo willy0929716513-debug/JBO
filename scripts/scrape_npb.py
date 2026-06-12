@@ -3,9 +3,14 @@
 NPB Stats Scraper — fetches real stats for the JBO dashboard.
 
 Priority order:
-  1. baseballdata.jp/en/ (user-requested source)
-  2. npb.jp (official, with correct current-year URLs)
-  3. Hardcoded fallback data (always works)
+  1. API-Sports (api-sports.io) — real-time JSON API, requires API_SPORTS_KEY secret
+  2. baseballdata.jp/en/        — dynamically discover URLs from main page
+  3. Yahoo Japan baseball       — Japanese stats site
+  4. npb.jp                     — official (tries current & previous year)
+  5. Hardcoded fallback         — always works
+
+Setup (GitHub Secrets):
+  API_SPORTS_KEY = your key from https://www.api-sports.io  (free: 100 calls/day)
 
 Outputs:
   docs/data/npb_stats.json    — team + pitcher stats for the current season
@@ -35,30 +40,75 @@ HEADERS = {
 }
 
 JST = pytz.timezone('Asia/Tokyo')
-# Always use the current NPB season year
 SEASON = datetime.now(JST).year
 
-# baseballdata.jp URL patterns (English interface for NPB stats)
-BASEBALLDATA_URLS = {
-    'top':             'https://baseballdata.jp/en/',
-    'standings':       'https://baseballdata.jp/en/standings/',
-    'team_batting':    'https://baseballdata.jp/en/teamtop/batting/',
-    'team_pitching':   'https://baseballdata.jp/en/teamtop/pitching/',
-    'indv_pitching':   'https://baseballdata.jp/en/playerdata/pitching/',
-    'indv_batting':    'https://baseballdata.jp/en/playerdata/batting/',
+# ── API-Sports (primary real-time source) ────────────────────────────────────────
+API_SPORTS_KEY  = os.environ.get('API_SPORTS_KEY', '').strip()
+API_SPORTS_BASE = 'https://v1.baseball.api-sports.io'
+# NPB league IDs in API-Sports (Central=4, Pacific=5 — confirmed via /leagues)
+# Set to None to auto-discover on first run; hardcode after you confirm the ID.
+NPB_LEAGUE_IDS  = [4, 5]   # try both; filter by country=Japan
+
+BDJP_TOP = 'https://baseballdata.jp/en/'
+
+# Yahoo Japan NPB stats (Japanese — uses existing Japanese column parsers)
+YAHOO_URLS = {
+    'standings':      'https://baseball.yahoo.co.jp/npb/standings/',
+    'team_batting':   'https://baseball.yahoo.co.jp/npb/stats/team/batting/',
+    'team_pitching':  'https://baseball.yahoo.co.jp/npb/stats/team/pitching/',
+    'indv_pitching':  'https://baseball.yahoo.co.jp/npb/stats/player/pitching/',
+    'schedule':       'https://baseball.yahoo.co.jp/npb/schedule/',
 }
 
-# npb.jp URL patterns (official, current season)
-NPB_URLS = {
-    'batting_c':    f'https://npb.jp/bis/{SEASON}/stats/idb1_{SEASON}t_c.html',
-    'batting_p':    f'https://npb.jp/bis/{SEASON}/stats/idb1_{SEASON}t_p.html',
-    'pitching_c':   f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}t_c.html',
-    'pitching_p':   f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}t_p.html',
-    'indv_pitch_c': f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}i_c.html',
-    'indv_pitch_p': f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}i_p.html',
-    'standings':    f'https://npb.jp/bis/{SEASON}/standings/',
-    'schedule':     f'https://npb.jp/scores/{SEASON}/',
+# npb.jp — try multiple URL patterns (format has changed over the years)
+NPB_URL_CANDIDATES = {
+    'batting_c': [
+        f'https://npb.jp/bis/{SEASON}/stats/idb1_{SEASON}t_c.html',
+        f'https://npb.jp/bis/{SEASON}/stats/team_batting_c.html',
+        f'https://npb.jp/stats/{SEASON}/batting/team/central/',
+    ],
+    'batting_p': [
+        f'https://npb.jp/bis/{SEASON}/stats/idb1_{SEASON}t_p.html',
+        f'https://npb.jp/bis/{SEASON}/stats/team_batting_p.html',
+        f'https://npb.jp/stats/{SEASON}/batting/team/pacific/',
+    ],
+    'pitching_c': [
+        f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}t_c.html',
+        f'https://npb.jp/stats/{SEASON}/pitching/team/central/',
+    ],
+    'pitching_p': [
+        f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}t_p.html',
+        f'https://npb.jp/stats/{SEASON}/pitching/team/pacific/',
+    ],
+    'indv_pitch_c': [
+        f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}i_c.html',
+        f'https://npb.jp/stats/{SEASON}/pitching/player/central/',
+    ],
+    'indv_pitch_p': [
+        f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}i_p.html',
+        f'https://npb.jp/stats/{SEASON}/pitching/player/pacific/',
+    ],
+    'standings': [
+        f'https://npb.jp/bis/{SEASON}/standings/',
+        f'https://npb.jp/bis/{SEASON - 1}/standings/',  # prior year BIS may have current-season data
+        f'https://npb.jp/standings/',
+        f'https://npb.jp/standings/{SEASON}/',
+    ],
+    # Prior-year BIS URLs (sometimes current season not yet published in new path)
+    'batting_c_prev': [f'https://npb.jp/bis/{SEASON - 1}/stats/idb1_{SEASON - 1}t_c.html'],
+    'batting_p_prev': [f'https://npb.jp/bis/{SEASON - 1}/stats/idb1_{SEASON - 1}t_p.html'],
+    'pitching_c_prev': [f'https://npb.jp/bis/{SEASON - 1}/stats/idp1_{SEASON - 1}t_c.html'],
+    'pitching_p_prev': [f'https://npb.jp/bis/{SEASON - 1}/stats/idp1_{SEASON - 1}t_p.html'],
+    'indv_pitch_c_prev': [f'https://npb.jp/bis/{SEASON - 1}/stats/idp1_{SEASON - 1}i_c.html'],
+    'indv_pitch_p_prev': [f'https://npb.jp/bis/{SEASON - 1}/stats/idp1_{SEASON - 1}i_p.html'],
 }
+
+NPB_SCHEDULE_CANDIDATES = [
+    f'https://npb.jp/scores/{SEASON}/',
+    f'https://npb.jp/schedule/{SEASON}/',
+    'https://npb.jp/scores/',
+    f'https://baseball.yahoo.co.jp/npb/schedule/',
+]
 
 # Canonical team names used throughout the UI
 TEAM_NAMES_JA = {
@@ -851,13 +901,316 @@ def get_fallback_bullpens() -> dict:
     }
 
 
+# ─── API-Sports Integration ──────────────────────────────────────────────────────
+def api_request(endpoint: str, params: dict = None) -> dict | None:
+    """Authenticated GET to API-Sports baseball API. Returns parsed JSON or None."""
+    if not API_SPORTS_KEY:
+        return None
+    hdrs = {
+        'x-apisports-key': API_SPORTS_KEY,
+        'Accept': 'application/json',
+    }
+    url = f'{API_SPORTS_BASE}/{endpoint}'
+    try:
+        r = requests.get(url, headers=hdrs, params=params or {}, timeout=20)
+        r.raise_for_status()
+        data = r.json()
+        errs = data.get('errors', {})
+        if errs and errs != [] and errs != {}:
+            print(f'  [!] API-Sports errors on {endpoint}: {errs}')
+            return None
+        remaining = r.headers.get('x-ratelimit-requests-remaining', '?')
+        print(f'  API quota remaining: {remaining}')
+        return data
+    except Exception as e:
+        print(f'  [!] API-Sports {endpoint}: {e}')
+        return None
+
+
+def api_find_npb_leagues() -> list[int]:
+    """Return list of league IDs that are NPB (Japan baseball)."""
+    data = api_request('leagues')
+    if not data:
+        return NPB_LEAGUE_IDS  # default guess
+
+    found = []
+    for item in data.get('response', []):
+        country = (item.get('country') or {}).get('name', '').lower()
+        name    = (item.get('name') or '').lower()
+        if country == 'japan' or 'npb' in name or 'nippon' in name:
+            lid = item.get('id')
+            if lid:
+                print(f'  Found NPB league: id={lid}, name={item["name"]}')
+                found.append(lid)
+
+    return found if found else NPB_LEAGUE_IDS
+
+
+def api_standings(league_ids: list[int]) -> dict:
+    """Fetch standings for given league IDs. Returns {team: {w,l,t,win_pct}}."""
+    results = {}
+    for lid in league_ids:
+        data = api_request('standings', {'league': lid, 'season': SEASON})
+        if not data:
+            continue
+        for group in data.get('response', []):
+            for division in group.get('standings', [[]]):
+                for entry in division:
+                    name = (entry.get('team') or {}).get('name', '')
+                    team = normalize_team(name)
+                    if not team or team not in ALL_TEAMS:
+                        continue
+                    g = entry.get('games', {})
+                    w = g.get('won', 0) or g.get('wins', {}).get('total', 0)
+                    l = g.get('lost', 0) or g.get('loses', {}).get('total', 0)
+                    t = g.get('draw', 0)
+                    played = g.get('played', w + l) or (w + l) or 1
+                    decisives = played - t
+                    pct = round(w / decisives, 3) if decisives > 0 else 0.500
+                    results[team] = {'w': w, 'l': l, 't': t, 'win_pct': pct}
+        if results:
+            print(f'  League {lid}: parsed {len(results)} teams')
+    return results
+
+
+def api_team_stats(league_ids: list[int]) -> tuple[dict, dict]:
+    """
+    Fetch team-level batting & pitching stats.
+    Returns (batting_data, pitching_data) each as {team: {stats…}}.
+    """
+    batting  = {}
+    pitching = {}
+
+    # API-Sports has /teams/statistics for individual team; iterate all teams
+    # First get list of teams in the league
+    for lid in league_ids:
+        t_data = api_request('teams', {'league': lid, 'season': SEASON})
+        if not t_data:
+            continue
+        for team_entry in t_data.get('response', []):
+            team_info = team_entry.get('team', team_entry)
+            team_id   = team_info.get('id')
+            team_name = team_info.get('name', '')
+            team      = normalize_team(team_name)
+            if not team or team not in ALL_TEAMS or not team_id:
+                continue
+
+            stat = api_request('teams/statistics', {
+                'league': lid, 'season': SEASON, 'team': team_id
+            })
+            if not stat:
+                continue
+
+            resp = stat.get('response', {})
+            if not resp:
+                continue
+
+            # Batting stats
+            bat = resp.get('batting', resp.get('statistics', {}).get('batting', {}))
+            if bat:
+                avg  = safe_float(bat.get('batting_average') or bat.get('avg'), 0.250)
+                obp  = safe_float(bat.get('on_base_percentage') or bat.get('obp'), 0.320)
+                slg  = safe_float(bat.get('slugging_percentage') or bat.get('slg'), 0.380)
+                ops  = safe_float(bat.get('ops'), 0.0) or round(obp + slg, 3)
+                hr   = safe_int(bat.get('home_runs') or bat.get('hr'), 0)
+                runs = safe_int(bat.get('runs') or bat.get('r'), 0)
+                batting[team] = {'avg': avg, 'ops': ops, 'slg': slg, 'obp': obp,
+                                 'hr': hr, 'runs': runs}
+
+            # Pitching stats
+            pit = resp.get('pitching', resp.get('statistics', {}).get('pitching', {}))
+            if pit:
+                era  = safe_float(pit.get('earned_run_average') or pit.get('era'), 3.80)
+                whip = safe_float(pit.get('walks_hits_per_inning') or pit.get('whip'), 1.28)
+                sv   = safe_int(pit.get('saves') or pit.get('sv'), 0)
+                hld  = safe_int(pit.get('holds') or pit.get('hld'), 0)
+
+                ip_val = pit.get('innings_pitched') or pit.get('ip') or 0
+                ip = parse_ip(str(ip_val))
+                k  = safe_int(pit.get('strikeouts') or pit.get('so') or pit.get('k'), 0)
+                bb = safe_int(pit.get('walks') or pit.get('bb'), 0)
+
+                k9  = calc_k9(k, ip) if ip > 0 else 7.5
+                bb9 = calc_bb9(bb, ip) if ip > 0 else 3.0
+
+                pitching[team] = {'era': era, 'whip': whip if whip > 0 else 1.28,
+                                  'k9': k9, 'bb9': bb9, 'saves': sv, 'holds': hld}
+
+            time.sleep(0.2)  # stay well within rate limit
+
+    return batting, pitching
+
+
+def api_pitcher_stats(league_ids: list[int]) -> dict:
+    """Fetch individual pitcher stats. Returns {team: [pitcher…]}."""
+    results = {}
+    for lid in league_ids:
+        data = api_request('players', {
+            'league': lid, 'season': SEASON, 'position': 'P'
+        })
+        if not data:
+            continue
+        for entry in data.get('response', []):
+            player = entry.get('player', {})
+            name   = player.get('name', '') or player.get('full_name', '')
+            stats_list = entry.get('statistics', [entry.get('statistics', {})])
+            if isinstance(stats_list, dict):
+                stats_list = [stats_list]
+            for s in stats_list:
+                team_name = (s.get('team') or {}).get('name', '')
+                team = normalize_team(team_name)
+                if not team or team not in ALL_TEAMS:
+                    continue
+                pit = s.get('pitching', s.get('games', {}))
+                era = safe_float(pit.get('earned_run_average') or pit.get('era'), 4.00)
+                ip_val = pit.get('innings_pitched') or pit.get('ip') or 0
+                ip = parse_ip(str(ip_val))
+                g  = safe_int(pit.get('games_started') or pit.get('games') or pit.get('g'), 0)
+                w  = safe_int(pit.get('wins') or pit.get('w'), 0)
+                l  = safe_int(pit.get('losses') or pit.get('l'), 0)
+                k  = safe_int(pit.get('strikeouts') or pit.get('so') or pit.get('k'), 0)
+                bb = safe_int(pit.get('walks') or pit.get('bb'), 0)
+                h  = safe_int(pit.get('hits_allowed') or pit.get('h'), 0)
+                whip = calc_whip(h, bb, ip) if ip > 0 else 1.30
+                k9   = calc_k9(k, ip) if ip > 0 else 7.0
+                bb9  = calc_bb9(bb, ip) if ip > 0 else 3.0
+                if not name or ip < 5:
+                    continue
+                pitcher = {
+                    'name': name, 'era': era, 'whip': whip,
+                    'fip_est': estimate_fip(era, whip),
+                    'k9': k9, 'bb9': bb9, 'ip': round(ip, 1),
+                    'games': g, 'wins': w, 'losses': l, 'handedness': 'R',
+                }
+                results.setdefault(team, []).append(pitcher)
+
+    for t in results:
+        results[t].sort(key=lambda p: p['ip'], reverse=True)
+    return results
+
+
+def api_schedule_today(league_ids: list[int], today_str: str) -> list:
+    """Fetch today's games. Returns list of game dicts."""
+    games = []
+    for lid in league_ids:
+        data = api_request('games', {
+            'league': lid, 'season': SEASON, 'date': today_str
+        })
+        if not data:
+            continue
+        for g in data.get('response', []):
+            home_name = (g.get('teams', {}).get('home') or {}).get('name', '')
+            away_name = (g.get('teams', {}).get('away') or {}).get('name', '')
+            home = normalize_team(home_name)
+            away = normalize_team(away_name)
+            if not home or not away:
+                continue
+            start_time = g.get('time') or g.get('date', '18:00')
+            if 'T' in str(start_time):
+                start_time = start_time.split('T')[-1][:5]
+            games.append({
+                'home_team': home, 'away_team': away,
+                'stadium': STADIUMS.get(home, ''), 'time': start_time,
+            })
+    return games
+
+
+# ─── Embedded JSON Extractor ─────────────────────────────────────────────────────
+def extract_embedded_json(soup: BeautifulSoup) -> list:
+    """
+    Try to pull JSON data embedded in <script> tags (window.__INITIAL_STATE__,
+    __NEXT_DATA__, application/json scripts, etc.).
+    Returns list of parsed objects found.
+    """
+    objects = []
+    if soup is None:
+        return objects
+    for script in soup.find_all('script'):
+        text = script.string or ''
+        # Look for JSON-like blobs assigned to window variables
+        for pattern in [
+            r'window\.__[A-Z_]+\s*=\s*(\{.+?\});',
+            r'__NEXT_DATA__\s*=\s*(\{.+?\})',
+            r'var\s+\w+\s*=\s*(\{.+?"standings".+?\});',
+        ]:
+            for m in re.finditer(pattern, text, re.DOTALL):
+                try:
+                    obj = json.loads(m.group(1))
+                    objects.append(obj)
+                except Exception:
+                    pass
+        # Also try <script type="application/json">
+        if script.get('type') == 'application/json':
+            try:
+                obj = json.loads(text)
+                if isinstance(obj, dict):
+                    objects.append(obj)
+            except Exception:
+                pass
+    return objects
+
+
+# ─── URL Discovery ───────────────────────────────────────────────────────────────
+def discover_bdjp_links(soup: BeautifulSoup) -> dict:
+    """
+    Fetch baseballdata.jp/en/ main page and extract links that look like
+    stats sub-pages (batting, pitching, standings, player data, etc.).
+    Returns a dict mapping keyword → absolute URL.
+    """
+    found = {}
+    if soup is None:
+        return found
+
+    stat_keywords = {
+        'batting':   ['batting', 'bat', 'offense', 'hitter'],
+        'pitching':  ['pitching', 'pitch', 'pitcher', 'defense'],
+        'standings': ['standing', 'rank', 'table', 'league'],
+        'player':    ['player', 'individual', 'roster'],
+    }
+
+    for a in soup.find_all('a', href=True):
+        href = a['href'].strip()
+        text = a.get_text(strip=True).lower()
+        # Make absolute URL
+        if href.startswith('/'):
+            href = 'https://baseballdata.jp' + href
+        elif not href.startswith('http'):
+            continue
+
+        # Only keep same-domain links
+        if 'baseballdata.jp' not in href:
+            continue
+
+        for key, keywords in stat_keywords.items():
+            if any(kw in href.lower() or kw in text for kw in keywords):
+                if key not in found:
+                    found[key] = href
+                break
+
+    print(f'  Discovered links: {found}')
+    return found
+
+
+def try_urls(url_list: list) -> BeautifulSoup | None:
+    """Try each URL in sequence, return first successful response."""
+    for url in url_list:
+        print(f'  GET {url}')
+        soup = fetch_page(url)
+        if soup is not None:
+            print(f'  → OK')
+            return soup
+        time.sleep(0.3)
+    return None
+
+
 # ─── Main Scraping Logic ─────────────────────────────────────────────────────────
 def scrape_all_stats():
     """
-    Try data sources in order:
-      1. baseballdata.jp/en/  (user-requested, English NPB stats)
-      2. npb.jp               (official, Japanese, current season)
-      3. Hardcoded fallback   (always succeeds)
+    Priority:
+      1. API-Sports JSON API (requires API_SPORTS_KEY env var)
+      2. baseballdata.jp/en/ — dynamic URL discovery
+      3. Yahoo Japan baseball
+      4. npb.jp (current year, then previous year)
     Returns (batting_data, pitching_data, pitcher_data, standings_data).
     """
     batting_data = {}
@@ -865,91 +1218,207 @@ def scrape_all_stats():
     pitcher_data = {}
     standings_data = {}
 
-    # ── Attempt 1: baseballdata.jp ────────────────────────────────
-    print('\n[Source 1] Trying baseballdata.jp/en/ ...')
-    bdjp_results = {}
+    # ── Source 0: API-Sports ─────────────────────────────────────
+    if API_SPORTS_KEY:
+        print(f'\n[Source 0] API-Sports (key set, {len(API_SPORTS_KEY[:6])}…)...')
+        league_ids = api_find_npb_leagues()
+        print(f'  Using league IDs: {league_ids}')
 
-    for key, url in BASEBALLDATA_URLS.items():
-        print(f'  GET {url}')
-        soup = fetch_page(url)
-        if soup is None:
-            print(f'  → Failed ({key})')
-            continue
+        sd = api_standings(league_ids)
+        if sd:
+            print(f'  Standings: {len(sd)} teams — {list(sd.keys())}')
+            standings_data.update(sd)
 
-        if key == 'team_batting':
-            parsed = parse_bdjp_team_batting(soup)
-            print(f'  → Parsed {len(parsed)} teams (batting): {list(parsed.keys())}')
+        bat, pit = api_team_stats(league_ids)
+        if bat:
+            print(f'  Team batting: {len(bat)} teams')
+            batting_data.update(bat)
+        if pit:
+            print(f'  Team pitching: {len(pit)} teams')
+            pitching_data.update(pit)
+
+        pd = api_pitcher_stats(league_ids)
+        if pd:
+            print(f'  Individual pitchers: {len(pd)} teams')
+            pitcher_data.update(pd)
+
+        print(f'  API-Sports result: bat={len(batting_data)} pit={len(pitching_data)} '
+              f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+
+        # If API-Sports gave us complete data, skip web scraping to save quota
+        if (len(batting_data) >= 10 and len(pitching_data) >= 10
+                and len(standings_data) >= 10):
+            print('  → Complete data from API-Sports, skipping web scraping.')
+            return batting_data, pitching_data, pitcher_data, standings_data
+    else:
+        print('\n[Source 0] API-Sports — no API_SPORTS_KEY set, skipping.')
+
+    # ── Source 1: baseballdata.jp (dynamic URL discovery) ─────────
+    print('\n[Source 1] baseballdata.jp/en/ — discovering URLs from main page...')
+    top_soup = fetch_page(BDJP_TOP)
+    if top_soup is not None:
+        links = discover_bdjp_links(top_soup)
+        time.sleep(0.8)
+
+        if 'batting' in links:
+            print(f'  Fetching batting: {links["batting"]}')
+            s = fetch_page(links['batting'])
+            parsed = parse_bdjp_team_batting(s)
+            print(f'  → {len(parsed)} teams')
             batting_data.update(parsed)
-        elif key == 'team_pitching':
-            parsed = parse_bdjp_team_pitching(soup)
-            print(f'  → Parsed {len(parsed)} teams (pitching): {list(parsed.keys())}')
+            time.sleep(0.8)
+
+        if 'pitching' in links:
+            print(f'  Fetching pitching: {links["pitching"]}')
+            s = fetch_page(links['pitching'])
+            parsed = parse_bdjp_team_pitching(s)
+            print(f'  → {len(parsed)} teams')
             pitching_data.update(parsed)
-        elif key == 'indv_pitching':
-            parsed = parse_bdjp_individual_pitchers(soup)
-            print(f'  → Parsed pitchers for {len(parsed)} teams')
-            pitcher_data.update(parsed)
-        elif key == 'standings':
-            parsed = parse_bdjp_standings(soup)
-            print(f'  → Parsed standings for {len(parsed)} teams')
+            time.sleep(0.8)
+
+        if 'standings' in links:
+            print(f'  Fetching standings: {links["standings"]}')
+            s = fetch_page(links['standings'])
+            parsed = parse_bdjp_standings(s)
+            print(f'  → {len(parsed)} teams')
             standings_data.update(parsed)
+            time.sleep(0.8)
 
-        time.sleep(0.8)  # polite crawl delay
+        if 'player' in links:
+            print(f'  Fetching player/pitcher data: {links["player"]}')
+            s = fetch_page(links['player'])
+            parsed = parse_bdjp_individual_pitchers(s)
+            print(f'  → {len(parsed)} teams with pitchers')
+            pitcher_data.update(parsed)
+            time.sleep(0.8)
 
-    bdjp_hits = len(batting_data) + len(pitching_data) + len(standings_data)
-    print(f'  baseballdata.jp total: {bdjp_hits} team records collected')
+        # Also try the page itself for standings (often on front page)
+        if len(standings_data) < 6:
+            parsed = parse_bdjp_standings(top_soup)
+            if parsed:
+                print(f'  Found {len(parsed)} teams in main page standings')
+                standings_data.update({k: v for k, v in parsed.items() if k not in standings_data})
+    else:
+        print('  → Main page unreachable')
 
-    # ── Attempt 2: npb.jp (fill remaining gaps) ───────────────────
-    print(f'\n[Source 2] Trying npb.jp (season {SEASON}) ...')
+    print(f'  baseballdata.jp: bat={len(batting_data)} pit={len(pitching_data)} '
+          f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+
+    # ── Source 2: Yahoo Japan baseball ────────────────────────────
+    print(f'\n[Source 2] Yahoo Japan baseball...')
+
+    if len(standings_data) < 6:
+        print(f'  Standings: {YAHOO_URLS["standings"]}')
+        s = fetch_page(YAHOO_URLS['standings'])
+        parsed = parse_npb_standings(s)  # Yahoo uses same Japanese column names
+        print(f'  → {len(parsed)} teams')
+        standings_data.update({k: v for k, v in parsed.items() if k not in standings_data})
+        time.sleep(0.8)
 
     if len(batting_data) < 6:
-        for league, url_key in [('Central', 'batting_c'), ('Pacific', 'batting_p')]:
-            url = NPB_URLS[url_key]
-            print(f'  GET {url}')
-            soup = fetch_page(url)
-            parsed = parse_npb_team_batting(soup)
-            print(f'  → {league}: {len(parsed)} teams')
-            batting_data.update({k: v for k, v in parsed.items() if k not in batting_data})
+        print(f'  Team batting: {YAHOO_URLS["team_batting"]}')
+        s = fetch_page(YAHOO_URLS['team_batting'])
+        parsed = parse_npb_team_batting(s)
+        print(f'  → {len(parsed)} teams')
+        batting_data.update({k: v for k, v in parsed.items() if k not in batting_data})
+        time.sleep(0.8)
+
+    if len(pitching_data) < 6:
+        print(f'  Team pitching: {YAHOO_URLS["team_pitching"]}')
+        s = fetch_page(YAHOO_URLS['team_pitching'])
+        parsed = parse_npb_team_pitching(s)
+        print(f'  → {len(parsed)} teams')
+        pitching_data.update({k: v for k, v in parsed.items() if k not in pitching_data})
+        time.sleep(0.8)
+
+    if len(pitcher_data) < 6:
+        print(f'  Individual pitchers: {YAHOO_URLS["indv_pitching"]}')
+        s = fetch_page(YAHOO_URLS['indv_pitching'])
+        parsed = parse_npb_individual_pitchers(s)
+        print(f'  → {len(parsed)} teams')
+        pitcher_data.update({k: v for k, v in parsed.items() if k not in pitcher_data})
+        time.sleep(0.8)
+
+    print(f'  After Yahoo: bat={len(batting_data)} pit={len(pitching_data)} '
+          f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+
+    # ── Source 3: npb.jp — current year, then previous year fallback ──
+    print(f'\n[Source 3] npb.jp (season {SEASON}, then {SEASON-1} as fallback)...')
+
+    if len(batting_data) < 6:
+        for label, cur_key, prev_key in [
+            ('Central', 'batting_c', 'batting_c_prev'),
+            ('Pacific', 'batting_p', 'batting_p_prev'),
+        ]:
+            s = try_urls(NPB_URL_CANDIDATES[cur_key] + NPB_URL_CANDIDATES[prev_key])
+            if s:
+                parsed = parse_npb_team_batting(s)
+                print(f'  {label} batting: {len(parsed)} teams')
+                batting_data.update({k: v for k, v in parsed.items() if k not in batting_data})
             time.sleep(0.5)
 
     if len(pitching_data) < 6:
-        for league, url_key in [('Central', 'pitching_c'), ('Pacific', 'pitching_p')]:
-            url = NPB_URLS[url_key]
-            print(f'  GET {url}')
-            soup = fetch_page(url)
-            parsed = parse_npb_team_pitching(soup)
-            print(f'  → {league}: {len(parsed)} teams')
-            pitching_data.update({k: v for k, v in parsed.items() if k not in pitching_data})
+        for label, cur_key, prev_key in [
+            ('Central', 'pitching_c', 'pitching_c_prev'),
+            ('Pacific', 'pitching_p', 'pitching_p_prev'),
+        ]:
+            s = try_urls(NPB_URL_CANDIDATES[cur_key] + NPB_URL_CANDIDATES[prev_key])
+            if s:
+                parsed = parse_npb_team_pitching(s)
+                print(f'  {label} pitching: {len(parsed)} teams')
+                pitching_data.update({k: v for k, v in parsed.items() if k not in pitching_data})
             time.sleep(0.5)
 
     if len(pitcher_data) < 6:
-        for league, url_key in [('Central', 'indv_pitch_c'), ('Pacific', 'indv_pitch_p')]:
-            url = NPB_URLS[url_key]
-            print(f'  GET {url}')
-            soup = fetch_page(url)
-            parsed = parse_npb_individual_pitchers(soup)
-            print(f'  → {league}: pitchers for {len(parsed)} teams')
-            pitcher_data.update({k: v for k, v in parsed.items() if k not in pitcher_data})
+        for label, cur_key, prev_key in [
+            ('Central', 'indv_pitch_c', 'indv_pitch_c_prev'),
+            ('Pacific', 'indv_pitch_p', 'indv_pitch_p_prev'),
+        ]:
+            s = try_urls(NPB_URL_CANDIDATES[cur_key] + NPB_URL_CANDIDATES[prev_key])
+            if s:
+                parsed = parse_npb_individual_pitchers(s)
+                print(f'  {label} pitchers: {len(parsed)} teams')
+                pitcher_data.update({k: v for k, v in parsed.items() if k not in pitcher_data})
             time.sleep(0.5)
 
     if len(standings_data) < 6:
-        url = NPB_URLS['standings']
-        print(f'  GET {url}')
-        soup = fetch_page(url)
-        parsed = parse_npb_standings(soup)
-        print(f'  → Standings: {len(parsed)} teams')
-        standings_data.update({k: v for k, v in parsed.items() if k not in standings_data})
+        s = try_urls(NPB_URL_CANDIDATES['standings'])
+        if s:
+            parsed = parse_npb_standings(s)
+            print(f'  Standings: {len(parsed)} teams')
+            standings_data.update({k: v for k, v in parsed.items() if k not in standings_data})
 
     return batting_data, pitching_data, pitcher_data, standings_data
 
 
 # ─── Schedule Fetching ───────────────────────────────────────────────────────────
-def scrape_schedule() -> list:
-    url = NPB_URLS['schedule']
-    print(f'\n[Schedule] GET {url}')
-    soup = fetch_page(url)
-    games = parse_npb_schedule(soup)
-    print(f'  → Found {len(games)} games')
-    return games
+def scrape_schedule(today_str: str = '') -> list:
+    # Try API-Sports first
+    if API_SPORTS_KEY and today_str:
+        print(f'\n[Schedule] API-Sports for {today_str}...')
+        league_ids = api_find_npb_leagues()
+        games = api_schedule_today(league_ids, today_str)
+        if games:
+            print(f'  → {len(games)} games from API-Sports')
+            return games
+
+    print(f'\n[Schedule] Trying web sources...')
+    for url in NPB_SCHEDULE_CANDIDATES:
+        print(f'  GET {url}')
+        soup = fetch_page(url)
+        if soup:
+            games = parse_npb_schedule(soup)
+            print(f'  → Found {len(games)} games')
+            if games:
+                return games
+        # also try Yahoo schedule
+    print(f'  GET {YAHOO_URLS["schedule"]}')
+    soup = fetch_page(YAHOO_URLS['schedule'])
+    if soup:
+        games = parse_npb_schedule(soup)
+        print(f'  → Yahoo schedule: {len(games)} games')
+        return games
+    return []
 
 
 # ─── Main ────────────────────────────────────────────────────────────────────────
@@ -1073,7 +1542,7 @@ def main():
     }
 
     # ── Schedule ──────────────────────────────────────────────────
-    raw_games = scrape_schedule()
+    raw_games = scrape_schedule(today_str)
 
     if not raw_games:
         print('  → No games found — using sample schedule')
