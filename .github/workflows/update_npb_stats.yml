@@ -33,16 +33,69 @@ jobs:
         run: |
           python scripts/scrape_npb.py
 
+      - name: Validate schedule
+        id: validate
+        run: |
+          python - <<'EOF'
+          import json, sys, os
+          ALL_TEAMS = {
+            '阪神','巨人','DeNA','ヤクルト','中日','広島',
+            'ソフトバンク','日本ハム','ロッテ','西武','楽天','オリックス'
+          }
+          path = 'docs/data/npb_schedule.json'
+          try:
+              with open(path, encoding='utf-8') as f:
+                  sched = json.load(f)
+          except Exception as e:
+              print(f'ERROR: Cannot read {path}: {e}')
+              sys.exit(1)
+
+          games = sched.get('games', [])
+          teams = [g['home_team'] for g in games] + [g['away_team'] for g in games]
+
+          errors = []
+          if len(games) < 5:
+              errors.append(f'Only {len(games)} games (expected ≥5)')
+          if len(teams) != len(set(teams)):
+              dupes = [t for t in set(teams) if teams.count(t) > 1]
+              errors.append(f'Duplicate teams: {dupes}')
+          unknown = [t for t in teams if t not in ALL_TEAMS]
+          if unknown:
+              errors.append(f'Unknown teams: {unknown}')
+
+          if errors:
+              print('SCHEDULE INVALID:')
+              for e in errors:
+                  print(f'  - {e}')
+              # Don't fail the workflow — stats are still useful.
+              # Just mark schedule as invalid so we skip staging it.
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('schedule_ok=false\n')
+          else:
+              print(f'Schedule OK: {len(games)} games on {sched.get("date")}')
+              for g in games:
+                  print(f'  {g["home_team"]} vs {g["away_team"]} @ {g["stadium"]}')
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('schedule_ok=true\n')
+          EOF
+
       - name: Check for changes
         id: changes
         run: |
-          git diff --quiet docs/data/ || echo "changed=true" >> $GITHUB_OUTPUT
+          git diff --quiet docs/data/npb_stats.json || echo "stats_changed=true" >> $GITHUB_OUTPUT
+          git diff --quiet docs/data/npb_schedule.json || echo "sched_changed=true" >> $GITHUB_OUTPUT
 
       - name: Commit and push if changed
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.stats_changed == 'true' || (steps.changes.outputs.sched_changed == 'true' && steps.validate.outputs.schedule_ok == 'true')
         run: |
           git config user.name "NPB Stats Bot"
           git config user.email "bot@github.com"
-          git add docs/data/
-          git commit -m "chore: auto-update NPB stats $(date -u +'%Y-%m-%d %H:%M UTC')"
+          # Always stage stats; only stage schedule if it passed validation
+          git add docs/data/npb_stats.json
+          if [ "${{ steps.validate.outputs.schedule_ok }}" = "true" ]; then
+            git add docs/data/npb_schedule.json
+          else
+            echo "Schedule failed validation — not committing schedule changes"
+          fi
+          git diff --cached --quiet || git commit -m "chore: auto-update NPB stats $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push

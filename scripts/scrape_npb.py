@@ -2551,10 +2551,6 @@ def main():
     }
 
     # ── Schedule ──────────────────────────────────────────────────
-    # During 交流戦 (May 26–Jun 14), SofaScore sometimes returns wrong/incomplete
-    # matchups (e.g. Jun 12 2026 returned only 2 games with 楽天 listed twice as away).
-    # Fix: always use the date-aware template for matchup structure during 交流戦,
-    # and merge scraped data only for pitcher enrichment on top of the correct template.
     print('\n[Schedule] Fetching today\'s schedule...')
     from datetime import date as _date
     _today_date = datetime.now(JST).date()
@@ -2563,10 +2559,19 @@ def main():
     KORYUSEN_END   = _date(SEASON, 6, 14)
     is_koryusen = KORYUSEN_START <= _today_date <= KORYUSEN_END
 
+    def _sched_valid(games: list) -> bool:
+        """Return True if games list is sane: ≥5 games, no duplicate teams, all NPB."""
+        if len(games) < 5:
+            return False
+        teams = [g['home_team'] for g in games] + [g['away_team'] for g in games]
+        return len(teams) == len(set(teams)) and all(t in ALL_TEAMS for t in teams)
+
     template_games = get_template_schedule(_today_date)
+    used_live_data = False  # True when scraped data (not template) drives matchups
 
     if is_koryusen:
-        # Template has correct home/away structure; scrape only for pitcher enrichment.
+        # Template is the authoritative source for 交流戦 home/away structure.
+        # Scrape only to enrich pitcher names on top of the correct matchups.
         scraped_games = scrape_schedule(today_str)
         scraped_pitcher_map: dict[tuple, dict] = {}
         if scraped_games:
@@ -2582,23 +2587,25 @@ def main():
                 tg['away_probable_pitcher'] = sg['away_probable_pitcher']
         raw_games = template_games
         n_enriched = sum(1 for tg in template_games if 'home_probable_pitcher' in tg)
+        used_live_data = True  # template is confirmed correct for 交流戦
         print(f'  → 交流戦: template structure ({len(raw_games)} games), '
               f'scraped pitchers for {n_enriched} games')
     else:
         scraped_games = scrape_schedule(today_str)
-        if scraped_games:
-            all_teams_s = ([g['home_team'] for g in scraped_games]
-                           + [g['away_team'] for g in scraped_games])
-            has_dup = len(all_teams_s) != len(set(all_teams_s))
-            if has_dup or len(scraped_games) < 5:
-                print(f'  [!] Scraped invalid (games={len(scraped_games)}, dup={has_dup}); using template')
-                raw_games = template_games
-            else:
-                raw_games = scraped_games
-                print(f'  → Using scraped schedule ({len(raw_games)} games)')
+        if scraped_games and _sched_valid(scraped_games):
+            raw_games = scraped_games
+            used_live_data = True
+            print(f'  → Using scraped schedule ({len(raw_games)} games)')
         else:
-            raw_games = template_games
-            print(f'  → Using date-aware template ({len(raw_games)} games)')
+            if scraped_games:
+                all_teams_s = ([g['home_team'] for g in scraped_games]
+                               + [g['away_team'] for g in scraped_games])
+                has_dup = len(all_teams_s) != len(set(all_teams_s))
+                print(f'  [!] Scraped invalid (games={len(scraped_games)}, dup={has_dup}); will try existing')
+            else:
+                print(f'  [!] No scraped games; will try existing')
+            raw_games = template_games  # placeholder; may be overridden below
+            used_live_data = False
 
     # NPB series structure: Tue-Thu (3 games) + Fri-Sun (3 games).
     # Map weekday → series_day (0=opener/ace, 1=second start, 2=third start).
@@ -2663,10 +2670,32 @@ def main():
     print(f'\nSaved: {stats_path}')
     print(f'  Teams: {len(teams_out)} | Pitchers: {sum(len(v) for v in pitchers_out.values())}')
 
-    with open(schedule_path, 'w', encoding='utf-8') as f:
-        json.dump(schedule_json, f, ensure_ascii=False, indent=2)
-    print(f'Saved: {schedule_path}')
-    print(f'  Games: {len(games_out)}')
+    # ── Schedule save: only overwrite if new data is at least as good ────────────
+    new_valid = _sched_valid(games_out)
+    write_schedule = True
+
+    if not used_live_data and not new_valid:
+        # Scraped data failed and template also looks wrong; try preserving existing.
+        try:
+            with open(schedule_path, encoding='utf-8') as f:
+                existing = json.load(f)
+            if (existing.get('date') == today_str and _sched_valid(existing.get('games', []))):
+                print(f'  [!] New schedule invalid; keeping existing valid schedule for {today_str}')
+                write_schedule = False
+        except Exception:
+            pass
+
+    if not used_live_data and not new_valid and write_schedule:
+        # No existing to fall back to; write anyway but emit a loud warning.
+        print(f'  [!!] WARNING: writing potentially inaccurate schedule (template fallback)')
+
+    if write_schedule:
+        with open(schedule_path, 'w', encoding='utf-8') as f:
+            json.dump(schedule_json, f, ensure_ascii=False, indent=2)
+        print(f'Saved: {schedule_path}')
+        print(f'  Games: {len(games_out)}')
+    else:
+        print(f'Skipped: {schedule_path} (existing schedule preserved)')
 
     print('\nDone!')
 
