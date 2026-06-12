@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-12T16:39:22.722344+09:00",
+  "updated_at": "2026-06-12T21:18:11.804199+09:00",
   "season": 2026,
   "source": "baseballdata.jp + npb.jp",
   "teams": {
@@ -64,9 +64,9 @@
         "t": 0,
         "win_pct": 0.571
       },
-      "last_5_record": "2-3",
+      "last_5_record": "3-2",
       "last_10_record": "6-4",
-      "last_20_record": "11-9",
+      "last_20_record": "12-8",
       "stadium": "東京ドーム"
     },
     "DeNA": {
@@ -98,8 +98,8 @@
         "win_pct": 0.488
       },
       "last_5_record": "3-2",
-      "last_10_record": "4-6",
-      "last_20_record": "9-11",
+      "last_10_record": "5-5",
+      "last_20_record": "10-10",
       "stadium": "横浜スタジアム"
     },
     "中日": {
@@ -130,8 +130,8 @@
         "t": 1,
         "win_pct": 0.333
       },
-      "last_5_record": "1-4",
-      "last_10_record": "3-7",
+      "last_5_record": "2-3",
+      "last_10_record": "4-6",
       "last_20_record": "7-13",
       "stadium": "ナゴヤドーム"
     },
@@ -262,7 +262,7 @@
         "t": 0,
         "win_pct": 0.5
       },
-      "last_5_record": "2-3",
+      "last_5_record": "3-2",
       "last_10_record": "5-5",
       "last_20_record": "10-10",
       "stadium": "エスコンフィールドHOKKAIDO"
@@ -296,7 +296,7 @@
         "win_pct": 0.442
       },
       "last_5_record": "2-3",
-      "last_10_record": "5-5",
+      "last_10_record": "4-6",
       "last_20_record": "9-11",
       "stadium": "ZOZOマリン"
     },
@@ -362,8 +362,8 @@
         "win_pct": 0.429
       },
       "last_5_record": "2-3",
-      "last_10_record": "5-5",
-      "last_20_record": "9-11",
+      "last_10_record": "4-6",
+      "last_20_record": "8-12",
       "stadium": "楽天生命パーク宮城"
     },
     "オリックス": {
