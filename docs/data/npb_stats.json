@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-12T10:38:57.356635+09:00",
+  "updated_at": "2026-06-12T10:58:35.549204+09:00",
   "season": 2026,
   "source": "baseballdata.jp + npb.jp",
   "teams": {
@@ -92,10 +92,10 @@
         "errors": 31
       },
       "record": {
-        "w": 39,
-        "l": 37,
-        "t": 3,
-        "win_pct": 0.513
+        "w": 6,
+        "l": 0,
+        "t": 0,
+        "win_pct": 0.5
       },
       "last_5_record": "3-2",
       "last_10_record": "5-5",
@@ -158,10 +158,10 @@
         "errors": 36
       },
       "record": {
-        "w": 33,
-        "l": 43,
-        "t": 3,
-        "win_pct": 0.434
+        "w": 7,
+        "l": 0,
+        "t": 0,
+        "win_pct": 0.5
       },
       "last_5_record": "2-3",
       "last_10_record": "4-6",
@@ -224,10 +224,10 @@
         "errors": 19
       },
       "record": {
-        "w": 46,
-        "l": 30,
-        "t": 3,
-        "win_pct": 0.605
+        "w": 4,
+        "l": 0,
+        "t": 0,
+        "win_pct": 0.5
       },
       "last_5_record": "4-1",
       "last_10_record": "7-3",
@@ -257,10 +257,10 @@
         "errors": 27
       },
       "record": {
-        "w": 40,
-        "l": 36,
-        "t": 3,
-        "win_pct": 0.526
+        "w": 3,
+        "l": 0,
+        "t": 0,
+        "win_pct": 0.5
       },
       "last_5_record": "3-2",
       "last_10_record": "5-5",
@@ -290,9 +290,9 @@
         "errors": 29
       },
       "record": {
-        "w": 38,
-        "l": 38,
-        "t": 3,
+        "w": 3,
+        "l": 0,
+        "t": 0,
         "win_pct": 0.5
       },
       "last_5_record": "3-2",
@@ -389,10 +389,10 @@
         "errors": 25
       },
       "record": {
-        "w": 41,
-        "l": 35,
-        "t": 3,
-        "win_pct": 0.539
+        "w": 3,
+        "l": 0,
+        "t": 0,
+        "win_pct": 0.5
       },
       "last_5_record": "3-2",
       "last_10_record": "6-4",
