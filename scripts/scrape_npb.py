@@ -214,11 +214,11 @@ STADIUMS = {
     '中日': 'ナゴヤドーム',
     'ヤクルト': '神宮球場',
     '広島': 'マツダスタジアム',
-    'ソフトバンク': 'PayPayドーム',
+    'ソフトバンク': 'みずほPayPayドーム',
     '日本ハム': 'エスコンフィールドHOKKAIDO',
     'ロッテ': 'ZOZOマリン',
     '西武': 'ベルーナドーム',
-    '楽天': '楽天生命パーク宮城',
+    '楽天': '楽天モバイルパーク宮城',
     'オリックス': '京セラドーム大阪',
 }
 
@@ -942,7 +942,7 @@ def get_fallback_stats() -> dict:
             'defense': {'fielding_pct': 0.990, 'errors': 19},
             'record': {'w': 46, 'l': 30, 't': 3, 'win_pct': 0.605},
             'last_5_record': '4-1', 'last_10_record': '7-3', 'last_20_record': '14-6',
-            'stadium': 'PayPayドーム',
+            'stadium': 'みずほPayPayドーム',
         },
         'オリックス': {
             'batting': {'avg': 0.254, 'ops': 0.722, 'slg': 0.392, 'obp': 0.330, 'hr': 60, 'runs': 278, 'wrc_plus_est': 106},
@@ -966,7 +966,7 @@ def get_fallback_stats() -> dict:
             'defense': {'fielding_pct': 0.983, 'errors': 31},
             'record': {'w': 37, 'l': 39, 't': 3, 'win_pct': 0.487},
             'last_5_record': '3-2', 'last_10_record': '5-5', 'last_20_record': '9-11',
-            'stadium': '楽天生命パーク宮城',
+            'stadium': '楽天モバイルパーク宮城',
         },
         '西武': {
             'batting': {'avg': 0.242, 'ops': 0.700, 'slg': 0.370, 'obp': 0.330, 'hr': 47, 'runs': 242, 'wrc_plus_est': 103},

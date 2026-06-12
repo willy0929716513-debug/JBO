@@ -105,7 +105,7 @@
     {
       "home_team": "楽天",
       "away_team": "広島",
-      "stadium": "楽天生命パーク宮城",
+      "stadium": "楽天モバイルパーク宮城",
       "time": "18:00",
       "home_stats": {
         "batting": {
@@ -138,7 +138,7 @@
         "last_5_record": "2-3",
         "last_10_record": "4-6",
         "last_20_record": "8-12",
-        "stadium": "楽天生命パーク宮城"
+        "stadium": "楽天モバイルパーク宮城"
       },
       "away_stats": {
         "batting": {
@@ -505,7 +505,7 @@
     {
       "home_team": "ソフトバンク",
       "away_team": "ヤクルト",
-      "stadium": "PayPayドーム",
+      "stadium": "みずほみずほPayPayドーム",
       "time": "18:00",
       "home_stats": {
         "batting": {
@@ -538,7 +538,7 @@
         "last_5_record": "2-3",
         "last_10_record": "5-5",
         "last_20_record": "10-10",
-        "stadium": "PayPayドーム"
+        "stadium": "みずほPayPayドーム"
       },
       "away_stats": {
         "batting": {
