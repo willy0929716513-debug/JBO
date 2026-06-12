@@ -1536,46 +1536,49 @@ async function renderStandings() {
   const CL = ['阪神', '巨人', 'DeNA', 'ヤクルト', '中日', '広島'];
   const PL = ['ソフトバンク', '日本ハム', 'ロッテ', '西武', '楽天', 'オリックス'];
 
-  function sortLeague(names) {
+  function sortedLeague(names) {
     return names
       .filter(n => stats.teams[n])
       .sort((a, b) => (stats.teams[b].record?.win_pct || 0) - (stats.teams[a].record?.win_pct || 0));
   }
 
-  function buildRows(names) {
-    return sortLeague(names).map(name => {
+  function buildTable(names, title, titleColor) {
+    const rows = sortedLeague(names).map((name, rank) => {
       const d = stats.teams[name];
       const r = d.record || {};
       const b = d.batting || {};
       const p = d.pitching || {};
       const wpct = r.win_pct != null ? r.win_pct.toFixed(3) : '—';
+      const wl = (r.w != null && r.l != null) ? `${r.w}-${r.l}` : '—';
+      const rankColor = rank === 0 ? '#f59e0b' : rank <= 2 ? '#00d4ff' : 'var(--text-secondary)';
       return `<tr>
-        <td>${name}</td>
-        <td>${r.w ?? '—'}</td>
-        <td>${r.l ?? '—'}</td>
-        <td>${r.t ?? '—'}</td>
+        <td style="font-size:.75rem;color:${rankColor};width:1.4rem;">${rank + 1}</td>
+        <td style="font-weight:700;">${name}</td>
+        <td>${wl}</td>
         <td style="font-weight:700;color:var(--primary);">${wpct}</td>
         <td>${b.ops != null ? b.ops.toFixed(3) : '—'}</td>
         <td>${p.era != null ? p.era.toFixed(2) : '—'}</td>
-        <td>${p.whip != null ? p.whip.toFixed(2) : '—'}</td>
       </tr>`;
     }).join('');
+
+    return `
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.78rem;font-weight:700;color:${titleColor};margin-bottom:.5rem;padding-bottom:.3rem;border-bottom:1px solid rgba(255,255,255,.1);">${title}</div>
+        <table class="standings-table">
+          <thead><tr>
+            <th style="width:1.4rem;"></th>
+            <th style="text-align:left;">球隊</th>
+            <th>勝-負</th><th>勝率</th><th>OPS</th><th>ERA</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
   }
 
-  container.innerHTML = `
-    <table class="standings-table">
-      <thead><tr>
-        <th style="text-align:left;">球隊</th>
-        <th>勝</th><th>負</th><th>平</th><th>勝率</th>
-        <th>OPS</th><th>ERA</th><th>WHIP</th>
-      </tr></thead>
-      <tbody>
-        <tr class="league-header"><td colspan="8">── セ・リーグ (Central) ──</td></tr>
-        ${buildRows(CL)}
-        <tr class="league-header"><td colspan="8">── パ・リーグ (Pacific) ──</td></tr>
-        ${buildRows(PL)}
-      </tbody>
-    </table>`;
+  container.innerHTML = `<div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+    ${buildTable(CL, 'セ・リーグ', '#00d4ff')}
+    ${buildTable(PL, 'パ・リーグ', '#a78bfa')}
+  </div>`;
 }
 
 // ─── Analyze a game from today's schedule ────────────────────────────────────
@@ -1647,7 +1650,10 @@ function analyzeScheduleGame(idx) {
   }
 
   openFormPanel();
-  const sec = document.getElementById('analysis-form-section');
-  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  showToast(`已載入 ${game.home_team} vs ${game.away_team} 統計資料`, 'success');
+  showToast(`已載入 ${game.home_team} vs ${game.away_team} — 分析中...`, 'success');
+  setTimeout(() => {
+    submitAnalysis();
+    const sec = document.getElementById('results-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 300);
 }
