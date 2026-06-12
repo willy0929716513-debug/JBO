@@ -2115,6 +2115,147 @@ def scrape_sofascore_schedule(today_str: str) -> list:
         return []
 
 
+# ─── SofaScore Lineup Pitcher Enrichment ────────────────────────────────────────
+def enrich_sofascore_pitchers(games: list, today_str: str) -> list:
+    """
+    For each game returned by scrape_sofascore_schedule(), try to fetch the
+    lineup from SofaScore's event endpoint and extract the starting pitcher.
+    Returns the same list with home_probable_pitcher / away_probable_pitcher
+    added where found.
+    """
+    url = f'https://api.sofascore.com/api/v1/sport/baseball/scheduled-events/{today_str}'
+    hdrs = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                      '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': 'https://www.sofascore.com/',
+        'Origin': 'https://www.sofascore.com',
+    }
+    try:
+        resp = requests.get(url, headers=hdrs, timeout=20)
+        if resp.status_code != 200:
+            return games
+        events = resp.json().get('events', [])
+
+        # Build map: (home_norm, away_norm) → event_id
+        event_map: dict[tuple, int] = {}
+        for ev in events:
+            h = normalize_team(ev.get('homeTeam', {}).get('name', ''))
+            a = normalize_team(ev.get('awayTeam', {}).get('name', ''))
+            if h and a:
+                event_map[(h, a)] = ev.get('id')
+
+        enriched = []
+        for game in games:
+            eid = event_map.get((game['home_team'], game['away_team']))
+            if not eid:
+                enriched.append(game)
+                continue
+            try:
+                lurl = f'https://api.sofascore.com/api/v1/event/{eid}/lineups'
+                lr = requests.get(lurl, headers=hdrs, timeout=15)
+                if lr.status_code != 200:
+                    enriched.append(game)
+                    continue
+                lineup = lr.json()
+                game = dict(game)
+                for side, key in [('home', 'home_probable_pitcher'), ('away', 'away_probable_pitcher')]:
+                    players = lineup.get(side, {}).get('players', [])
+                    for p in players:
+                        pos = (p.get('position') or '').upper()
+                        if pos in ('SP', 'P', 'PITCHER'):
+                            name_raw = p.get('player', {}).get('name', '')
+                            if name_raw:
+                                game[key] = {'name': name_raw, 'estimated': False}
+                            break
+            except Exception:
+                pass
+            enriched.append(game)
+        print(f'  → SofaScore lineups enriched {len(enriched)} games')
+        return enriched
+    except Exception as e:
+        print(f'  SofaScore lineup error: {e}')
+        return games
+
+
+# ─── PacificLeague.com Game Preview Scraper ─────────────────────────────────────
+def scrape_pacificleague_pitchers(today_str: str) -> dict:
+    """
+    Fetch pacificleague.com/game for today and extract starting pitchers from
+    game preview links. Returns dict keyed by (home_team, away_team) →
+    {'home': pitcher_name, 'away': pitcher_name}.
+    """
+    hdrs = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                      '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,*/*;q=0.9',
+        'Accept-Language': 'ja,en;q=0.5',
+        'Referer': 'https://pacificleague.com/',
+    }
+    result: dict[tuple, dict] = {}
+    try:
+        resp = requests.get('https://pacificleague.com/game', headers=hdrs, timeout=20)
+        print(f'  pacificleague.com/game HTTP {resp.status_code}')
+        if resp.status_code != 200:
+            return result
+        soup = BeautifulSoup(resp.text, 'lxml')
+
+        # Find links to individual game preview pages for today
+        preview_links = []
+        for a in soup.find_all('a', href=True):
+            href = a['href']
+            if '/game/preview/' in href:
+                full = href if href.startswith('http') else f'https://pacificleague.com{href}'
+                preview_links.append(full)
+        preview_links = list(dict.fromkeys(preview_links))  # dedupe
+
+        for purl in preview_links[:6]:
+            try:
+                pr = requests.get(purl, headers=hdrs, timeout=15)
+                if pr.status_code != 200:
+                    continue
+                ps = BeautifulSoup(pr.text, 'lxml')
+                text = ps.get_text(' ', strip=True)
+
+                # Extract team names from URL or page title
+                # pacificleague.com previews mention 先発 with pitcher names
+                home, away = None, None
+                for team in ALL_TEAMS:
+                    if team in text:
+                        # crude heuristic: first two teams found
+                        if home is None:
+                            home = team
+                        elif away is None and team != home:
+                            away = team
+                            break
+
+                # Look for pitcher pattern: 先発 or 先発予定投手
+                hp, ap = None, None
+                import re as _re
+                # Pattern: "ホーム先発：NAME" or "先発：NAME vs NAME"
+                m = _re.search(r'先発[：:]\s*([^\s（\(]{2,8})', text)
+                if m:
+                    hp = m.group(1)
+                # Also try "vs" pattern in preview text
+                # Try to find "NAME が先発" patterns
+                for name_match in _re.finditer(r'([^\s]{2,8})[がの]先発', text):
+                    cand = name_match.group(1)
+                    if hp is None:
+                        hp = cand
+                    elif ap is None and cand != hp:
+                        ap = cand
+                        break
+
+                if home and away and (hp or ap):
+                    result[(home, away)] = {'home': hp, 'away': ap}
+                    print(f'  → pacificleague preview: {home} vs {away}: {hp} / {ap}')
+            except Exception:
+                continue
+    except Exception as e:
+        print(f'  pacificleague.com error: {e}')
+    return result
+
+
 # ─── Date-Aware Schedule Template ────────────────────────────────────────────────
 def get_template_schedule(today) -> list:
     """
@@ -2218,6 +2359,21 @@ def scrape_schedule(today_str: str = '') -> list:
         print(f'\n[Schedule] Trying SofaScore...')
         games = scrape_sofascore_schedule(today_str)
         if games:
+            # Enrich with lineup/pitcher data from SofaScore event API
+            games = enrich_sofascore_pitchers(games, today_str)
+            # Also try pacificleague.com game previews for PL-side pitchers
+            print(f'\n[Schedule] Trying pacificleague.com previews for pitcher data...')
+            pl_pitchers = scrape_pacificleague_pitchers(today_str)
+            if pl_pitchers:
+                for game in games:
+                    key = (game['home_team'], game['away_team'])
+                    rkey = (game['away_team'], game['home_team'])
+                    info = pl_pitchers.get(key) or pl_pitchers.get(rkey)
+                    if info:
+                        if info.get('home') and 'home_probable_pitcher' not in game:
+                            game['home_probable_pitcher'] = {'name': info['home'], 'estimated': False}
+                        if info.get('away') and 'away_probable_pitcher' not in game:
+                            game['away_probable_pitcher'] = {'name': info['away'], 'estimated': False}
             return games
 
     print(f'\n[Schedule] Trying web sources...')
