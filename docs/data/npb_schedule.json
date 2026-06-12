@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-12T13:15:48.599293+09:00",
+  "updated_at": "2026-06-12T13:53:57.620794+09:00",
   "date": "2026-06-12",
   "games": [
     {
@@ -18,12 +18,12 @@
           "wrc_plus_est": 94
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.07,
+          "whip": 1.18,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 22,
+          "holds": 70
         },
         "defense": {
           "fielding_pct": 0.985,
@@ -51,12 +51,12 @@
           "wrc_plus_est": 95
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.7,
+          "whip": 1.3,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 13,
+          "holds": 46
         },
         "defense": {
           "fielding_pct": 0.983,
@@ -116,12 +116,12 @@
           "wrc_plus_est": 94
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.07,
+          "whip": 1.18,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 22,
+          "holds": 70
         },
         "defense": {
           "fielding_pct": 0.985,
@@ -149,12 +149,12 @@
           "wrc_plus_est": 95
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.7,
+          "whip": 1.3,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 13,
+          "holds": 46
         },
         "defense": {
           "fielding_pct": 0.983,
@@ -214,12 +214,12 @@
           "wrc_plus_est": 94
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.07,
+          "whip": 1.18,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 22,
+          "holds": 70
         },
         "defense": {
           "fielding_pct": 0.985,
@@ -247,12 +247,12 @@
           "wrc_plus_est": 95
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.7,
+          "whip": 1.3,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 13,
+          "holds": 46
         },
         "defense": {
           "fielding_pct": 0.983,
@@ -312,12 +312,12 @@
           "wrc_plus_est": 86
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "era": 2.99,
+          "whip": 1.19,
+          "k9": 7.6,
+          "bb9": 2.6,
+          "saves": 13,
+          "holds": 53
         },
         "defense": {
           "fielding_pct": 0.984,
@@ -345,12 +345,12 @@
           "wrc_plus_est": 95
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.7,
+          "whip": 1.3,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 13,
+          "holds": 46
         },
         "defense": {
           "fielding_pct": 0.983,
@@ -410,12 +410,12 @@
           "wrc_plus_est": 86
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "era": 2.99,
+          "whip": 1.19,
+          "k9": 7.6,
+          "bb9": 2.6,
+          "saves": 13,
+          "holds": 53
         },
         "defense": {
           "fielding_pct": 0.984,
@@ -443,12 +443,12 @@
           "wrc_plus_est": 95
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.7,
+          "whip": 1.3,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 13,
+          "holds": 46
         },
         "defense": {
           "fielding_pct": 0.983,
@@ -508,12 +508,12 @@
           "wrc_plus_est": 86
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
-          "k9": 7.5,
-          "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "era": 2.99,
+          "whip": 1.19,
+          "k9": 7.6,
+          "bb9": 2.6,
+          "saves": 13,
+          "holds": 53
         },
         "defense": {
           "fielding_pct": 0.984,
@@ -541,12 +541,12 @@
           "wrc_plus_est": 95
         },
         "pitching": {
-          "era": 3.8,
-          "whip": 1.28,
+          "era": 3.7,
+          "whip": 1.3,
           "k9": 7.5,
           "bb9": 3.0,
-          "saves": 0,
-          "holds": 0
+          "saves": 13,
+          "holds": 46
         },
         "defense": {
           "fielding_pct": 0.983,
