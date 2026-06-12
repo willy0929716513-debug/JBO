@@ -3,10 +3,14 @@
 NPB Stats Scraper — fetches real stats for the JBO dashboard.
 
 Priority order:
-  1. baseballdata.jp/en/ — dynamically discover URLs from main page
-  2. Yahoo Japan baseball  — reliable Japanese stats source
-  3. npb.jp               — official (URL patterns vary by season)
-  4. Hardcoded fallback   — always works
+  1. API-Sports (api-sports.io) — real-time JSON API, requires API_SPORTS_KEY secret
+  2. baseballdata.jp/en/        — dynamically discover URLs from main page
+  3. Yahoo Japan baseball       — Japanese stats site
+  4. npb.jp                     — official (tries current & previous year)
+  5. Hardcoded fallback         — always works
+
+Setup (GitHub Secrets):
+  API_SPORTS_KEY = your key from https://www.api-sports.io  (free: 100 calls/day)
 
 Outputs:
   docs/data/npb_stats.json    — team + pitcher stats for the current season
@@ -37,6 +41,13 @@ HEADERS = {
 
 JST = pytz.timezone('Asia/Tokyo')
 SEASON = datetime.now(JST).year
+
+# ── API-Sports (primary real-time source) ────────────────────────────────────────
+API_SPORTS_KEY  = os.environ.get('API_SPORTS_KEY', '').strip()
+API_SPORTS_BASE = 'https://v1.baseball.api-sports.io'
+# NPB league IDs in API-Sports (Central=4, Pacific=5 — confirmed via /leagues)
+# Set to None to auto-discover on first run; hardcode after you confirm the ID.
+NPB_LEAGUE_IDS  = [4, 5]   # try both; filter by country=Japan
 
 BDJP_TOP = 'https://baseballdata.jp/en/'
 
@@ -890,6 +901,220 @@ def get_fallback_bullpens() -> dict:
     }
 
 
+# ─── API-Sports Integration ──────────────────────────────────────────────────────
+def api_request(endpoint: str, params: dict = None) -> dict | None:
+    """Authenticated GET to API-Sports baseball API. Returns parsed JSON or None."""
+    if not API_SPORTS_KEY:
+        return None
+    hdrs = {
+        'x-apisports-key': API_SPORTS_KEY,
+        'Accept': 'application/json',
+    }
+    url = f'{API_SPORTS_BASE}/{endpoint}'
+    try:
+        r = requests.get(url, headers=hdrs, params=params or {}, timeout=20)
+        r.raise_for_status()
+        data = r.json()
+        errs = data.get('errors', {})
+        if errs and errs != [] and errs != {}:
+            print(f'  [!] API-Sports errors on {endpoint}: {errs}')
+            return None
+        remaining = r.headers.get('x-ratelimit-requests-remaining', '?')
+        print(f'  API quota remaining: {remaining}')
+        return data
+    except Exception as e:
+        print(f'  [!] API-Sports {endpoint}: {e}')
+        return None
+
+
+def api_find_npb_leagues() -> list[int]:
+    """Return list of league IDs that are NPB (Japan baseball)."""
+    data = api_request('leagues')
+    if not data:
+        return NPB_LEAGUE_IDS  # default guess
+
+    found = []
+    for item in data.get('response', []):
+        country = (item.get('country') or {}).get('name', '').lower()
+        name    = (item.get('name') or '').lower()
+        if country == 'japan' or 'npb' in name or 'nippon' in name:
+            lid = item.get('id')
+            if lid:
+                print(f'  Found NPB league: id={lid}, name={item["name"]}')
+                found.append(lid)
+
+    return found if found else NPB_LEAGUE_IDS
+
+
+def api_standings(league_ids: list[int]) -> dict:
+    """Fetch standings for given league IDs. Returns {team: {w,l,t,win_pct}}."""
+    results = {}
+    for lid in league_ids:
+        data = api_request('standings', {'league': lid, 'season': SEASON})
+        if not data:
+            continue
+        for group in data.get('response', []):
+            for division in group.get('standings', [[]]):
+                for entry in division:
+                    name = (entry.get('team') or {}).get('name', '')
+                    team = normalize_team(name)
+                    if not team or team not in ALL_TEAMS:
+                        continue
+                    g = entry.get('games', {})
+                    w = g.get('won', 0) or g.get('wins', {}).get('total', 0)
+                    l = g.get('lost', 0) or g.get('loses', {}).get('total', 0)
+                    t = g.get('draw', 0)
+                    played = g.get('played', w + l) or (w + l) or 1
+                    decisives = played - t
+                    pct = round(w / decisives, 3) if decisives > 0 else 0.500
+                    results[team] = {'w': w, 'l': l, 't': t, 'win_pct': pct}
+        if results:
+            print(f'  League {lid}: parsed {len(results)} teams')
+    return results
+
+
+def api_team_stats(league_ids: list[int]) -> tuple[dict, dict]:
+    """
+    Fetch team-level batting & pitching stats.
+    Returns (batting_data, pitching_data) each as {team: {stats…}}.
+    """
+    batting  = {}
+    pitching = {}
+
+    # API-Sports has /teams/statistics for individual team; iterate all teams
+    # First get list of teams in the league
+    for lid in league_ids:
+        t_data = api_request('teams', {'league': lid, 'season': SEASON})
+        if not t_data:
+            continue
+        for team_entry in t_data.get('response', []):
+            team_info = team_entry.get('team', team_entry)
+            team_id   = team_info.get('id')
+            team_name = team_info.get('name', '')
+            team      = normalize_team(team_name)
+            if not team or team not in ALL_TEAMS or not team_id:
+                continue
+
+            stat = api_request('teams/statistics', {
+                'league': lid, 'season': SEASON, 'team': team_id
+            })
+            if not stat:
+                continue
+
+            resp = stat.get('response', {})
+            if not resp:
+                continue
+
+            # Batting stats
+            bat = resp.get('batting', resp.get('statistics', {}).get('batting', {}))
+            if bat:
+                avg  = safe_float(bat.get('batting_average') or bat.get('avg'), 0.250)
+                obp  = safe_float(bat.get('on_base_percentage') or bat.get('obp'), 0.320)
+                slg  = safe_float(bat.get('slugging_percentage') or bat.get('slg'), 0.380)
+                ops  = safe_float(bat.get('ops'), 0.0) or round(obp + slg, 3)
+                hr   = safe_int(bat.get('home_runs') or bat.get('hr'), 0)
+                runs = safe_int(bat.get('runs') or bat.get('r'), 0)
+                batting[team] = {'avg': avg, 'ops': ops, 'slg': slg, 'obp': obp,
+                                 'hr': hr, 'runs': runs}
+
+            # Pitching stats
+            pit = resp.get('pitching', resp.get('statistics', {}).get('pitching', {}))
+            if pit:
+                era  = safe_float(pit.get('earned_run_average') or pit.get('era'), 3.80)
+                whip = safe_float(pit.get('walks_hits_per_inning') or pit.get('whip'), 1.28)
+                sv   = safe_int(pit.get('saves') or pit.get('sv'), 0)
+                hld  = safe_int(pit.get('holds') or pit.get('hld'), 0)
+
+                ip_val = pit.get('innings_pitched') or pit.get('ip') or 0
+                ip = parse_ip(str(ip_val))
+                k  = safe_int(pit.get('strikeouts') or pit.get('so') or pit.get('k'), 0)
+                bb = safe_int(pit.get('walks') or pit.get('bb'), 0)
+
+                k9  = calc_k9(k, ip) if ip > 0 else 7.5
+                bb9 = calc_bb9(bb, ip) if ip > 0 else 3.0
+
+                pitching[team] = {'era': era, 'whip': whip if whip > 0 else 1.28,
+                                  'k9': k9, 'bb9': bb9, 'saves': sv, 'holds': hld}
+
+            time.sleep(0.2)  # stay well within rate limit
+
+    return batting, pitching
+
+
+def api_pitcher_stats(league_ids: list[int]) -> dict:
+    """Fetch individual pitcher stats. Returns {team: [pitcher…]}."""
+    results = {}
+    for lid in league_ids:
+        data = api_request('players', {
+            'league': lid, 'season': SEASON, 'position': 'P'
+        })
+        if not data:
+            continue
+        for entry in data.get('response', []):
+            player = entry.get('player', {})
+            name   = player.get('name', '') or player.get('full_name', '')
+            stats_list = entry.get('statistics', [entry.get('statistics', {})])
+            if isinstance(stats_list, dict):
+                stats_list = [stats_list]
+            for s in stats_list:
+                team_name = (s.get('team') or {}).get('name', '')
+                team = normalize_team(team_name)
+                if not team or team not in ALL_TEAMS:
+                    continue
+                pit = s.get('pitching', s.get('games', {}))
+                era = safe_float(pit.get('earned_run_average') or pit.get('era'), 4.00)
+                ip_val = pit.get('innings_pitched') or pit.get('ip') or 0
+                ip = parse_ip(str(ip_val))
+                g  = safe_int(pit.get('games_started') or pit.get('games') or pit.get('g'), 0)
+                w  = safe_int(pit.get('wins') or pit.get('w'), 0)
+                l  = safe_int(pit.get('losses') or pit.get('l'), 0)
+                k  = safe_int(pit.get('strikeouts') or pit.get('so') or pit.get('k'), 0)
+                bb = safe_int(pit.get('walks') or pit.get('bb'), 0)
+                h  = safe_int(pit.get('hits_allowed') or pit.get('h'), 0)
+                whip = calc_whip(h, bb, ip) if ip > 0 else 1.30
+                k9   = calc_k9(k, ip) if ip > 0 else 7.0
+                bb9  = calc_bb9(bb, ip) if ip > 0 else 3.0
+                if not name or ip < 5:
+                    continue
+                pitcher = {
+                    'name': name, 'era': era, 'whip': whip,
+                    'fip_est': estimate_fip(era, whip),
+                    'k9': k9, 'bb9': bb9, 'ip': round(ip, 1),
+                    'games': g, 'wins': w, 'losses': l, 'handedness': 'R',
+                }
+                results.setdefault(team, []).append(pitcher)
+
+    for t in results:
+        results[t].sort(key=lambda p: p['ip'], reverse=True)
+    return results
+
+
+def api_schedule_today(league_ids: list[int], today_str: str) -> list:
+    """Fetch today's games. Returns list of game dicts."""
+    games = []
+    for lid in league_ids:
+        data = api_request('games', {
+            'league': lid, 'season': SEASON, 'date': today_str
+        })
+        if not data:
+            continue
+        for g in data.get('response', []):
+            home_name = (g.get('teams', {}).get('home') or {}).get('name', '')
+            away_name = (g.get('teams', {}).get('away') or {}).get('name', '')
+            home = normalize_team(home_name)
+            away = normalize_team(away_name)
+            if not home or not away:
+                continue
+            start_time = g.get('time') or g.get('date', '18:00')
+            if 'T' in str(start_time):
+                start_time = start_time.split('T')[-1][:5]
+            games.append({
+                'home_team': home, 'away_team': away,
+                'stadium': STADIUMS.get(home, ''), 'time': start_time,
+            })
+    return games
+
+
 # ─── Embedded JSON Extractor ─────────────────────────────────────────────────────
 def extract_embedded_json(soup: BeautifulSoup) -> list:
     """
@@ -981,16 +1206,52 @@ def try_urls(url_list: list) -> BeautifulSoup | None:
 # ─── Main Scraping Logic ─────────────────────────────────────────────────────────
 def scrape_all_stats():
     """
-    Try data sources in order:
-      1. baseballdata.jp/en/ — dynamically discover stat page URLs
-      2. Yahoo Japan baseball — reliable Japanese stats
-      3. npb.jp              — try multiple URL patterns per category
+    Priority:
+      1. API-Sports JSON API (requires API_SPORTS_KEY env var)
+      2. baseballdata.jp/en/ — dynamic URL discovery
+      3. Yahoo Japan baseball
+      4. npb.jp (current year, then previous year)
     Returns (batting_data, pitching_data, pitcher_data, standings_data).
     """
     batting_data = {}
     pitching_data = {}
     pitcher_data = {}
     standings_data = {}
+
+    # ── Source 0: API-Sports ─────────────────────────────────────
+    if API_SPORTS_KEY:
+        print(f'\n[Source 0] API-Sports (key set, {len(API_SPORTS_KEY[:6])}…)...')
+        league_ids = api_find_npb_leagues()
+        print(f'  Using league IDs: {league_ids}')
+
+        sd = api_standings(league_ids)
+        if sd:
+            print(f'  Standings: {len(sd)} teams — {list(sd.keys())}')
+            standings_data.update(sd)
+
+        bat, pit = api_team_stats(league_ids)
+        if bat:
+            print(f'  Team batting: {len(bat)} teams')
+            batting_data.update(bat)
+        if pit:
+            print(f'  Team pitching: {len(pit)} teams')
+            pitching_data.update(pit)
+
+        pd = api_pitcher_stats(league_ids)
+        if pd:
+            print(f'  Individual pitchers: {len(pd)} teams')
+            pitcher_data.update(pd)
+
+        print(f'  API-Sports result: bat={len(batting_data)} pit={len(pitching_data)} '
+              f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+
+        # If API-Sports gave us complete data, skip web scraping to save quota
+        if (len(batting_data) >= 10 and len(pitching_data) >= 10
+                and len(standings_data) >= 10):
+            print('  → Complete data from API-Sports, skipping web scraping.')
+            return batting_data, pitching_data, pitcher_data, standings_data
+    else:
+        print('\n[Source 0] API-Sports — no API_SPORTS_KEY set, skipping.')
 
     # ── Source 1: baseballdata.jp (dynamic URL discovery) ─────────
     print('\n[Source 1] baseballdata.jp/en/ — discovering URLs from main page...')
@@ -1131,8 +1392,17 @@ def scrape_all_stats():
 
 
 # ─── Schedule Fetching ───────────────────────────────────────────────────────────
-def scrape_schedule() -> list:
-    print(f'\n[Schedule] Trying {len(NPB_SCHEDULE_CANDIDATES)} URL(s)...')
+def scrape_schedule(today_str: str = '') -> list:
+    # Try API-Sports first
+    if API_SPORTS_KEY and today_str:
+        print(f'\n[Schedule] API-Sports for {today_str}...')
+        league_ids = api_find_npb_leagues()
+        games = api_schedule_today(league_ids, today_str)
+        if games:
+            print(f'  → {len(games)} games from API-Sports')
+            return games
+
+    print(f'\n[Schedule] Trying web sources...')
     for url in NPB_SCHEDULE_CANDIDATES:
         print(f'  GET {url}')
         soup = fetch_page(url)
@@ -1272,7 +1542,7 @@ def main():
     }
 
     # ── Schedule ──────────────────────────────────────────────────
-    raw_games = scrape_schedule()
+    raw_games = scrape_schedule(today_str)
 
     if not raw_games:
         print('  → No games found — using sample schedule')
