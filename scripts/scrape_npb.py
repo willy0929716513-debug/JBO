@@ -422,7 +422,8 @@ def parse_bdjp_team_pitching(soup: BeautifulSoup) -> dict:
 
     for headers, rows in extract_tables(soup):
         h_lower = [h.lower() for h in headers]
-        if not any(k in h_lower for k in ['era', 'whip', 'team']):
+        # Require at least one actual pitching stat column (not just 'team')
+        if not any(k in h_lower for k in ['era', 'whip']):
             continue
 
         col = {h.lower(): i for i, h in enumerate(headers)}
@@ -441,8 +442,9 @@ def parse_bdjp_team_pitching(soup: BeautifulSoup) -> dict:
                     return cast(cells[col[k]], default)
                 return default
 
-            era  = gc('era', 3.80)
-            whip = gc('whip', 1.28)
+            # Use 0.0 as sentinel so callers can detect "not found"
+            era  = gc('era', 0.0)
+            whip = gc('whip', 0.0)
             sv   = gc('sv', 0, safe_int) or gc('s', 0, safe_int)
             hld  = gc('hld', 0, safe_int) or gc('h', 0, safe_int) or gc('hold', 0, safe_int)
 
@@ -458,8 +460,13 @@ def parse_bdjp_team_pitching(soup: BeautifulSoup) -> dict:
             if whip == 0 and ip > 0:
                 whip = calc_whip(h_allowed, bb, ip)
 
+            # Skip rows where we couldn't find any real pitching stat
+            if era == 0.0 and whip == 0.0:
+                continue
+
             results[team] = {
-                'era': era, 'whip': whip if whip > 0 else 1.28,
+                'era': era if era > 0 else 3.80,
+                'whip': whip if whip > 0 else 1.28,
                 'k9': k9, 'bb9': bb9, 'saves': sv, 'holds': hld,
             }
 
@@ -640,7 +647,7 @@ def parse_npb_team_pitching(soup: BeautifulSoup) -> dict:
         return results
 
     for headers, rows in extract_tables(soup):
-        if not any(h in ['防御率', 'ERA', 'チーム'] for h in headers):
+        if not any(h in ['防御率', 'ERA'] for h in headers):
             continue
 
         col = {h: i for i, h in enumerate(headers)}
