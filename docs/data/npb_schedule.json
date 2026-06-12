@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-12T09:30:47.278545+09:00",
+  "updated_at": "2026-06-12T09:45:23.552682+09:00",
   "date": "2026-06-12",
   "games": [
     {
@@ -9,93 +9,93 @@
       "time": "18:00",
       "home_stats": {
         "batting": {
-          "avg": 0.248,
-          "ops": 0.712,
-          "slg": 0.385,
-          "obp": 0.327,
-          "hr": 52,
-          "runs": 268,
-          "wrc_plus_est": 104
+          "avg": 0.252,
+          "ops": 0.72,
+          "slg": 0.39,
+          "obp": 0.33,
+          "hr": 55,
+          "runs": 275,
+          "wrc_plus_est": 106
         },
         "pitching": {
-          "era": 3.21,
-          "whip": 1.18,
-          "k9": 8.2,
-          "bb9": 2.8,
-          "saves": 18,
-          "holds": 42
+          "era": 3.18,
+          "whip": 1.17,
+          "k9": 8.3,
+          "bb9": 2.7,
+          "saves": 20,
+          "holds": 44
         },
         "defense": {
           "fielding_pct": 0.988,
-          "errors": 22
+          "errors": 21
         },
         "record": {
-          "w": 42,
-          "l": 34,
+          "w": 44,
+          "l": 33,
           "t": 2,
-          "win_pct": 0.553
+          "win_pct": 0.571
         },
         "last_5_record": "3-2",
         "last_10_record": "6-4",
-        "last_20_record": "12-8",
+        "last_20_record": "13-7",
         "stadium": "甲子園"
       },
       "away_stats": {
         "batting": {
-          "avg": 0.258,
-          "ops": 0.735,
-          "slg": 0.4,
+          "avg": 0.26,
+          "ops": 0.74,
+          "slg": 0.405,
           "obp": 0.335,
-          "hr": 68,
-          "runs": 298,
-          "wrc_plus_est": 108
+          "hr": 70,
+          "runs": 305,
+          "wrc_plus_est": 109
         },
         "pitching": {
-          "era": 3.45,
-          "whip": 1.24,
-          "k9": 7.8,
-          "bb9": 3.0,
-          "saves": 20,
-          "holds": 38
+          "era": 3.4,
+          "whip": 1.23,
+          "k9": 7.9,
+          "bb9": 2.9,
+          "saves": 21,
+          "holds": 40
         },
         "defense": {
-          "fielding_pct": 0.984,
-          "errors": 28
+          "fielding_pct": 0.985,
+          "errors": 27
         },
         "record": {
-          "w": 40,
-          "l": 36,
+          "w": 42,
+          "l": 35,
           "t": 2,
-          "win_pct": 0.526
+          "win_pct": 0.545
         },
         "last_5_record": "3-2",
-        "last_10_record": "5-5",
-        "last_20_record": "11-9",
+        "last_10_record": "6-4",
+        "last_20_record": "12-8",
         "stadium": "東京ドーム"
       },
       "home_probable_pitcher": {
         "name": "才木浩人",
-        "era": 2.15,
-        "whip": 0.92,
-        "fip_est": 2.45,
-        "k9": 10.2,
-        "bb9": 1.8,
-        "ip": 105.0,
-        "games": 17,
-        "wins": 9,
+        "era": 2.1,
+        "whip": 0.9,
+        "fip_est": 2.4,
+        "k9": 10.5,
+        "bb9": 1.7,
+        "ip": 110.0,
+        "games": 18,
+        "wins": 10,
         "losses": 3,
         "handedness": "R"
       },
       "away_probable_pitcher": {
         "name": "戸郷翔征",
-        "era": 2.42,
-        "whip": 0.98,
-        "fip_est": 2.6,
-        "k9": 9.8,
-        "bb9": 2.0,
-        "ip": 112.0,
-        "games": 18,
-        "wins": 10,
+        "era": 2.38,
+        "whip": 0.96,
+        "fip_est": 2.55,
+        "k9": 10.0,
+        "bb9": 1.9,
+        "ip": 115.0,
+        "games": 19,
+        "wins": 11,
         "losses": 4,
         "handedness": "R"
       }
@@ -107,91 +107,91 @@
       "time": "18:00",
       "home_stats": {
         "batting": {
-          "avg": 0.262,
-          "ops": 0.748,
-          "slg": 0.412,
-          "obp": 0.336,
-          "hr": 72,
-          "runs": 305,
+          "avg": 0.265,
+          "ops": 0.752,
+          "slg": 0.415,
+          "obp": 0.337,
+          "hr": 74,
+          "runs": 310,
           "wrc_plus_est": 110
         },
         "pitching": {
-          "era": 3.82,
-          "whip": 1.32,
-          "k9": 7.5,
-          "bb9": 3.2,
-          "saves": 15,
-          "holds": 35
+          "era": 3.78,
+          "whip": 1.31,
+          "k9": 7.6,
+          "bb9": 3.1,
+          "saves": 16,
+          "holds": 37
         },
         "defense": {
-          "fielding_pct": 0.982,
-          "errors": 32
+          "fielding_pct": 0.983,
+          "errors": 31
         },
         "record": {
-          "w": 6,
-          "l": 0,
-          "t": 0,
-          "win_pct": 0.5
+          "w": 39,
+          "l": 37,
+          "t": 3,
+          "win_pct": 0.513
         },
-        "last_5_record": "2-3",
+        "last_5_record": "3-2",
         "last_10_record": "5-5",
         "last_20_record": "10-10",
         "stadium": "横浜スタジアム"
       },
       "away_stats": {
         "batting": {
-          "avg": 0.252,
-          "ops": 0.71,
-          "slg": 0.378,
-          "obp": 0.332,
-          "hr": 48,
-          "runs": 258,
-          "wrc_plus_est": 104
+          "avg": 0.254,
+          "ops": 0.715,
+          "slg": 0.382,
+          "obp": 0.333,
+          "hr": 50,
+          "runs": 262,
+          "wrc_plus_est": 105
         },
         "pitching": {
-          "era": 3.68,
-          "whip": 1.28,
-          "k9": 7.9,
-          "bb9": 3.1,
-          "saves": 14,
-          "holds": 32
+          "era": 3.62,
+          "whip": 1.27,
+          "k9": 8.0,
+          "bb9": 3.0,
+          "saves": 15,
+          "holds": 34
         },
         "defense": {
-          "fielding_pct": 0.983,
-          "errors": 30
+          "fielding_pct": 0.984,
+          "errors": 29
         },
         "record": {
-          "w": 36,
-          "l": 40,
-          "t": 2,
-          "win_pct": 0.474
+          "w": 37,
+          "l": 39,
+          "t": 3,
+          "win_pct": 0.487
         },
         "last_5_record": "2-3",
         "last_10_record": "5-5",
-        "last_20_record": "9-11",
+        "last_20_record": "10-10",
         "stadium": "マツダスタジアム"
       },
       "home_probable_pitcher": {
         "name": "東克樹",
-        "era": 2.68,
-        "whip": 1.05,
-        "fip_est": 2.8,
-        "k9": 8.8,
-        "bb9": 2.2,
-        "ip": 98.0,
-        "games": 16,
-        "wins": 8,
+        "era": 2.62,
+        "whip": 1.03,
+        "fip_est": 2.75,
+        "k9": 9.0,
+        "bb9": 2.1,
+        "ip": 102.0,
+        "games": 17,
+        "wins": 9,
         "losses": 4,
         "handedness": "L"
       },
       "away_probable_pitcher": {
         "name": "九里亜蓮",
-        "era": 2.95,
-        "whip": 1.12,
-        "fip_est": 3.05,
-        "k9": 7.8,
-        "bb9": 2.5,
-        "ip": 95.0,
+        "era": 2.88,
+        "whip": 1.1,
+        "fip_est": 3.0,
+        "k9": 7.9,
+        "bb9": 2.4,
+        "ip": 98.0,
         "games": 16,
         "wins": 7,
         "losses": 5,
@@ -205,31 +205,31 @@
       "time": "18:00",
       "home_stats": {
         "batting": {
-          "avg": 0.245,
-          "ops": 0.705,
-          "slg": 0.372,
-          "obp": 0.333,
-          "hr": 55,
-          "runs": 242,
-          "wrc_plus_est": 103
+          "avg": 0.248,
+          "ops": 0.71,
+          "slg": 0.376,
+          "obp": 0.334,
+          "hr": 58,
+          "runs": 248,
+          "wrc_plus_est": 104
         },
         "pitching": {
-          "era": 4.12,
-          "whip": 1.38,
-          "k9": 7.2,
-          "bb9": 3.5,
-          "saves": 12,
-          "holds": 28
+          "era": 4.05,
+          "whip": 1.37,
+          "k9": 7.3,
+          "bb9": 3.4,
+          "saves": 13,
+          "holds": 30
         },
         "defense": {
-          "fielding_pct": 0.98,
-          "errors": 38
+          "fielding_pct": 0.981,
+          "errors": 36
         },
         "record": {
-          "w": 7,
-          "l": 0,
-          "t": 0,
-          "win_pct": 0.5
+          "w": 33,
+          "l": 43,
+          "t": 3,
+          "win_pct": 0.434
         },
         "last_5_record": "2-3",
         "last_10_record": "4-6",
@@ -238,31 +238,31 @@
       },
       "away_stats": {
         "batting": {
-          "avg": 0.242,
-          "ops": 0.681,
-          "slg": 0.358,
-          "obp": 0.323,
-          "hr": 38,
-          "runs": 228,
-          "wrc_plus_est": 100
+          "avg": 0.245,
+          "ops": 0.688,
+          "slg": 0.362,
+          "obp": 0.326,
+          "hr": 40,
+          "runs": 232,
+          "wrc_plus_est": 101
         },
         "pitching": {
-          "era": 3.55,
-          "whip": 1.22,
-          "k9": 8.0,
-          "bb9": 3.0,
-          "saves": 16,
-          "holds": 36
+          "era": 3.5,
+          "whip": 1.21,
+          "k9": 8.1,
+          "bb9": 2.9,
+          "saves": 17,
+          "holds": 38
         },
         "defense": {
-          "fielding_pct": 0.985,
-          "errors": 26
+          "fielding_pct": 0.986,
+          "errors": 25
         },
         "record": {
-          "w": 34,
-          "l": 42,
-          "t": 2,
-          "win_pct": 0.447
+          "w": 35,
+          "l": 41,
+          "t": 3,
+          "win_pct": 0.461
         },
         "last_5_record": "2-3",
         "last_10_record": "4-6",
@@ -271,12 +271,12 @@
       },
       "home_probable_pitcher": {
         "name": "小川泰弘",
-        "era": 3.42,
-        "whip": 1.22,
-        "fip_est": 3.52,
-        "k9": 7.2,
-        "bb9": 2.8,
-        "ip": 82.0,
+        "era": 3.38,
+        "whip": 1.2,
+        "fip_est": 3.48,
+        "k9": 7.3,
+        "bb9": 2.7,
+        "ip": 85.0,
         "games": 14,
         "wins": 5,
         "losses": 6,
@@ -284,13 +284,13 @@
       },
       "away_probable_pitcher": {
         "name": "小笠原慎之介",
-        "era": 2.88,
-        "whip": 1.1,
-        "fip_est": 2.98,
-        "k9": 8.5,
-        "bb9": 2.5,
-        "ip": 90.0,
-        "games": 15,
+        "era": 2.82,
+        "whip": 1.08,
+        "fip_est": 2.92,
+        "k9": 8.6,
+        "bb9": 2.4,
+        "ip": 94.0,
+        "games": 16,
         "wins": 7,
         "losses": 4,
         "handedness": "L"
@@ -303,95 +303,95 @@
       "time": "18:00",
       "home_stats": {
         "batting": {
-          "avg": 0.268,
-          "ops": 0.755,
-          "slg": 0.418,
-          "obp": 0.337,
-          "hr": 78,
-          "runs": 322,
-          "wrc_plus_est": 111
+          "avg": 0.27,
+          "ops": 0.76,
+          "slg": 0.422,
+          "obp": 0.338,
+          "hr": 80,
+          "runs": 330,
+          "wrc_plus_est": 112
         },
         "pitching": {
-          "era": 3.15,
-          "whip": 1.16,
-          "k9": 8.5,
-          "bb9": 2.7,
-          "saves": 22,
-          "holds": 45
+          "era": 3.1,
+          "whip": 1.15,
+          "k9": 8.6,
+          "bb9": 2.6,
+          "saves": 24,
+          "holds": 47
         },
         "defense": {
-          "fielding_pct": 0.989,
-          "errors": 20
+          "fielding_pct": 0.99,
+          "errors": 19
         },
         "record": {
-          "w": 4,
-          "l": 0,
-          "t": 0,
-          "win_pct": 0.5
+          "w": 46,
+          "l": 30,
+          "t": 3,
+          "win_pct": 0.605
         },
         "last_5_record": "4-1",
         "last_10_record": "7-3",
-        "last_20_record": "13-7",
+        "last_20_record": "14-6",
         "stadium": "PayPayドーム"
       },
       "away_stats": {
         "batting": {
-          "avg": 0.255,
-          "ops": 0.72,
-          "slg": 0.39,
+          "avg": 0.256,
+          "ops": 0.722,
+          "slg": 0.392,
           "obp": 0.33,
-          "hr": 60,
-          "runs": 265,
+          "hr": 62,
+          "runs": 268,
           "wrc_plus_est": 106
         },
         "pitching": {
-          "era": 3.85,
-          "whip": 1.3,
-          "k9": 7.5,
-          "bb9": 3.3,
-          "saves": 15,
-          "holds": 32
+          "era": 3.8,
+          "whip": 1.29,
+          "k9": 7.6,
+          "bb9": 3.2,
+          "saves": 16,
+          "holds": 33
         },
         "defense": {
-          "fielding_pct": 0.982,
-          "errors": 32
+          "fielding_pct": 0.983,
+          "errors": 31
         },
         "record": {
-          "w": 36,
-          "l": 40,
-          "t": 2,
-          "win_pct": 0.474
+          "w": 37,
+          "l": 39,
+          "t": 3,
+          "win_pct": 0.487
         },
-        "last_5_record": "2-3",
+        "last_5_record": "3-2",
         "last_10_record": "5-5",
         "last_20_record": "9-11",
         "stadium": "楽天生命パーク宮城"
       },
       "home_probable_pitcher": {
         "name": "有原航平",
-        "era": 2.28,
-        "whip": 0.95,
-        "fip_est": 2.4,
-        "k9": 9.5,
-        "bb9": 2.0,
-        "ip": 118.0,
-        "games": 19,
-        "wins": 11,
+        "era": 2.22,
+        "whip": 0.93,
+        "fip_est": 2.35,
+        "k9": 9.6,
+        "bb9": 1.9,
+        "ip": 122.0,
+        "games": 20,
+        "wins": 12,
         "losses": 3,
         "handedness": "R"
       },
       "away_probable_pitcher": {
-        "name": "田中将大",
-        "era": 3.12,
-        "whip": 1.18,
-        "fip_est": 3.22,
-        "k9": 7.8,
-        "bb9": 2.5,
-        "ip": 88.0,
+        "name": "早川隆久",
+        "era": 3.18,
+        "whip": 1.16,
+        "fip_est": 3.28,
+        "k9": 8.1,
+        "bb9": 2.7,
+        "ip": 85.0,
         "games": 15,
         "wins": 6,
         "losses": 5,
-        "handedness": "R"
+        "handedness": "L"
       }
     },
     {
@@ -401,31 +401,31 @@
       "time": "18:00",
       "home_stats": {
         "batting": {
-          "avg": 0.252,
-          "ops": 0.718,
-          "slg": 0.388,
+          "avg": 0.254,
+          "ops": 0.722,
+          "slg": 0.392,
           "obp": 0.33,
-          "hr": 58,
-          "runs": 272,
-          "wrc_plus_est": 105
+          "hr": 60,
+          "runs": 278,
+          "wrc_plus_est": 106
         },
         "pitching": {
-          "era": 3.28,
-          "whip": 1.2,
-          "k9": 8.1,
-          "bb9": 2.9,
-          "saves": 18,
-          "holds": 40
+          "era": 3.25,
+          "whip": 1.19,
+          "k9": 8.2,
+          "bb9": 2.8,
+          "saves": 19,
+          "holds": 42
         },
         "defense": {
-          "fielding_pct": 0.985,
-          "errors": 26
+          "fielding_pct": 0.986,
+          "errors": 25
         },
         "record": {
-          "w": 3,
-          "l": 0,
-          "t": 0,
-          "win_pct": 0.5
+          "w": 41,
+          "l": 35,
+          "t": 3,
+          "win_pct": 0.539
         },
         "last_5_record": "3-2",
         "last_10_record": "6-4",
@@ -434,30 +434,30 @@
       },
       "away_stats": {
         "batting": {
-          "avg": 0.248,
-          "ops": 0.712,
-          "slg": 0.382,
+          "avg": 0.25,
+          "ops": 0.715,
+          "slg": 0.385,
           "obp": 0.33,
-          "hr": 54,
-          "runs": 258,
-          "wrc_plus_est": 104
+          "hr": 56,
+          "runs": 262,
+          "wrc_plus_est": 105
         },
         "pitching": {
-          "era": 3.72,
-          "whip": 1.28,
-          "k9": 7.8,
-          "bb9": 3.2,
-          "saves": 16,
-          "holds": 34
+          "era": 3.68,
+          "whip": 1.27,
+          "k9": 7.9,
+          "bb9": 3.1,
+          "saves": 17,
+          "holds": 35
         },
         "defense": {
-          "fielding_pct": 0.983,
-          "errors": 30
+          "fielding_pct": 0.984,
+          "errors": 29
         },
         "record": {
-          "w": 3,
-          "l": 0,
-          "t": 0,
+          "w": 38,
+          "l": 38,
+          "t": 3,
           "win_pct": 0.5
         },
         "last_5_record": "3-2",
@@ -467,28 +467,28 @@
       },
       "home_probable_pitcher": {
         "name": "山下舜平大",
-        "era": 2.42,
-        "whip": 0.98,
-        "fip_est": 2.52,
-        "k9": 9.8,
-        "bb9": 1.8,
-        "ip": 108.0,
-        "games": 17,
-        "wins": 9,
+        "era": 2.38,
+        "whip": 0.96,
+        "fip_est": 2.48,
+        "k9": 9.9,
+        "bb9": 1.7,
+        "ip": 112.0,
+        "games": 18,
+        "wins": 10,
         "losses": 3,
         "handedness": "R"
       },
       "away_probable_pitcher": {
-        "name": "佐々木朗希",
-        "era": 1.88,
-        "whip": 0.82,
-        "fip_est": 1.98,
-        "k9": 12.5,
-        "bb9": 1.5,
-        "ip": 72.0,
-        "games": 12,
-        "wins": 6,
-        "losses": 2,
+        "name": "種市篤暉",
+        "era": 2.95,
+        "whip": 1.1,
+        "fip_est": 3.05,
+        "k9": 8.3,
+        "bb9": 2.4,
+        "ip": 94.0,
+        "games": 16,
+        "wins": 7,
+        "losses": 5,
         "handedness": "R"
       }
     },
@@ -499,64 +499,64 @@
       "time": "18:00",
       "home_stats": {
         "batting": {
-          "avg": 0.255,
-          "ops": 0.725,
-          "slg": 0.392,
+          "avg": 0.257,
+          "ops": 0.728,
+          "slg": 0.395,
           "obp": 0.333,
-          "hr": 62,
-          "runs": 275,
-          "wrc_plus_est": 106
+          "hr": 64,
+          "runs": 280,
+          "wrc_plus_est": 107
         },
         "pitching": {
-          "era": 3.62,
-          "whip": 1.25,
-          "k9": 7.9,
-          "bb9": 3.0,
-          "saves": 17,
-          "holds": 36
+          "era": 3.58,
+          "whip": 1.24,
+          "k9": 8.0,
+          "bb9": 2.9,
+          "saves": 18,
+          "holds": 38
         },
         "defense": {
-          "fielding_pct": 0.984,
-          "errors": 28
+          "fielding_pct": 0.985,
+          "errors": 27
         },
         "record": {
-          "w": 3,
-          "l": 0,
-          "t": 0,
-          "win_pct": 0.5
+          "w": 40,
+          "l": 36,
+          "t": 3,
+          "win_pct": 0.526
         },
         "last_5_record": "3-2",
         "last_10_record": "5-5",
-        "last_20_record": "10-10",
+        "last_20_record": "11-9",
         "stadium": "エスコンフィールドHOKKAIDO"
       },
       "away_stats": {
         "batting": {
-          "avg": 0.24,
-          "ops": 0.698,
-          "slg": 0.368,
+          "avg": 0.242,
+          "ops": 0.7,
+          "slg": 0.37,
           "obp": 0.33,
-          "hr": 45,
-          "runs": 238,
-          "wrc_plus_est": 102
+          "hr": 47,
+          "runs": 242,
+          "wrc_plus_est": 103
         },
         "pitching": {
-          "era": 4.05,
-          "whip": 1.36,
-          "k9": 7.3,
-          "bb9": 3.4,
-          "saves": 14,
-          "holds": 30
+          "era": 3.98,
+          "whip": 1.35,
+          "k9": 7.4,
+          "bb9": 3.3,
+          "saves": 15,
+          "holds": 31
         },
         "defense": {
-          "fielding_pct": 0.981,
-          "errors": 35
+          "fielding_pct": 0.982,
+          "errors": 33
         },
         "record": {
-          "w": 33,
-          "l": 43,
-          "t": 2,
-          "win_pct": 0.434
+          "w": 34,
+          "l": 42,
+          "t": 3,
+          "win_pct": 0.447
         },
         "last_5_record": "2-3",
         "last_10_record": "4-6",
@@ -564,27 +564,27 @@
         "stadium": "ベルーナドーム"
       },
       "home_probable_pitcher": {
-        "name": "上沢直之",
-        "era": 2.88,
-        "whip": 1.08,
-        "fip_est": 2.98,
-        "k9": 8.2,
-        "bb9": 2.2,
-        "ip": 95.0,
-        "games": 16,
-        "wins": 7,
+        "name": "伊藤大海",
+        "era": 2.78,
+        "whip": 1.06,
+        "fip_est": 2.88,
+        "k9": 8.5,
+        "bb9": 2.1,
+        "ip": 98.0,
+        "games": 17,
+        "wins": 8,
         "losses": 4,
         "handedness": "R"
       },
       "away_probable_pitcher": {
         "name": "今井達也",
-        "era": 3.42,
-        "whip": 1.22,
-        "fip_est": 3.52,
-        "k9": 8.2,
-        "bb9": 3.0,
-        "ip": 85.0,
-        "games": 14,
+        "era": 3.38,
+        "whip": 1.2,
+        "fip_est": 3.48,
+        "k9": 8.3,
+        "bb9": 2.9,
+        "ip": 88.0,
+        "games": 15,
         "wins": 5,
         "losses": 6,
         "handedness": "R"
