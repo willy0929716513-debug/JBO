@@ -2120,39 +2120,47 @@ def get_template_schedule(today) -> list:
     """
     Return today's schedule based on calendar date.
 
-    During 交流戦 (interleague: approx May 26–Jun 15) the six series are inferred from
-    the CONFIRMED June 12, 2026 pairings (user-verified screenshot) and a valid
-    Latin-square rotation that gives each CL team exactly 3 unique PL opponents at home.
-    Outside 交流戦 the schedule rotates within-league by week.
+    交流戦 2026 (May 26 – Jun 14) runs 6 × 3-game rounds.
+    NPB plays Tue-Thu then Fri-Sun with Monday off, so rounds are:
+      Round 1  May 26-28 (Tue-Thu): CL home, Set A
+      Round 2  May 29-31 (Fri-Sun): PL home, Set A
+      Round 3  Jun  2-4  (Tue-Thu): CL home, Set B
+      Round 4  Jun  5-7  (Fri-Sun): PL home, Set B
+      Round 5  Jun  9-11 (Tue-Thu): CL home, Set C
+      Round 6  Jun 12-14 (Fri-Sun): PL home, Set C  ← confirmed from search Jun 12 2026
+    Pairs are stored as (CL_team, PL_team); PL-home rounds reverse home/away.
     """
     from datetime import date as _d
     KORYUSEN_START = _d(SEASON, 5, 26)
-    KORYUSEN_END   = _d(SEASON, 6, 15)
+    KORYUSEN_END   = _d(SEASON, 6, 14)
 
-    # Each inner list is (home_team, away_team) pairs for one 3-game series block.
-    # 4-day blocks (3 game days + 1 off day) → blocks 0-5 cover May 26 – Jun 15.
-    KORYUSEN_SERIES = [
-        # Block 0 — May 26-29, CL home (Set A)
-        [('阪神','ロッテ'),     ('巨人','日本ハム'),   ('DeNA','楽天'),
-         ('ヤクルト','西武'),   ('中日','ソフトバンク'), ('広島','オリックス')],
-        # Block 1 — May 30-Jun 2, PL home (reverse of Set A)
-        [('ロッテ','阪神'),     ('日本ハム','巨人'),   ('楽天','DeNA'),
-         ('西武','ヤクルト'),   ('ソフトバンク','中日'), ('オリックス','広島')],
-        # Block 2 — Jun 3-6, CL home (Set B)
-        [('阪神','日本ハム'),   ('巨人','楽天'),       ('DeNA','ソフトバンク'),
-         ('ヤクルト','オリックス'), ('中日','西武'),   ('広島','ロッテ')],
-        # Block 3 — Jun 7-10, PL home (reverse of Set B)
-        [('日本ハム','阪神'),   ('楽天','巨人'),       ('ソフトバンク','DeNA'),
-         ('オリックス','ヤクルト'), ('西武','中日'),   ('ロッテ','広島')],
-        # Block 4 — Jun 11-14, CL home (Set C) ← CONFIRMED from user screenshot Jun 12 2026
-        [('阪神','オリックス'), ('巨人','西武'),       ('DeNA','ロッテ'),
-         ('ヤクルト','ソフトバンク'), ('中日','日本ハム'), ('広島','楽天')],
-        # Block 5 — Jun 15+, PL home (reverse of Set C)
-        [('オリックス','阪神'), ('西武','巨人'),       ('ロッテ','DeNA'),
-         ('ソフトバンク','ヤクルト'), ('日本ハム','中日'), ('楽天','広島')],
+    # (CL_team, PL_team) — Set A opponents
+    PAIRS_A = [
+        ('阪神','ロッテ'), ('巨人','日本ハム'), ('DeNA','楽天'),
+        ('ヤクルト','西武'), ('中日','ソフトバンク'), ('広島','オリックス'),
+    ]
+    # Set B opponents
+    PAIRS_B = [
+        ('阪神','日本ハム'), ('巨人','楽天'), ('DeNA','ソフトバンク'),
+        ('ヤクルト','オリックス'), ('中日','西武'), ('広島','ロッテ'),
+    ]
+    # Set C opponents — CONFIRMED from search data Jun 12 2026 (PL home)
+    PAIRS_C = [
+        ('中日','日本ハム'), ('広島','楽天'), ('巨人','西武'),
+        ('DeNA','ロッテ'), ('阪神','オリックス'), ('ヤクルト','ソフトバンク'),
     ]
 
-    # Regular-season within-league rotations (vary by week so not identical every day)
+    # (start_date, end_date, cl_is_home, pairs)
+    ROUNDS = [
+        (_d(SEASON, 5, 26), _d(SEASON, 5, 28), True,  PAIRS_A),
+        (_d(SEASON, 5, 29), _d(SEASON, 5, 31), False, PAIRS_A),
+        (_d(SEASON, 6,  2), _d(SEASON, 6,  4), True,  PAIRS_B),
+        (_d(SEASON, 6,  5), _d(SEASON, 6,  7), False, PAIRS_B),
+        (_d(SEASON, 6,  9), _d(SEASON, 6, 11), True,  PAIRS_C),
+        (_d(SEASON, 6, 12), _d(SEASON, 6, 14), False, PAIRS_C),
+    ]
+
+    # Regular-season within-league rotations (vary by week)
     REGULAR_CL = [
         [('阪神','巨人'),   ('DeNA','広島'),   ('ヤクルト','中日')],
         [('巨人','阪神'),   ('広島','DeNA'),   ('中日','ヤクルト')],
@@ -2173,17 +2181,25 @@ def get_template_schedule(today) -> list:
     game_time = '14:00' if today.weekday() in (5, 6) else '18:00'
 
     if KORYUSEN_START <= today <= KORYUSEN_END:
-        days_in   = (today - KORYUSEN_START).days
-        series_idx = min(days_in // 4, len(KORYUSEN_SERIES) - 1)
-        pairs = KORYUSEN_SERIES[series_idx]
-        print(f'  [Schedule] 交流戦 block {series_idx} (day {days_in} of 交流戦)')
+        cl_is_home, pairs = True, PAIRS_C  # safe fallback to last confirmed round
+        for start, end, is_cl_home, round_pairs in ROUNDS:
+            if start <= today <= end:
+                cl_is_home, pairs = is_cl_home, round_pairs
+                break
+        label = 'CL home' if cl_is_home else 'PL home'
+        print(f'  [Schedule] 交流戦 {label} ({today})')
+        if cl_is_home:
+            return [{'home_team': h, 'away_team': a, 'stadium': STADIUMS.get(h, ''), 'time': game_time}
+                    for h, a in pairs]
+        else:
+            return [{'home_team': a, 'away_team': h, 'stadium': STADIUMS.get(a, ''), 'time': game_time}
+                    for h, a in pairs]
     else:
         week  = today.timetuple().tm_yday // 7
         pairs = REGULAR_CL[week % len(REGULAR_CL)] + REGULAR_PL[week % len(REGULAR_PL)]
         print(f'  [Schedule] Regular season rotation (week slot {week % 6})')
-
-    return [{'home_team': h, 'away_team': a, 'stadium': STADIUMS.get(h, ''), 'time': game_time}
-            for h, a in pairs]
+        return [{'home_team': h, 'away_team': a, 'stadium': STADIUMS.get(h, ''), 'time': game_time}
+                for h, a in pairs]
 
 
 # ─── Schedule Fetching ───────────────────────────────────────────────────────────
@@ -2393,19 +2409,38 @@ def main():
         raw_games = get_template_schedule(_today_date)
         print(f'  → Using date-aware template ({len(raw_games)} games)')
 
-    # Rotation index: NPB uses ~6-man rotation; offset by season day so pitcher changes daily
-    _season_day = max(0, (_today_date - _date(SEASON, 3, 29)).days)
+    # NPB series structure: Tue-Thu (3 games) + Fri-Sun (3 games).
+    # Map weekday → series_day (0=opener/ace, 1=second start, 2=third start).
+    _wd = _today_date.weekday()  # 0=Mon … 6=Sun
+    _SERIES_DAY = {0: 0, 1: 0, 2: 1, 3: 2, 4: 0, 5: 1, 6: 2}
+    _series_day = _SERIES_DAY.get(_wd, 0)
 
-    def pick_pitcher(team_name: str, offset: int = 0) -> dict | None:
+    def pick_pitcher(team_name: str) -> dict | None:
         plist = pitchers_out.get(team_name) or []
         if not plist:
             return None
-        return plist[(_season_day + offset) % len(plist)]
+        # Series-day rotation: Friday/Tuesday → ace (index 0), Saturday/Wednesday → 2nd,
+        # Sunday/Thursday → 3rd. Keeps all teams in the same rotation slot per day.
+        idx = _series_day % len(plist)
+        p = dict(plist[idx])
+        p['estimated'] = True  # flag: not from a live source
+        return p
 
     games_out = []
-    for i, g in enumerate(raw_games):
+    for g in raw_games:
         home = g['home_team']
         away = g['away_team']
+        # If scraped games already include pitcher info, use it (mark as live)
+        if 'home_probable_pitcher' in g and g.get('home_probable_pitcher'):
+            hp = dict(g['home_probable_pitcher'])
+            hp['estimated'] = False
+        else:
+            hp = pick_pitcher(home)
+        if 'away_probable_pitcher' in g and g.get('away_probable_pitcher'):
+            ap = dict(g['away_probable_pitcher'])
+            ap['estimated'] = False
+        else:
+            ap = pick_pitcher(away)
         games_out.append({
             'home_team': home,
             'away_team': away,
@@ -2413,8 +2448,8 @@ def main():
             'time': g.get('time', '18:00'),
             'home_stats': teams_out.get(home, {}),
             'away_stats': teams_out.get(away, {}),
-            'home_probable_pitcher': pick_pitcher(home, offset=i),
-            'away_probable_pitcher': pick_pitcher(away, offset=i + 3),
+            'home_probable_pitcher': hp,
+            'away_probable_pitcher': ap,
         })
 
     schedule_json = {
