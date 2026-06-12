@@ -2,7 +2,8 @@ name: Update NPB Stats
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # 10:00 JST daily (UTC+9)
+    - cron: '0 1 * * *'  # 10:00 JST — get schedule + preliminary pitchers
+    - cron: '0 5 * * *'  # 14:00 JST — confirmed pitcher announcements
   workflow_dispatch:      # Allow manual trigger from GitHub Actions UI
 
 jobs:
