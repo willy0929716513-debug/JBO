@@ -201,6 +201,9 @@ function prefillFromOdds(game) {
   if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   showToast('已載入賠率資料，請補充其他分析資訊後點擊「開始分析」', 'info');
+
+  // Auto-fill team stats from scraped NPB data
+  autoFillStatsForGame(homeTeam, awayTeam);
 }
 
 // ─── Set Form Value Helper ────────────────────────────────────────────────────
@@ -1292,4 +1295,136 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeApiKeyModal(); hideLoading(); }
   });
+
+  // Pre-load NPB stats in the background on page load
+  loadNpbStats();
 });
+
+// ─── NPB Stats Auto-loader ────────────────────────────────────────────────────
+let npbStatsCache = null;
+let npbScheduleCache = null;
+
+async function loadNpbStats() {
+  if (npbStatsCache) return npbStatsCache;
+  try {
+    const resp = await fetch('./data/npb_stats.json');
+    if (!resp.ok) throw new Error('stats not found');
+    npbStatsCache = await resp.json();
+    console.log('NPB stats loaded:', npbStatsCache.updated_at);
+    updateStatsTimestamp(npbStatsCache.updated_at);
+    return npbStatsCache;
+  } catch (e) {
+    console.warn('Could not load NPB stats:', e.message);
+    return null;
+  }
+}
+
+async function loadNpbSchedule() {
+  if (npbScheduleCache) return npbScheduleCache;
+  try {
+    const resp = await fetch('./data/npb_schedule.json');
+    if (!resp.ok) throw new Error('schedule not found');
+    npbScheduleCache = await resp.json();
+    return npbScheduleCache;
+  } catch (e) {
+    return null;
+  }
+}
+
+function updateStatsTimestamp(isoStr) {
+  const el = document.getElementById('stats-updated-at');
+  if (el && isoStr) {
+    const d = new Date(isoStr);
+    el.textContent = `資料更新: ${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+}
+
+async function autoFillStatsForGame(homeTeam, awayTeam) {
+  if (!homeTeam || !awayTeam) return;
+  const stats = await loadNpbStats();
+  if (!stats) {
+    showToast('無法載入 NPB 統計資料，請手動填寫', 'warning');
+    return;
+  }
+
+  const homeStats = stats.teams[homeTeam];
+  const awayStats = stats.teams[awayTeam];
+
+  if (!homeStats && !awayStats) {
+    showToast(`找不到 ${homeTeam} 或 ${awayTeam} 的統計資料`, 'warning');
+    return;
+  }
+
+  // Fill home team stats
+  if (homeStats) {
+    setVal('home_ops', homeStats.batting.ops);
+    setVal('home_wrc_plus', homeStats.batting.wrc_plus_est || 100);
+    setVal('home_slg', homeStats.batting.slg);
+    setVal('home_obp', homeStats.batting.obp);
+    setVal('home_last_5', homeStats.last_5_record);
+    setVal('home_last_10', homeStats.last_10_record);
+    setVal('home_last_20', homeStats.last_20_record);
+    setVal('home_fielding_pct', homeStats.defense ? homeStats.defense.fielding_pct : 0.982);
+
+    // Bullpen ERA from team pitching
+    if (homeStats.pitching) {
+      setVal('home_bullpen_era', homeStats.pitching.era);
+    }
+    if (stats.bullpens && stats.bullpens[homeTeam]) {
+      setVal('home_bullpen_era', stats.bullpens[homeTeam].era);
+    }
+  }
+
+  // Fill away team stats
+  if (awayStats) {
+    setVal('away_ops', awayStats.batting.ops);
+    setVal('away_wrc_plus', awayStats.batting.wrc_plus_est || 100);
+    setVal('away_slg', awayStats.batting.slg);
+    setVal('away_obp', awayStats.batting.obp);
+    setVal('away_last_5', awayStats.last_5_record);
+    setVal('away_last_10', awayStats.last_10_record);
+    setVal('away_last_20', awayStats.last_20_record);
+    setVal('away_fielding_pct', awayStats.defense ? awayStats.defense.fielding_pct : 0.982);
+
+    if (stats.bullpens && stats.bullpens[awayTeam]) {
+      setVal('away_bullpen_era', stats.bullpens[awayTeam].era);
+    }
+  }
+
+  // Auto-fill best probable pitcher for each team
+  if (stats.pitchers && stats.pitchers[homeTeam] && stats.pitchers[homeTeam].length > 0) {
+    const p = stats.pitchers[homeTeam][0];
+    setVal('home_era', p.era);
+    setVal('home_whip', p.whip);
+    setVal('home_fip', p.fip_est || p.era);
+    setVal('home_k9', p.k9);
+    setVal('home_bb9', p.bb9);
+    setVal('home_handedness', p.handedness || 'R');
+    setVal('home_rest_days', 5);
+  }
+
+  if (stats.pitchers && stats.pitchers[awayTeam] && stats.pitchers[awayTeam].length > 0) {
+    const p = stats.pitchers[awayTeam][0];
+    setVal('away_era', p.era);
+    setVal('away_whip', p.whip);
+    setVal('away_fip', p.fip_est || p.era);
+    setVal('away_k9', p.k9);
+    setVal('away_bb9', p.bb9);
+    setVal('away_handedness', p.handedness || 'R');
+    setVal('away_rest_days', 5);
+  }
+
+  showToast(`已自動載入 ${homeTeam} vs ${awayTeam} 的統計資料`, 'success');
+}
+
+async function autoFillFromTeamNames() {
+  const home = document.getElementById('home_team') ? document.getElementById('home_team').value.trim() : '';
+  const away = document.getElementById('away_team') ? document.getElementById('away_team').value.trim() : '';
+  if (!home || !away) {
+    showToast('請先輸入主隊和客隊名稱', 'warning');
+    return;
+  }
+  showLoading('載入球隊統計資料...');
+  await autoFillStatsForGame(home, away);
+  hideLoading();
+}
