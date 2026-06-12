@@ -1478,6 +1478,8 @@ async function renderSchedule() {
 
     const hpName = (hp && isValidName(hp.name)) ? hp.name : '未公佈';
     const apName = (ap && isValidName(ap.name)) ? ap.name : '未公佈';
+    const hpEst  = hp && hp.estimated ? '<span style="font-size:.65rem;color:#f59e0b;margin-left:.25rem;">(估)</span>' : '';
+    const apEst  = ap && ap.estimated ? '<span style="font-size:.65rem;color:#f59e0b;margin-left:.25rem;">(估)</span>' : '';
     const hpStats = (hp && isValidName(hp.name)) ? `ERA ${hp.era.toFixed(2)} / WHIP ${hp.whip.toFixed(2)}` : '';
     const apStats = (ap && isValidName(ap.name)) ? `ERA ${ap.era.toFixed(2)} / WHIP ${ap.whip.toFixed(2)}` : '';
 
@@ -1492,11 +1494,11 @@ async function renderSchedule() {
       <div style="text-align:center;font-size:.72rem;color:var(--text-secondary);">${game.time || '18:00'} · ${game.stadium || ''}</div>
       <div style="font-size:.75rem;padding:.4rem 0;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);">
         <div style="display:flex;justify-content:space-between;margin-bottom:.2rem;">
-          <span style="color:#00d4ff;">${hpName}</span>
+          <span style="color:#00d4ff;">${hpName}${hpEst}</span>
           <span style="color:var(--text-secondary);">${hpStats}</span>
         </div>
         <div style="display:flex;justify-content:space-between;">
-          <span style="color:#a78bfa;">${apName}</span>
+          <span style="color:#a78bfa;">${apName}${apEst}</span>
           <span style="color:var(--text-secondary);">${apStats}</span>
         </div>
       </div>
