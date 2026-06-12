@@ -1465,8 +1465,6 @@ async function renderSchedule() {
 
   container.innerHTML = '';
   uniqueGames.forEach((game, idx) => {
-    const hp = game.home_probable_pitcher;
-    const ap = game.away_probable_pitcher;
     const hs = game.home_stats || {};
     const as_ = game.away_stats || {};
     const hb = hs.batting || {};
@@ -1475,17 +1473,6 @@ async function renderSchedule() {
     const api = as_.pitching || {};
     const hr = hs.record || {};
     const ar = as_.record || {};
-
-    const hpName = (hp && isValidName(hp.name)) ? hp.name : '未公佈';
-    const apName = (ap && isValidName(ap.name)) ? ap.name : '未公佈';
-    const hpEst  = hp && hp.estimated ? '<span class="est-badge">估</span>' : '';
-    const apEst  = ap && ap.estimated ? '<span class="est-badge">估</span>' : '';
-    const hpHand = hp ? `<span class="sgc-hand ${hp.handedness === 'L' ? 'left' : 'right'}">${hp.handedness}</span>` : '';
-    const apHand = ap ? `<span class="sgc-hand ${ap.handedness === 'L' ? 'left' : 'right'}">${ap.handedness}</span>` : '';
-    const hpStatStr = (hp && isValidName(hp.name))
-      ? `ERA ${hp.era.toFixed(2)} · K/9 ${hp.k9.toFixed(1)} · WHIP ${hp.whip.toFixed(2)}` : '先發未定';
-    const apStatStr = (ap && isValidName(ap.name))
-      ? `ERA ${ap.era.toFixed(2)} · K/9 ${ap.k9.toFixed(1)} · WHIP ${ap.whip.toFixed(2)}` : '先發未定';
 
     const card = document.createElement('div');
     card.className = 'glass-card sgc';
@@ -1507,17 +1494,6 @@ async function renderSchedule() {
     <div class="sgc-team-name away">${game.away_team}</div>
     <div class="sgc-wl">${ar.w != null ? `${ar.w}勝 ${ar.l}負` : '—'}</div>
     <div class="sgc-recent">${as_.last_5_record ? `近5: ${as_.last_5_record}` : ''}</div>
-  </div>
-</div>
-<div class="sgc-pitcher-box">
-  <div class="sgc-pitcher home">
-    <div class="sgc-p-row">${hpHand}<span class="sgc-p-name">${hpName}</span>${hpEst}</div>
-    <div class="sgc-p-stats">${hpStatStr}</div>
-  </div>
-  <div class="sgc-ball-icon"><i class="fa-solid fa-baseball"></i></div>
-  <div class="sgc-pitcher away">
-    <div class="sgc-p-row"><span class="sgc-p-name">${apName}</span>${apEst}${apHand}</div>
-    <div class="sgc-p-stats">${apStatStr}</div>
   </div>
 </div>
 <div class="sgc-chips">
