@@ -504,7 +504,10 @@ def parse_bdjp_individual_pitchers(soup: BeautifulSoup) -> dict:
             if not name:
                 name = cells[0]
             # Skip rows where name is a jersey number or pure digit string
+            # Skip rows where name is a jersey number or a team name (not a real pitcher name)
             if not name or re.match(r'^\d+$', name.strip()):
+                continue
+            if normalize_team(name.strip()):
                 continue
 
             # Team
@@ -2237,7 +2240,7 @@ def main():
     # ── Schedule ──────────────────────────────────────────────────
     raw_games = scrape_schedule(today_str)
 
-    # Deduplicate and validate schedule
+    # Deduplicate by home+away key
     _seen_games: set = set()
     _deduped: list = []
     for _g in raw_games:
@@ -2247,9 +2250,17 @@ def main():
             _deduped.append(_g)
     raw_games = _deduped
 
-    # If fewer than 2 unique games or all same single pairing, use fallback
-    _unique_pairs = len(set((g['home_team'], g['away_team']) for g in raw_games))
-    if not raw_games or _unique_pairs < 2:
+    # Remove impossible games: a team cannot play two games on the same day
+    from collections import Counter as _Counter
+    _team_counts = _Counter()
+    for _g in raw_games:
+        _team_counts[_g['home_team']] += 1
+        _team_counts[_g['away_team']] += 1
+    raw_games = [_g for _g in raw_games
+                 if _team_counts[_g['home_team']] == 1 and _team_counts[_g['away_team']] == 1]
+
+    # If fewer than 3 valid games, schedule is unreliable — use fallback
+    if len(raw_games) < 3:
         print('  → Schedule unreliable — using sample schedule')
         raw_games = [
             {'home_team': '阪神', 'away_team': '巨人', 'stadium': '甲子園', 'time': '18:00'},

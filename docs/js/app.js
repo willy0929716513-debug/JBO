@@ -1460,7 +1460,8 @@ async function renderSchedule() {
     dateLabel.textContent = `${d.getMonth() + 1}月${d.getDate()}日`;
   }
 
-  const isValidName = name => name && !/^\d+$/.test(name.trim());
+  const TEAM_ALIASES = new Set(['阪神','巨人','DeNA','ヤクルト','中日','広島','ソフトバンク','日本ハム','ロッテ','西武','楽天','オリックス','Giants','Eagles','Tigers','Carp','Dragons','Swallows','BayStars','Lions','Marines','Buffaloes','Hawks','Fighters']);
+  const isValidName = name => name && !/^\d+$/.test(name.trim()) && !TEAM_ALIASES.has(name.trim());
 
   container.innerHTML = '';
   uniqueGames.forEach((game, idx) => {
