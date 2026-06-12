@@ -42,6 +42,11 @@ HEADERS = {
 JST = pytz.timezone('Asia/Tokyo')
 SEASON = datetime.now(JST).year
 
+# ── API-Sports (module-level so all functions can reference it) ──────────────────
+API_SPORTS_KEY = os.environ.get('API_SPORTS_KEY', '').strip()
+API_SPORTS_BASE = 'https://v1.baseball.api-sports.io'
+NPB_LEAGUE_IDS = [1]  # fallback; discovered dynamically at runtime
+
 # ── Wikipedia (Source 0 — always free, never blocked) ────────────────────────────
 WIKI_URLS = [
     f'https://en.wikipedia.org/wiki/{SEASON}_Nippon_Professional_Baseball_season',
@@ -1019,9 +1024,11 @@ def parse_wikipedia_standings(soup: BeautifulSoup) -> dict:
             parsed_count += 1
 
         if parsed_count >= 3:
-            print(f'  Wikipedia: parsed {len(results)} teams from standings table')
-            break
+            print(f'  Wikipedia: parsed {len(results)} teams so far (continuing for other league)...')
+            # Don't break — two separate tables for Central and Pacific leagues
 
+    if results:
+        print(f'  Wikipedia total: {len(results)} teams from standings')
     return results
 
 
@@ -1381,7 +1388,6 @@ def scrape_all_stats():
         print('  → No standings found on Wikipedia')
 
     # ── Source 0b: API-Sports (only if key set AND season ≤ 2024) ──
-    API_SPORTS_KEY = os.environ.get('API_SPORTS_KEY', '').strip()
     if API_SPORTS_KEY and SEASON <= 2024:
         print(f'\n[Source 0b] API-Sports (season {SEASON} is within free tier)...')
         league_ids = api_find_npb_leagues()
@@ -1397,8 +1403,13 @@ def scrape_all_stats():
         print(f'\n[Source 0b] API-Sports — free plan only covers ≤2024, skipping {SEASON}.')
 
     # ── Source 1: baseballdata.jp (dynamic URL discovery) ─────────
-    print('\n[Source 1] baseballdata.jp/en/ — discovering URLs from main page...')
-    top_soup = fetch_page(BDJP_TOP)
+    # Try current-year archive page first (e.g. /2026/en/index.html), fall back to /en/
+    print('\n[Source 1] baseballdata.jp — trying year-indexed archive...')
+    bdjp_year_url = f'https://baseballdata.jp/{SEASON}/en/index.html'
+    top_soup = fetch_page(bdjp_year_url)
+    if top_soup is None:
+        print(f'  → {bdjp_year_url} not available, trying /en/ main page...')
+        top_soup = fetch_page(BDJP_TOP)
     if top_soup is not None:
         links = discover_bdjp_links(top_soup)
         time.sleep(0.8)
@@ -1536,8 +1547,8 @@ def scrape_all_stats():
 
 # ─── Schedule Fetching ───────────────────────────────────────────────────────────
 def scrape_schedule(today_str: str = '') -> list:
-    # Try API-Sports first
-    if API_SPORTS_KEY and today_str:
+    # Try API-Sports first (free plan only covers ≤2024)
+    if API_SPORTS_KEY and today_str and SEASON <= 2024:
         print(f'\n[Schedule] API-Sports for {today_str}...')
         league_ids = api_find_npb_leagues()
         games = api_schedule_today(league_ids, today_str)
