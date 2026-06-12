@@ -1781,6 +1781,29 @@ def scrape_schedule(today_str: str = '') -> list:
         games = parse_npb_schedule(soup)
         print(f'  → Yahoo schedule: {len(games)} games')
         return games
+
+    # Try new Yahoo domain
+    print(f'  GET {SPORTS_YAHOO_URLS["schedule"]}')
+    soup = fetch_page(SPORTS_YAHOO_URLS['schedule'])
+    if soup is None:
+        soup = fetch_page_alt(SPORTS_YAHOO_URLS['schedule'],
+                              referer='https://sports.yahoo.co.jp/')
+    if soup:
+        games = parse_npb_schedule(soup)
+        if games:
+            print(f'  → sports.yahoo: {len(games)} games')
+            return games
+
+    # Try npb.jp/scores/ with mobile UA (it's 403 with desktop UA)
+    npb_scores_url = f'https://npb.jp/scores/{SEASON}/'
+    print(f'  GET (mobile) {npb_scores_url}')
+    soup = fetch_page_alt(npb_scores_url, referer='https://npb.jp/')
+    if soup:
+        games = parse_npb_schedule(soup)
+        if games:
+            print(f'  → npb.jp/scores/ (mobile): {len(games)} games')
+            return games
+
     return []
 
 
