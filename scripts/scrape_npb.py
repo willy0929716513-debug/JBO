@@ -153,6 +153,8 @@ NPB_SCHEDULE_CANDIDATES = [
     f'https://npb.jp/schedule/{SEASON}/',
     'https://npb.jp/scores/',
     f'https://baseball.yahoo.co.jp/npb/schedule/',
+    'http://sborisov.brinkster.net/today.asp',       # simple HTML NPB daily schedule
+    'https://scores24.live/en/baseball/l-japan-professional-baseball',
 ]
 
 # Canonical team names used throughout the UI
@@ -792,27 +794,77 @@ def parse_npb_schedule(soup: BeautifulSoup) -> list:
     if soup is None:
         return games
 
-    game_blocks = (
-        soup.select('div.scoreBox') or soup.select('div.score_box') or
-        soup.select('div[class*="score"]') or soup.select('table.scoreTable')
-    )
-    for block in game_blocks:
-        try:
-            teams = block.select('.teamName, .team_name, td.team')
-            if len(teams) < 2:
+    # Strategy 1: named CSS selectors used by various Japanese sports sites
+    for sel in [
+        'div.scoreBox', 'div.score_box', 'div[class*="scoreBox"]',
+        'div[class*="score-box"]', 'div[class*="game"]', 'div[class*="Game"]',
+        'li[class*="game"]', 'li[class*="match"]', 'div.matchBox',
+        'table.scoreTable', 'div[class*="schedule"]',
+    ]:
+        for block in soup.select(sel):
+            try:
+                team_els = block.select(
+                    '.teamName, .team_name, .team, td.team, span[class*="team"], '
+                    '[class*="teamName"], [class*="team-name"]'
+                )
+                if len(team_els) >= 2:
+                    away = normalize_team(team_els[0].get_text(strip=True))
+                    home = normalize_team(team_els[1].get_text(strip=True))
+                    if home and away and home in ALL_TEAMS and away in ALL_TEAMS:
+                        time_el = block.select_one(
+                            '.gameTime, .game_time, .time, [class*="time"], [class*="Time"]'
+                        )
+                        t = time_el.get_text(strip=True) if time_el else '18:00'
+                        games.append({'home_team': home, 'away_team': away,
+                                      'stadium': STADIUMS.get(home, ''), 'time': t})
+            except Exception:
                 continue
-            away = normalize_team(teams[0].get_text(strip=True))
-            home = normalize_team(teams[1].get_text(strip=True))
-            if not home or not away:
-                continue
-            time_el = block.select_one('.gameTime, .game_time, .time')
-            game_time = time_el.get_text(strip=True) if time_el else '18:00'
-            games.append({'home_team': home, 'away_team': away,
-                          'stadium': STADIUMS.get(home, ''), 'time': game_time})
-        except Exception:
-            continue
+        if games:
+            return games
 
-    return games
+    # Strategy 2: scan every HTML table for rows that contain 2 valid team names
+    for headers, rows in extract_tables(soup):
+        for cells in rows:
+            found = [normalize_team(c) for c in cells if normalize_team(c) in ALL_TEAMS]
+            if len(found) >= 2:
+                home, away = found[0], found[1]
+                # Guess time from cells (look for HH:MM pattern)
+                t = '18:00'
+                for c in cells:
+                    if re.match(r'\d{1,2}:\d{2}', c.strip()):
+                        t = c.strip()
+                        break
+                games.append({'home_team': home, 'away_team': away,
+                              'stadium': STADIUMS.get(home, ''), 'time': t})
+        if games:
+            return games
+
+    # Strategy 3: full-text pattern scan — "TeamA vs TeamB" or "TeamA対TeamB"
+    text = soup.get_text(' ', strip=True)
+    for sep in [' vs ', ' VS ', '対', '×', '－']:
+        parts = text.split(sep)
+        for i in range(len(parts) - 1):
+            # Look at last word of left part and first word of right part
+            left_words  = parts[i].split()[-2:]
+            right_words = parts[i + 1].split()[:2]
+            for lw in left_words:
+                away = normalize_team(lw)
+                if not away or away not in ALL_TEAMS:
+                    continue
+                for rw in right_words:
+                    home = normalize_team(rw)
+                    if home and home in ALL_TEAMS and home != away:
+                        games.append({'home_team': home, 'away_team': away,
+                                      'stadium': STADIUMS.get(home, ''), 'time': '18:00'})
+    # Deduplicate
+    seen = set()
+    unique = []
+    for g in games:
+        key = (g['home_team'], g['away_team'])
+        if key not in seen:
+            seen.add(key)
+            unique.append(g)
+    return unique
 
 
 # ─── Fallback Data (2026 estimates) ─────────────────────────────────────────────
@@ -1835,7 +1887,12 @@ def scrape_all_stats():
             parsed_pit = parse_bdjp_team_pitching(s)
             parsed_ind = parse_bdjp_individual_pitchers(s)
             if parsed_std:
-                standings_data.update({k: v for k, v in parsed_std.items() if k not in standings_data})
+                for k, v in parsed_std.items():
+                    existing = standings_data.get(k)
+                    new_total = v['w'] + v['l'] + v.get('t', 0)
+                    old_total = (existing['w'] + existing['l'] + existing.get('t', 0)) if existing else 0
+                    if existing is None or new_total > old_total:
+                        standings_data[k] = v
             if parsed_bat:
                 batting_data.update({k: v for k, v in parsed_bat.items() if k not in batting_data})
             if parsed_pit:
@@ -1885,21 +1942,22 @@ def scrape_all_stats():
           f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
 
     # ── Source 2b: nikkansports.com ────────────────────────────────
-    print('\n[Source 2b] nikkansports.com...')
-    nk_bat, nk_pit, nk_pitchers, nk_std = scrape_nikkansports()
-    if nk_std:
-        standings_data.update({k: v for k, v in nk_std.items() if k not in standings_data})
-    if nk_bat:
-        batting_data.update({k: v for k, v in nk_bat.items() if k not in batting_data})
-    if nk_pit:
-        pitching_data.update({k: v for k, v in nk_pit.items() if k not in pitching_data})
-    if nk_pitchers:
-        pitcher_data.update({k: v for k, v in nk_pitchers.items() if k not in pitcher_data})
-    print(f'  nikkansports: bat={len(batting_data)} pit={len(pitching_data)} '
-          f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+    if len(batting_data) < 12 or len(pitching_data) < 12:
+        print('\n[Source 2b] nikkansports.com...')
+        nk_bat, nk_pit, nk_pitchers, nk_std = scrape_nikkansports()
+        if nk_std:
+            standings_data.update({k: v for k, v in nk_std.items() if k not in standings_data})
+        if nk_bat:
+            batting_data.update({k: v for k, v in nk_bat.items() if k not in batting_data})
+        if nk_pit:
+            pitching_data.update({k: v for k, v in nk_pit.items() if k not in pitching_data})
+        if nk_pitchers:
+            pitcher_data.update({k: v for k, v in nk_pitchers.items() if k not in pitcher_data})
+        print(f'  nikkansports: bat={len(batting_data)} pit={len(pitching_data)} '
+              f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
 
     # ── Source 2c: baseballking.jp ─────────────────────────────────
-    if len(batting_data) < 6 or len(pitching_data) < 6:
+    if len(batting_data) < 12 or len(pitching_data) < 12:
         print('\n[Source 2c] baseballking.jp...')
         bk_bat, bk_pit, bk_pitchers, bk_std = scrape_baseballking()
         if bk_std:
@@ -1914,7 +1972,7 @@ def scrape_all_stats():
               f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
 
     # ── Source 2d: sports.yahoo.co.jp (new URL) ────────────────────
-    if len(batting_data) < 6 or len(pitching_data) < 6:
+    if len(batting_data) < 12 or len(pitching_data) < 12:
         print('\n[Source 2d] sports.yahoo.co.jp (new domain)...')
         sy_bat, sy_pit, sy_pitchers, sy_std = scrape_sports_yahoo_new()
         if sy_std:
