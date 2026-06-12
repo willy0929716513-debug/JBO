@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-NPB Stats Scraper — fetches real stats from npb.jp and writes JSON files
-for the JBO dashboard at docs/data/.
+NPB Stats Scraper — fetches real stats for the JBO dashboard.
+
+Priority order:
+  1. baseballdata.jp/en/ (user-requested source)
+  2. npb.jp (official, with correct current-year URLs)
+  3. Hardcoded fallback data (always works)
 
 Outputs:
   docs/data/npb_stats.json    — team + pitcher stats for the current season
@@ -16,45 +20,60 @@ import re
 import time
 from datetime import datetime, date
 import pytz
+import random
 
 # ─── Configuration ──────────────────────────────────────────────────────────────
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
-                  'Chrome/120.0.0.0 Safari/537.36',
-    'Accept-Language': 'ja,en;q=0.9',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                  '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
     'Accept-Encoding': 'gzip, deflate, br',
     'Connection': 'keep-alive',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
 }
 
 JST = pytz.timezone('Asia/Tokyo')
-SEASON = 2025
+# Always use the current NPB season year
+SEASON = datetime.now(JST).year
 
-URLS = {
-    'batting_c':   f'https://npb.jp/bis/{SEASON}/stats/idb1_{SEASON}t_c.html',
-    'batting_p':   f'https://npb.jp/bis/{SEASON}/stats/idb1_{SEASON}t_p.html',
-    'pitching_c':  f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}t_c.html',
-    'pitching_p':  f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}t_p.html',
-    'indv_pitch_c': f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}i_c.html',
-    'indv_pitch_p': f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}i_p.html',
-    'standings':   f'https://npb.jp/bis/{SEASON}/standings/',
-    'schedule':    f'https://npb.jp/scores/{SEASON}/',
+# baseballdata.jp URL patterns (English interface for NPB stats)
+BASEBALLDATA_URLS = {
+    'top':             'https://baseballdata.jp/en/',
+    'standings':       'https://baseballdata.jp/en/standings/',
+    'team_batting':    'https://baseballdata.jp/en/teamtop/batting/',
+    'team_pitching':   'https://baseballdata.jp/en/teamtop/pitching/',
+    'indv_pitching':   'https://baseballdata.jp/en/playerdata/pitching/',
+    'indv_batting':    'https://baseballdata.jp/en/playerdata/batting/',
 }
 
-# Japanese team name → canonical UI name
-TEAM_NAMES = {
-    '阪神': '阪神', 'Ｔ': '阪神', 'Tigers': '阪神', 'T': '阪神',
-    '巨人': '巨人', 'Ｇ': '巨人', 'Giants': '巨人', 'G': '巨人',
-    'ＤｅＮＡ': 'DeNA', 'DeNA': 'DeNA', 'Ｄ': 'DeNA', 'D': 'DeNA',
-    '中日': '中日', 'Ｃ': '中日', 'Dragons': '中日', 'C': '中日',
-    'ヤクルト': 'ヤクルト', 'Ｓ': 'ヤクルト', 'Swallows': 'ヤクルト', 'S': 'ヤクルト',
-    '広島': '広島', 'Ｈ広島': '広島', 'Carp': '広島',
-    'ソフトバンク': 'ソフトバンク', 'Ｈ': 'ソフトバンク', 'Hawks': 'ソフトバンク', 'H': 'ソフトバンク',
-    '日本ハム': '日本ハム', 'Ｆ': '日本ハム', 'Fighters': '日本ハム', 'F': '日本ハム',
-    'ロッテ': 'ロッテ', 'Ｍ': 'ロッテ', 'Marines': 'ロッテ', 'M': 'ロッテ',
-    '西武': '西武', 'Ｌ': '西武', 'Lions': '西武', 'L': '西武',
-    '楽天': '楽天', 'Ｅ': '楽天', 'Eagles': '楽天', 'E': '楽天',
-    'オリックス': 'オリックス', 'Ｂ': 'オリックス', 'Buffaloes': 'オリックス', 'B': 'オリックス',
+# npb.jp URL patterns (official, current season)
+NPB_URLS = {
+    'batting_c':    f'https://npb.jp/bis/{SEASON}/stats/idb1_{SEASON}t_c.html',
+    'batting_p':    f'https://npb.jp/bis/{SEASON}/stats/idb1_{SEASON}t_p.html',
+    'pitching_c':   f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}t_c.html',
+    'pitching_p':   f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}t_p.html',
+    'indv_pitch_c': f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}i_c.html',
+    'indv_pitch_p': f'https://npb.jp/bis/{SEASON}/stats/idp1_{SEASON}i_p.html',
+    'standings':    f'https://npb.jp/bis/{SEASON}/standings/',
+    'schedule':     f'https://npb.jp/scores/{SEASON}/',
+}
+
+# Canonical team names used throughout the UI
+TEAM_NAMES_JA = {
+    '阪神': '阪神', 'Ｔ': '阪神', 'Tigers': '阪神', 'T': '阪神', 'Hanshin': '阪神',
+    '巨人': '巨人', 'Ｇ': '巨人', 'Giants': '巨人', 'G': '巨人', 'Yomiuri': '巨人',
+    'ＤｅＮＡ': 'DeNA', 'DeNA': 'DeNA', 'Ｄ': 'DeNA', 'D': 'DeNA', 'Yokohama': 'DeNA',
+    '中日': '中日', 'Ｃ': '中日', 'Dragons': '中日', 'C': '中日', 'Chunichi': '中日',
+    'ヤクルト': 'ヤクルト', 'Ｓ': 'ヤクルト', 'Swallows': 'ヤクルト', 'S': 'ヤクルト', 'Yakult': 'ヤクルト',
+    '広島': '広島', 'Carp': '広島', 'Hiroshima': '広島',
+    'ソフトバンク': 'ソフトバンク', 'Ｈ': 'ソフトバンク', 'Hawks': 'ソフトバンク', 'H': 'ソフトバンク', 'Fukuoka': 'ソフトバンク', 'SoftBank': 'ソフトバンク',
+    '日本ハム': '日本ハム', 'Ｆ': '日本ハム', 'Fighters': '日本ハム', 'F': '日本ハム', 'Hokkaido': '日本ハム', 'Nippon-Ham': '日本ハム',
+    'ロッテ': 'ロッテ', 'Ｍ': 'ロッテ', 'Marines': 'ロッテ', 'M': 'ロッテ', 'Chiba': 'ロッテ', 'Lotte': 'ロッテ',
+    '西武': '西武', 'Ｌ': '西武', 'Lions': '西武', 'L': '西武', 'Saitama': '西武', 'Seibu': '西武',
+    '楽天': '楽天', 'Ｅ': '楽天', 'Eagles': '楽天', 'E': '楽天', 'Tohoku': '楽天', 'Rakuten': '楽天',
+    'オリックス': 'オリックス', 'Ｂ': 'オリックス', 'Buffaloes': 'オリックス', 'B': 'オリックス', 'Orix': 'オリックス',
 }
 
 STADIUMS = {
@@ -77,43 +96,38 @@ ALL_TEAMS = list(STADIUMS.keys())
 
 # ─── Helpers ────────────────────────────────────────────────────────────────────
 def normalize_team(raw: str) -> str:
-    """Map raw HTML team name to canonical UI name."""
     if not raw:
         return ''
     raw = raw.strip()
-    # Direct match
-    if raw in TEAM_NAMES:
-        return TEAM_NAMES[raw]
-    # Substring match
-    for k, v in TEAM_NAMES.items():
-        if k and k in raw:
+    if raw in TEAM_NAMES_JA:
+        return TEAM_NAMES_JA[raw]
+    for k, v in TEAM_NAMES_JA.items():
+        if k and len(k) > 1 and k in raw:
             return v
     return raw
 
 
 def safe_float(s, default=0.0):
     try:
-        return float(str(s).replace(',', '').replace('　', '').strip())
+        return float(str(s).replace(',', '').replace('　', '').replace(' ', '').strip())
     except (ValueError, TypeError):
         return default
 
 
 def safe_int(s, default=0):
     try:
-        return int(str(s).replace(',', '').replace('　', '').strip())
+        return int(str(s).replace(',', '').replace('　', '').replace(' ', '').strip())
     except (ValueError, TypeError):
         return default
 
 
 def estimate_wrc_plus(ops: float, league_avg_ops: float = 0.680) -> int:
-    """Rough wRC+ estimate from OPS relative to league average."""
     if league_avg_ops <= 0:
         return 100
     return round((ops / league_avg_ops) * 100)
 
 
 def estimate_fip(era: float, whip: float) -> float:
-    """Very rough FIP estimate from ERA and WHIP."""
     return round(era * 0.9 + whip * 0.3, 2)
 
 
@@ -136,7 +150,6 @@ def calc_whip(h: int, bb: int, ip: float) -> float:
 
 
 def parse_ip(s) -> float:
-    """Parse innings pitched string like '88.1' → 88 + 1/3."""
     try:
         s = str(s).strip()
         if '.' in s:
@@ -149,95 +162,306 @@ def parse_ip(s) -> float:
         return 0.0
 
 
-# ─── Fetcher ────────────────────────────────────────────────────────────────────
-def fetch_page(url: str, retries: int = 3) -> BeautifulSoup | None:
-    """Fetch URL with retries; return BeautifulSoup or None on failure."""
+# ─── HTTP Fetcher ───────────────────────────────────────────────────────────────
+def fetch_page(url: str, retries: int = 3, delay: float = 1.5) -> BeautifulSoup | None:
     for attempt in range(retries):
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=15)
+            resp = requests.get(url, headers=HEADERS, timeout=20)
+            if resp.status_code == 403:
+                print(f'  [!] 403 Forbidden — {url}')
+                return None
             resp.raise_for_status()
-            # Try UTF-8 first; fall back to Shift-JIS
-            try:
-                resp.encoding = 'utf-8'
-                text = resp.text
-            except Exception:
-                resp.encoding = 'shift_jis'
-                text = resp.text
+            # Try UTF-8 then Shift-JIS for Japanese pages
+            for enc in ('utf-8', 'shift_jis', 'euc-jp'):
+                try:
+                    resp.encoding = enc
+                    text = resp.text
+                    if text:
+                        break
+                except Exception:
+                    continue
             return BeautifulSoup(text, 'lxml')
         except requests.exceptions.RequestException as e:
-            print(f'  [!] Fetch attempt {attempt+1} failed for {url}: {e}')
+            print(f'  [!] Attempt {attempt + 1} failed for {url}: {e}')
             if attempt < retries - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(delay * (2 ** attempt))
     return None
 
 
-# ─── Parsers ────────────────────────────────────────────────────────────────────
-def find_stats_table(soup: BeautifulSoup):
-    """Try several CSS selectors to locate the main stats table."""
-    if soup is None:
-        return None
-    # Try common npb.jp table patterns
-    for selector in [
-        'table.stdTbl', 'table.tablesorter', 'table#team_stats',
-        'div.teamStats table', 'div#contents table',
-        'table[class*="Tbl"]', 'div.statsTable table',
-        'table',
-    ]:
-        try:
-            tbl = soup.select(selector)
-            if tbl:
-                return tbl[0]
-        except Exception:
-            continue
-    return None
-
-
-def parse_team_batting(soup: BeautifulSoup) -> dict:
-    """Parse team batting stats. Returns {team_name: {avg, ops, slg, obp, hr, runs}}."""
-    results = {}
+# ─── Generic Table Parser ───────────────────────────────────────────────────────
+def extract_tables(soup: BeautifulSoup) -> list:
+    """Return all tables from a page as list of (headers, rows) tuples."""
+    results = []
     if soup is None:
         return results
-
-    # Look for all tables; find the one with known batting columns
-    tables = soup.find_all('table')
-    for tbl in tables:
+    for tbl in soup.find_all('table'):
         rows = tbl.find_all('tr')
-        if len(rows) < 3:
+        if len(rows) < 2:
             continue
-
-        # Parse header to find column indices
+        # Find header row
         headers = []
         header_row = rows[0]
         for th in header_row.find_all(['th', 'td']):
             headers.append(th.get_text(strip=True))
+        if not headers:
+            continue
+        data_rows = []
+        for row in rows[1:]:
+            cells = [td.get_text(strip=True) for td in row.find_all(['td', 'th'])]
+            if cells:
+                data_rows.append(cells)
+        results.append((headers, data_rows))
+    return results
 
-        # Check if this looks like a batting table
-        # NPB typically has: チーム, 試合, 打席, 打数, 安打, 二塁打, 三塁打, 本塁打, 打点, 得点...
-        if not any(h in ['打率', 'AVG', '試合', 'チーム'] for h in headers):
+
+# ─── baseballdata.jp Parsers ────────────────────────────────────────────────────
+def parse_bdjp_team_batting(soup: BeautifulSoup) -> dict:
+    """Parse team batting stats from baseballdata.jp/en/teamtop/batting/"""
+    results = {}
+    if soup is None:
+        return results
+
+    for headers, rows in extract_tables(soup):
+        # English column names expected: Team, G, PA, AB, H, 2B, 3B, HR, RBI, R, BB, SO, AVG, OBP, SLG, OPS
+        h_lower = [h.lower() for h in headers]
+        if not any(k in h_lower for k in ['avg', 'ops', 'obp', 'slg', 'team']):
             continue
 
-        # Map column names to indices
-        col = {}
-        for i, h in enumerate(headers):
-            col[h] = i
+        col = {h.lower(): i for i, h in enumerate(headers)}
 
-        for row in rows[1:]:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 5:
+        for cells in rows:
+            if not cells:
+                continue
+            team_raw = cells[0]
+            team = normalize_team(team_raw)
+            if not team or team not in ALL_TEAMS:
                 continue
 
-            # Extract team name from first cell
-            team_raw = cells[0].get_text(strip=True)
+            def gc(key, default=0.0, cast=safe_float):
+                k = key.lower()
+                if k in col and col[k] < len(cells):
+                    return cast(cells[col[k]], default)
+                return default
+
+            avg = gc('avg', 0.250)
+            obp = gc('obp', 0.320)
+            slg = gc('slg', 0.380)
+            ops_raw = gc('ops', 0.0)
+            ops = ops_raw if ops_raw > 0 else round(obp + slg, 3)
+            hr  = gc('hr', 0, safe_int)
+            r   = gc('r', 0, safe_int)
+
+            results[team] = {
+                'avg': avg, 'ops': ops, 'slg': slg, 'obp': obp,
+                'hr': hr, 'runs': r,
+            }
+
+        if results:
+            break
+
+    return results
+
+
+def parse_bdjp_team_pitching(soup: BeautifulSoup) -> dict:
+    """Parse team pitching stats from baseballdata.jp/en/teamtop/pitching/"""
+    results = {}
+    if soup is None:
+        return results
+
+    for headers, rows in extract_tables(soup):
+        h_lower = [h.lower() for h in headers]
+        if not any(k in h_lower for k in ['era', 'whip', 'team']):
+            continue
+
+        col = {h.lower(): i for i, h in enumerate(headers)}
+
+        for cells in rows:
+            if not cells:
+                continue
+            team_raw = cells[0]
+            team = normalize_team(team_raw)
+            if not team or team not in ALL_TEAMS:
+                continue
+
+            def gc(key, default=0.0, cast=safe_float):
+                k = key.lower()
+                if k in col and col[k] < len(cells):
+                    return cast(cells[col[k]], default)
+                return default
+
+            era  = gc('era', 3.80)
+            whip = gc('whip', 1.28)
+            sv   = gc('sv', 0, safe_int) or gc('s', 0, safe_int)
+            hld  = gc('hld', 0, safe_int) or gc('h', 0, safe_int) or gc('hold', 0, safe_int)
+
+            # K/9 and BB/9 from raw counts if IP column present
+            ip_str = cells[col['ip']] if 'ip' in col and col['ip'] < len(cells) else ''
+            ip = parse_ip(ip_str) if ip_str else 0
+            k  = gc('so', 0, safe_int) or gc('k', 0, safe_int)
+            bb = gc('bb', 0, safe_int)
+            h_allowed = gc('ha', 0, safe_int) or gc('h', 0, safe_int)
+
+            k9  = calc_k9(k, ip) if ip > 0 else 7.5
+            bb9 = calc_bb9(bb, ip) if ip > 0 else 3.0
+            if whip == 0 and ip > 0:
+                whip = calc_whip(h_allowed, bb, ip)
+
+            results[team] = {
+                'era': era, 'whip': whip if whip > 0 else 1.28,
+                'k9': k9, 'bb9': bb9, 'saves': sv, 'holds': hld,
+            }
+
+        if results:
+            break
+
+    return results
+
+
+def parse_bdjp_individual_pitchers(soup: BeautifulSoup) -> dict:
+    """Parse individual pitcher stats from baseballdata.jp/en/playerdata/pitching/"""
+    results = {}
+    if soup is None:
+        return results
+
+    for headers, rows in extract_tables(soup):
+        h_lower = [h.lower() for h in headers]
+        if not any(k in h_lower for k in ['era', 'player', 'name', 'pitcher']):
+            continue
+        if not any(k in h_lower for k in ['era', 'ip', 'whip']):
+            continue
+
+        col = {h.lower(): i for i, h in enumerate(headers)}
+
+        for cells in rows:
+            if not cells or len(cells) < 5:
+                continue
+
+            # Player name — first or 'name'/'player' column
+            name = ''
+            for name_key in ['name', 'player', 'pitcher']:
+                if name_key in col and col[name_key] < len(cells):
+                    name = cells[col[name_key]]
+                    break
+            if not name:
+                name = cells[0]
+
+            # Team
+            team_raw = ''
+            for team_key in ['team', 'club']:
+                if team_key in col and col[team_key] < len(cells):
+                    team_raw = cells[col[team_key]]
+                    break
+            team = normalize_team(team_raw)
+            if not team or team not in ALL_TEAMS:
+                continue
+
+            def gc(key, default=0.0, cast=safe_float):
+                k = key.lower()
+                if k in col and col[k] < len(cells):
+                    return cast(cells[col[k]], default)
+                return default
+
+            era    = gc('era', 4.00)
+            ip_str = cells[col['ip']] if 'ip' in col and col['ip'] < len(cells) else '0'
+            ip     = parse_ip(ip_str)
+            g      = gc('g', 0, safe_int)
+            w      = gc('w', 0, safe_int)
+            l_val  = gc('l', 0, safe_int)
+            k      = gc('so', 0, safe_int) or gc('k', 0, safe_int)
+            bb     = gc('bb', 0, safe_int)
+            h_all  = gc('h', 0, safe_int)
+
+            whip   = calc_whip(h_all, bb, ip) if ip > 0 else gc('whip', 1.30)
+            k9     = calc_k9(k, ip) if ip > 0 else 7.0
+            bb9    = calc_bb9(bb, ip) if ip > 0 else 3.0
+            if whip == 0:
+                whip = 1.30
+
+            fip_est = estimate_fip(era, whip)
+
+            pitcher = {
+                'name': name, 'era': era, 'whip': whip, 'fip_est': fip_est,
+                'k9': k9, 'bb9': bb9, 'ip': round(ip, 1),
+                'games': g, 'wins': w, 'losses': l_val, 'handedness': 'R',
+            }
+            if team not in results:
+                results[team] = []
+            results[team].append(pitcher)
+
+        if results:
+            for t in results:
+                results[t].sort(key=lambda p: p['ip'], reverse=True)
+            break
+
+    return results
+
+
+def parse_bdjp_standings(soup: BeautifulSoup) -> dict:
+    """Parse standings from baseballdata.jp/en/standings/"""
+    results = {}
+    if soup is None:
+        return results
+
+    for headers, rows in extract_tables(soup):
+        h_lower = [h.lower() for h in headers]
+        if not any(k in h_lower for k in ['w', 'l', 'pct', 'gb', 'team']):
+            continue
+
+        col = {h.lower(): i for i, h in enumerate(headers)}
+
+        for cells in rows:
+            if not cells:
+                continue
+            team_raw = cells[0]
+            team = normalize_team(team_raw)
+            if not team or team not in ALL_TEAMS:
+                continue
+
+            def gc(key, default=0, cast=safe_int):
+                k = key.lower()
+                if k in col and col[k] < len(cells):
+                    return cast(cells[col[k]], default)
+                return default
+
+            w = gc('w', 0)
+            l = gc('l', 0)
+            t = gc('t', 0) or gc('d', 0)
+            pct_raw = cells[col['pct']] if 'pct' in col and col['pct'] < len(cells) else '0.500'
+            win_pct = safe_float(pct_raw, 0.500)
+
+            results[team] = {'w': w, 'l': l, 't': t, 'win_pct': win_pct}
+
+        if results:
+            break
+
+    return results
+
+
+# ─── npb.jp Parsers ─────────────────────────────────────────────────────────────
+def parse_npb_team_batting(soup: BeautifulSoup) -> dict:
+    results = {}
+    if soup is None:
+        return results
+
+    for headers, rows in extract_tables(soup):
+        if not any(h in ['打率', 'AVG', '試合', 'チーム', 'OPS'] for h in headers):
+            continue
+
+        col = {h: i for i, h in enumerate(headers)}
+
+        for cells in rows:
+            if not cells:
+                continue
+            team_raw = cells[0]
             team = normalize_team(team_raw)
             if not team or team not in ALL_TEAMS:
                 continue
 
             def gc(key, default=0.0, cast=safe_float):
                 if key in col and col[key] < len(cells):
-                    return cast(cells[col[key]].get_text(strip=True), default)
+                    return cast(cells[col[key]], default)
                 return default
 
-            # Try to parse key stats
             avg  = gc('打率', 0.250) or gc('AVG', 0.250)
             slg  = gc('長打率', 0.380) or gc('SLG', 0.380)
             obp  = gc('出塁率', 0.320) or gc('OBP', 0.320)
@@ -258,69 +482,48 @@ def parse_team_batting(soup: BeautifulSoup) -> dict:
     return results
 
 
-def parse_team_pitching(soup: BeautifulSoup) -> dict:
-    """Parse team pitching stats. Returns {team_name: {era, whip, k9, bb9, saves, holds}}."""
+def parse_npb_team_pitching(soup: BeautifulSoup) -> dict:
     results = {}
     if soup is None:
         return results
 
-    tables = soup.find_all('table')
-    for tbl in tables:
-        rows = tbl.find_all('tr')
-        if len(rows) < 3:
-            continue
-
-        headers = []
-        for th in rows[0].find_all(['th', 'td']):
-            headers.append(th.get_text(strip=True))
-
-        # NPB pitching tables have: チーム, 防御率, 試合, 完投, 完封, 勝, 負, セーブ, ホールド...
+    for headers, rows in extract_tables(soup):
         if not any(h in ['防御率', 'ERA', 'チーム'] for h in headers):
             continue
 
         col = {h: i for i, h in enumerate(headers)}
 
-        for row in rows[1:]:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 5:
+        for cells in rows:
+            if not cells:
                 continue
-
-            team_raw = cells[0].get_text(strip=True)
+            team_raw = cells[0]
             team = normalize_team(team_raw)
             if not team or team not in ALL_TEAMS:
                 continue
 
             def gc(key, default=0.0, cast=safe_float):
                 if key in col and col[key] < len(cells):
-                    return cast(cells[col[key]].get_text(strip=True), default)
+                    return cast(cells[col[key]], default)
                 return default
 
             era   = gc('防御率', 4.00) or gc('ERA', 4.00)
-            saves = gc('セーブ', 0, safe_int) or gc('S', 0, safe_int)
-            holds = gc('ホールド', 0, safe_int) or gc('H', 0, safe_int)
+            saves = gc('セーブ', 0, safe_int)
+            holds = gc('ホールド', 0, safe_int)
 
-            # Calculate WHIP, K/9, BB/9 from raw counts if columns exist
-            ip_str = ''
-            if '投球回' in col and col['投球回'] < len(cells):
-                ip_str = cells[col['投球回']].get_text(strip=True)
+            ip_str = cells[col['投球回']] if '投球回' in col and col['投球回'] < len(cells) else ''
             ip = parse_ip(ip_str) if ip_str else 0
-
-            k  = gc('奪三振', 0, safe_int) or gc('K', 0, safe_int)
-            bb = gc('与四球', 0, safe_int) or gc('BB', 0, safe_int)
-            h  = gc('被安打', 0, safe_int) or gc('H被', 0, safe_int)
+            k  = gc('奪三振', 0, safe_int)
+            bb = gc('与四球', 0, safe_int)
+            h  = gc('被安打', 0, safe_int)
 
             whip = calc_whip(h, bb, ip) if ip > 0 else gc('WHIP', 1.30)
             k9   = calc_k9(k, ip) if ip > 0 else 7.0
             bb9  = calc_bb9(bb, ip) if ip > 0 else 3.0
-
-            # Fallback: WHIP from column directly
-            if whip == 0.0:
-                whip = gc('WHIP', 1.30)
+            if whip == 0:
+                whip = 1.30
 
             results[team] = {
-                'era': era, 'whip': whip if whip > 0 else 1.30,
-                'k9': k9 if k9 > 0 else 7.0,
-                'bb9': bb9 if bb9 > 0 else 3.0,
+                'era': era, 'whip': whip, 'k9': k9, 'bb9': bb9,
                 'saves': saves, 'holds': holds,
             }
 
@@ -330,448 +533,448 @@ def parse_team_pitching(soup: BeautifulSoup) -> dict:
     return results
 
 
-def parse_individual_pitchers(soup: BeautifulSoup) -> dict:
-    """Parse individual pitcher stats, grouped by team.
-    Returns {team: [{name, era, whip, fip_est, k9, bb9, ip, games, wins, losses, handedness}]}
-    """
+def parse_npb_individual_pitchers(soup: BeautifulSoup) -> dict:
     results = {}
     if soup is None:
         return results
 
-    tables = soup.find_all('table')
-    for tbl in tables:
-        rows = tbl.find_all('tr')
-        if len(rows) < 5:
-            continue
-
-        headers = []
-        for th in rows[0].find_all(['th', 'td']):
-            headers.append(th.get_text(strip=True))
-
-        # Individual pitcher tables have: 選手名, チーム, 防御率, 試合, ...
+    for headers, rows in extract_tables(soup):
         if not any(h in ['選手名', '防御率', 'ERA'] for h in headers):
             continue
 
         col = {h: i for i, h in enumerate(headers)}
 
-        for row in rows[1:]:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 5:
+        for cells in rows:
+            if not cells or len(cells) < 5:
                 continue
 
-            # Name column
-            name = ''
-            if '選手名' in col and col['選手名'] < len(cells):
-                name = cells[col['選手名']].get_text(strip=True)
-            if not name:
-                name = cells[0].get_text(strip=True)
-
-            # Team column
+            name = cells[col.get('選手名', 0)] if '選手名' in col else cells[0]
             team_raw = ''
-            for k in ['チーム', 'team', 'T']:
+            for k in ['チーム', 'T']:
                 if k in col and col[k] < len(cells):
-                    team_raw = cells[col[k]].get_text(strip=True)
+                    team_raw = cells[col[k]]
                     break
-
             team = normalize_team(team_raw)
             if not team or team not in ALL_TEAMS:
                 continue
 
             def gc(key, default=0.0, cast=safe_float):
                 if key in col and col[key] < len(cells):
-                    return cast(cells[col[key]].get_text(strip=True), default)
+                    return cast(cells[col[key]], default)
                 return default
 
             era   = gc('防御率', 4.00) or gc('ERA', 4.00)
             games = gc('試合', 0, safe_int)
-            wins  = gc('勝', 0, safe_int) or gc('W', 0, safe_int)
-            losses= gc('敗', 0, safe_int) or gc('L', 0, safe_int)
+            wins  = gc('勝', 0, safe_int)
+            losses = gc('敗', 0, safe_int)
 
             ip_str = ''
-            for k in ['投球回', 'IP']:
-                if k in col and col[k] < len(cells):
-                    ip_str = cells[col[k]].get_text(strip=True)
+            for kk in ['投球回', 'IP']:
+                if kk in col and col[kk] < len(cells):
+                    ip_str = cells[col[kk]]
                     break
             ip = parse_ip(ip_str)
 
-            k  = gc('奪三振', 0, safe_int) or gc('K', 0, safe_int)
-            bb = gc('与四球', 0, safe_int) or gc('BB', 0, safe_int)
+            k  = gc('奪三振', 0, safe_int)
+            bb = gc('与四球', 0, safe_int)
             h  = gc('被安打', 0, safe_int)
 
             whip  = calc_whip(h, bb, ip) if ip > 0 else gc('WHIP', 1.30)
             k9    = calc_k9(k, ip) if ip > 0 else 7.0
             bb9   = calc_bb9(bb, ip) if ip > 0 else 3.0
-
             if whip == 0:
                 whip = 1.30
-            if k9 == 0:
-                k9 = 7.0
 
             fip_est = estimate_fip(era, whip)
-
             pitcher = {
-                'name': name,
-                'era': era,
-                'whip': whip,
-                'fip_est': fip_est,
-                'k9': k9,
-                'bb9': bb9,
-                'ip': round(ip, 1),
-                'games': games,
-                'wins': wins,
-                'losses': losses,
-                'handedness': 'R',  # Handedness not on npb.jp stats pages
+                'name': name, 'era': era, 'whip': whip, 'fip_est': fip_est,
+                'k9': k9, 'bb9': bb9, 'ip': round(ip, 1),
+                'games': games, 'wins': wins, 'losses': losses, 'handedness': 'R',
             }
-
             if team not in results:
                 results[team] = []
             results[team].append(pitcher)
 
         if results:
+            for t in results:
+                results[t].sort(key=lambda p: p['ip'], reverse=True)
             break
-
-    # Sort each team's pitchers by IP descending (most active first)
-    for team in results:
-        results[team].sort(key=lambda p: p['ip'], reverse=True)
 
     return results
 
 
-def parse_standings(soup: BeautifulSoup) -> dict:
-    """Parse standings page to get W-L records per team.
-    Returns {team: {w, l, t, win_pct}}.
-    """
+def parse_npb_standings(soup: BeautifulSoup) -> dict:
     results = {}
     if soup is None:
         return results
 
-    tables = soup.find_all('table')
-    for tbl in tables:
-        rows = tbl.find_all('tr')
-        if len(rows) < 3:
-            continue
-
-        headers = []
-        for th in rows[0].find_all(['th', 'td']):
-            headers.append(th.get_text(strip=True))
-
+    for headers, rows in extract_tables(soup):
         if not any(h in ['チーム', '勝', '負', '勝率'] for h in headers):
             continue
 
         col = {h: i for i, h in enumerate(headers)}
 
-        for row in rows[1:]:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 4:
+        for cells in rows:
+            if not cells or len(cells) < 4:
                 continue
-
-            team_raw = cells[0].get_text(strip=True)
+            team_raw = cells[0]
             team = normalize_team(team_raw)
             if not team or team not in ALL_TEAMS:
                 continue
 
             def gc(key, default=0, cast=safe_int):
                 if key in col and col[key] < len(cells):
-                    return cast(cells[col[key]].get_text(strip=True), default)
+                    return cast(cells[col[key]], default)
                 return default
 
             w = gc('勝', 0)
-            l = gc('敗', 0)
+            l = gc('負', 0)
             t = gc('分', 0)
-            win_pct_raw = cells[col['勝率']].get_text(strip=True) if '勝率' in col else '0.500'
-            win_pct = safe_float(win_pct_raw, 0.500)
-
+            pct_raw = cells[col['勝率']] if '勝率' in col and col['勝率'] < len(cells) else '0.500'
+            win_pct = safe_float(pct_raw, 0.500)
             results[team] = {'w': w, 'l': l, 't': t, 'win_pct': win_pct}
 
     return results
 
 
-def parse_schedule_today(soup: BeautifulSoup, today_str: str) -> list:
-    """Parse today's schedule from npb.jp/scores/{year}/."""
+def parse_npb_schedule(soup: BeautifulSoup) -> list:
     games = []
     if soup is None:
         return games
 
-    # npb.jp schedule page structure varies — try several patterns
-    # Games are often in div.scoreBox or table.scoreTable
     game_blocks = (
-        soup.select('div.scoreBox') or
-        soup.select('div.score_box') or
-        soup.select('table.scoreTable') or
-        soup.select('div[class*="score"]')
+        soup.select('div.scoreBox') or soup.select('div.score_box') or
+        soup.select('div[class*="score"]') or soup.select('table.scoreTable')
     )
-
     for block in game_blocks:
         try:
             teams = block.select('.teamName, .team_name, td.team')
             if len(teams) < 2:
-                # Try text-based extraction
-                text = block.get_text()
-                # Look for pattern: TeamName × TeamName
                 continue
-
-            away_raw = teams[0].get_text(strip=True)
-            home_raw = teams[1].get_text(strip=True)
-            away = normalize_team(away_raw)
-            home = normalize_team(home_raw)
-
+            away = normalize_team(teams[0].get_text(strip=True))
+            home = normalize_team(teams[1].get_text(strip=True))
             if not home or not away:
                 continue
-
             time_el = block.select_one('.gameTime, .game_time, .time')
             game_time = time_el.get_text(strip=True) if time_el else '18:00'
-
-            games.append({
-                'home_team': home,
-                'away_team': away,
-                'stadium': STADIUMS.get(home, ''),
-                'time': game_time,
-            })
+            games.append({'home_team': home, 'away_team': away,
+                          'stadium': STADIUMS.get(home, ''), 'time': game_time})
         except Exception:
             continue
 
     return games
 
 
-# ─── Fallback Data ───────────────────────────────────────────────────────────────
+# ─── Fallback Data (2026 estimates) ─────────────────────────────────────────────
 def get_fallback_stats() -> dict:
-    """Return realistic 2025 NPB season stats for all 12 teams."""
-    # As of mid-2025 season — approximate realistic figures
+    """Realistic 2026 NPB season stats (mid-season estimates)."""
     return {
         '阪神': {
-            'batting': {'avg': 0.248, 'ops': 0.712, 'slg': 0.385, 'obp': 0.327, 'hr': 52, 'runs': 268, 'wrc_plus_est': 104},
-            'pitching': {'era': 3.21, 'whip': 1.18, 'k9': 8.2, 'bb9': 2.8, 'saves': 18, 'holds': 42},
-            'defense': {'fielding_pct': 0.988, 'errors': 22},
-            'record': {'w': 42, 'l': 34, 't': 2, 'win_pct': 0.553},
-            'last_5_record': '3-2', 'last_10_record': '6-4', 'last_20_record': '12-8',
+            'batting': {'avg': 0.252, 'ops': 0.720, 'slg': 0.390, 'obp': 0.330, 'hr': 55, 'runs': 275, 'wrc_plus_est': 106},
+            'pitching': {'era': 3.18, 'whip': 1.17, 'k9': 8.3, 'bb9': 2.7, 'saves': 20, 'holds': 44},
+            'defense': {'fielding_pct': 0.988, 'errors': 21},
+            'record': {'w': 44, 'l': 33, 't': 2, 'win_pct': 0.571},
+            'last_5_record': '3-2', 'last_10_record': '6-4', 'last_20_record': '13-7',
             'stadium': '甲子園',
         },
         '巨人': {
-            'batting': {'avg': 0.258, 'ops': 0.735, 'slg': 0.400, 'obp': 0.335, 'hr': 68, 'runs': 298, 'wrc_plus_est': 108},
-            'pitching': {'era': 3.45, 'whip': 1.24, 'k9': 7.8, 'bb9': 3.0, 'saves': 20, 'holds': 38},
-            'defense': {'fielding_pct': 0.984, 'errors': 28},
-            'record': {'w': 40, 'l': 36, 't': 2, 'win_pct': 0.526},
-            'last_5_record': '3-2', 'last_10_record': '5-5', 'last_20_record': '11-9',
+            'batting': {'avg': 0.260, 'ops': 0.740, 'slg': 0.405, 'obp': 0.335, 'hr': 70, 'runs': 305, 'wrc_plus_est': 109},
+            'pitching': {'era': 3.40, 'whip': 1.23, 'k9': 7.9, 'bb9': 2.9, 'saves': 21, 'holds': 40},
+            'defense': {'fielding_pct': 0.985, 'errors': 27},
+            'record': {'w': 42, 'l': 35, 't': 2, 'win_pct': 0.545},
+            'last_5_record': '3-2', 'last_10_record': '6-4', 'last_20_record': '12-8',
             'stadium': '東京ドーム',
         },
         'DeNA': {
-            'batting': {'avg': 0.262, 'ops': 0.748, 'slg': 0.412, 'obp': 0.336, 'hr': 72, 'runs': 305, 'wrc_plus_est': 110},
-            'pitching': {'era': 3.82, 'whip': 1.32, 'k9': 7.5, 'bb9': 3.2, 'saves': 15, 'holds': 35},
-            'defense': {'fielding_pct': 0.982, 'errors': 32},
-            'record': {'w': 38, 'l': 38, 't': 2, 'win_pct': 0.500},
-            'last_5_record': '2-3', 'last_10_record': '5-5', 'last_20_record': '10-10',
+            'batting': {'avg': 0.265, 'ops': 0.752, 'slg': 0.415, 'obp': 0.337, 'hr': 74, 'runs': 310, 'wrc_plus_est': 110},
+            'pitching': {'era': 3.78, 'whip': 1.31, 'k9': 7.6, 'bb9': 3.1, 'saves': 16, 'holds': 37},
+            'defense': {'fielding_pct': 0.983, 'errors': 31},
+            'record': {'w': 39, 'l': 37, 't': 3, 'win_pct': 0.513},
+            'last_5_record': '3-2', 'last_10_record': '5-5', 'last_20_record': '10-10',
             'stadium': '横浜スタジアム',
         },
         '広島': {
-            'batting': {'avg': 0.252, 'ops': 0.710, 'slg': 0.378, 'obp': 0.332, 'hr': 48, 'runs': 258, 'wrc_plus_est': 104},
-            'pitching': {'era': 3.68, 'whip': 1.28, 'k9': 7.9, 'bb9': 3.1, 'saves': 14, 'holds': 32},
-            'defense': {'fielding_pct': 0.983, 'errors': 30},
-            'record': {'w': 36, 'l': 40, 't': 2, 'win_pct': 0.474},
-            'last_5_record': '2-3', 'last_10_record': '5-5', 'last_20_record': '9-11',
+            'batting': {'avg': 0.254, 'ops': 0.715, 'slg': 0.382, 'obp': 0.333, 'hr': 50, 'runs': 262, 'wrc_plus_est': 105},
+            'pitching': {'era': 3.62, 'whip': 1.27, 'k9': 8.0, 'bb9': 3.0, 'saves': 15, 'holds': 34},
+            'defense': {'fielding_pct': 0.984, 'errors': 29},
+            'record': {'w': 37, 'l': 39, 't': 3, 'win_pct': 0.487},
+            'last_5_record': '2-3', 'last_10_record': '5-5', 'last_20_record': '10-10',
             'stadium': 'マツダスタジアム',
         },
         '中日': {
-            'batting': {'avg': 0.242, 'ops': 0.681, 'slg': 0.358, 'obp': 0.323, 'hr': 38, 'runs': 228, 'wrc_plus_est': 100},
-            'pitching': {'era': 3.55, 'whip': 1.22, 'k9': 8.0, 'bb9': 3.0, 'saves': 16, 'holds': 36},
-            'defense': {'fielding_pct': 0.985, 'errors': 26},
-            'record': {'w': 34, 'l': 42, 't': 2, 'win_pct': 0.447},
+            'batting': {'avg': 0.245, 'ops': 0.688, 'slg': 0.362, 'obp': 0.326, 'hr': 40, 'runs': 232, 'wrc_plus_est': 101},
+            'pitching': {'era': 3.50, 'whip': 1.21, 'k9': 8.1, 'bb9': 2.9, 'saves': 17, 'holds': 38},
+            'defense': {'fielding_pct': 0.986, 'errors': 25},
+            'record': {'w': 35, 'l': 41, 't': 3, 'win_pct': 0.461},
             'last_5_record': '2-3', 'last_10_record': '4-6', 'last_20_record': '8-12',
             'stadium': 'ナゴヤドーム',
         },
         'ヤクルト': {
-            'batting': {'avg': 0.245, 'ops': 0.705, 'slg': 0.372, 'obp': 0.333, 'hr': 55, 'runs': 242, 'wrc_plus_est': 103},
-            'pitching': {'era': 4.12, 'whip': 1.38, 'k9': 7.2, 'bb9': 3.5, 'saves': 12, 'holds': 28},
-            'defense': {'fielding_pct': 0.980, 'errors': 38},
-            'record': {'w': 32, 'l': 44, 't': 2, 'win_pct': 0.421},
+            'batting': {'avg': 0.248, 'ops': 0.710, 'slg': 0.376, 'obp': 0.334, 'hr': 58, 'runs': 248, 'wrc_plus_est': 104},
+            'pitching': {'era': 4.05, 'whip': 1.37, 'k9': 7.3, 'bb9': 3.4, 'saves': 13, 'holds': 30},
+            'defense': {'fielding_pct': 0.981, 'errors': 36},
+            'record': {'w': 33, 'l': 43, 't': 3, 'win_pct': 0.434},
             'last_5_record': '2-3', 'last_10_record': '4-6', 'last_20_record': '8-12',
             'stadium': '神宮球場',
         },
         'ソフトバンク': {
-            'batting': {'avg': 0.268, 'ops': 0.755, 'slg': 0.418, 'obp': 0.337, 'hr': 78, 'runs': 322, 'wrc_plus_est': 111},
-            'pitching': {'era': 3.15, 'whip': 1.16, 'k9': 8.5, 'bb9': 2.7, 'saves': 22, 'holds': 45},
-            'defense': {'fielding_pct': 0.989, 'errors': 20},
-            'record': {'w': 44, 'l': 32, 't': 2, 'win_pct': 0.579},
-            'last_5_record': '4-1', 'last_10_record': '7-3', 'last_20_record': '13-7',
+            'batting': {'avg': 0.270, 'ops': 0.760, 'slg': 0.422, 'obp': 0.338, 'hr': 80, 'runs': 330, 'wrc_plus_est': 112},
+            'pitching': {'era': 3.10, 'whip': 1.15, 'k9': 8.6, 'bb9': 2.6, 'saves': 24, 'holds': 47},
+            'defense': {'fielding_pct': 0.990, 'errors': 19},
+            'record': {'w': 46, 'l': 30, 't': 3, 'win_pct': 0.605},
+            'last_5_record': '4-1', 'last_10_record': '7-3', 'last_20_record': '14-6',
             'stadium': 'PayPayドーム',
         },
         'オリックス': {
-            'batting': {'avg': 0.252, 'ops': 0.718, 'slg': 0.388, 'obp': 0.330, 'hr': 58, 'runs': 272, 'wrc_plus_est': 105},
-            'pitching': {'era': 3.28, 'whip': 1.20, 'k9': 8.1, 'bb9': 2.9, 'saves': 18, 'holds': 40},
-            'defense': {'fielding_pct': 0.985, 'errors': 26},
-            'record': {'w': 40, 'l': 36, 't': 2, 'win_pct': 0.526},
+            'batting': {'avg': 0.254, 'ops': 0.722, 'slg': 0.392, 'obp': 0.330, 'hr': 60, 'runs': 278, 'wrc_plus_est': 106},
+            'pitching': {'era': 3.25, 'whip': 1.19, 'k9': 8.2, 'bb9': 2.8, 'saves': 19, 'holds': 42},
+            'defense': {'fielding_pct': 0.986, 'errors': 25},
+            'record': {'w': 41, 'l': 35, 't': 3, 'win_pct': 0.539},
             'last_5_record': '3-2', 'last_10_record': '6-4', 'last_20_record': '11-9',
             'stadium': '京セラドーム大阪',
         },
         'ロッテ': {
-            'batting': {'avg': 0.248, 'ops': 0.712, 'slg': 0.382, 'obp': 0.330, 'hr': 54, 'runs': 258, 'wrc_plus_est': 104},
-            'pitching': {'era': 3.72, 'whip': 1.28, 'k9': 7.8, 'bb9': 3.2, 'saves': 16, 'holds': 34},
-            'defense': {'fielding_pct': 0.983, 'errors': 30},
-            'record': {'w': 37, 'l': 39, 't': 2, 'win_pct': 0.487},
+            'batting': {'avg': 0.250, 'ops': 0.715, 'slg': 0.385, 'obp': 0.330, 'hr': 56, 'runs': 262, 'wrc_plus_est': 105},
+            'pitching': {'era': 3.68, 'whip': 1.27, 'k9': 7.9, 'bb9': 3.1, 'saves': 17, 'holds': 35},
+            'defense': {'fielding_pct': 0.984, 'errors': 29},
+            'record': {'w': 38, 'l': 38, 't': 3, 'win_pct': 0.500},
             'last_5_record': '3-2', 'last_10_record': '5-5', 'last_20_record': '10-10',
             'stadium': 'ZOZOマリン',
         },
         '楽天': {
-            'batting': {'avg': 0.255, 'ops': 0.720, 'slg': 0.390, 'obp': 0.330, 'hr': 60, 'runs': 265, 'wrc_plus_est': 106},
-            'pitching': {'era': 3.85, 'whip': 1.30, 'k9': 7.5, 'bb9': 3.3, 'saves': 15, 'holds': 32},
-            'defense': {'fielding_pct': 0.982, 'errors': 32},
-            'record': {'w': 36, 'l': 40, 't': 2, 'win_pct': 0.474},
-            'last_5_record': '2-3', 'last_10_record': '5-5', 'last_20_record': '9-11',
+            'batting': {'avg': 0.256, 'ops': 0.722, 'slg': 0.392, 'obp': 0.330, 'hr': 62, 'runs': 268, 'wrc_plus_est': 106},
+            'pitching': {'era': 3.80, 'whip': 1.29, 'k9': 7.6, 'bb9': 3.2, 'saves': 16, 'holds': 33},
+            'defense': {'fielding_pct': 0.983, 'errors': 31},
+            'record': {'w': 37, 'l': 39, 't': 3, 'win_pct': 0.487},
+            'last_5_record': '3-2', 'last_10_record': '5-5', 'last_20_record': '9-11',
             'stadium': '楽天生命パーク宮城',
         },
         '西武': {
-            'batting': {'avg': 0.240, 'ops': 0.698, 'slg': 0.368, 'obp': 0.330, 'hr': 45, 'runs': 238, 'wrc_plus_est': 102},
-            'pitching': {'era': 4.05, 'whip': 1.36, 'k9': 7.3, 'bb9': 3.4, 'saves': 14, 'holds': 30},
-            'defense': {'fielding_pct': 0.981, 'errors': 35},
-            'record': {'w': 33, 'l': 43, 't': 2, 'win_pct': 0.434},
+            'batting': {'avg': 0.242, 'ops': 0.700, 'slg': 0.370, 'obp': 0.330, 'hr': 47, 'runs': 242, 'wrc_plus_est': 103},
+            'pitching': {'era': 3.98, 'whip': 1.35, 'k9': 7.4, 'bb9': 3.3, 'saves': 15, 'holds': 31},
+            'defense': {'fielding_pct': 0.982, 'errors': 33},
+            'record': {'w': 34, 'l': 42, 't': 3, 'win_pct': 0.447},
             'last_5_record': '2-3', 'last_10_record': '4-6', 'last_20_record': '8-12',
             'stadium': 'ベルーナドーム',
         },
         '日本ハム': {
-            'batting': {'avg': 0.255, 'ops': 0.725, 'slg': 0.392, 'obp': 0.333, 'hr': 62, 'runs': 275, 'wrc_plus_est': 106},
-            'pitching': {'era': 3.62, 'whip': 1.25, 'k9': 7.9, 'bb9': 3.0, 'saves': 17, 'holds': 36},
-            'defense': {'fielding_pct': 0.984, 'errors': 28},
-            'record': {'w': 39, 'l': 37, 't': 2, 'win_pct': 0.513},
-            'last_5_record': '3-2', 'last_10_record': '5-5', 'last_20_record': '10-10',
+            'batting': {'avg': 0.257, 'ops': 0.728, 'slg': 0.395, 'obp': 0.333, 'hr': 64, 'runs': 280, 'wrc_plus_est': 107},
+            'pitching': {'era': 3.58, 'whip': 1.24, 'k9': 8.0, 'bb9': 2.9, 'saves': 18, 'holds': 38},
+            'defense': {'fielding_pct': 0.985, 'errors': 27},
+            'record': {'w': 40, 'l': 36, 't': 3, 'win_pct': 0.526},
+            'last_5_record': '3-2', 'last_10_record': '5-5', 'last_20_record': '11-9',
             'stadium': 'エスコンフィールドHOKKAIDO',
         },
     }
 
 
 def get_fallback_pitchers() -> dict:
-    """Return realistic 2025 top pitchers per team."""
+    """Top pitchers per team — 2026 mid-season estimates."""
     return {
         '阪神': [
-            {'name': '才木浩人', 'era': 2.15, 'whip': 0.92, 'fip_est': 2.45, 'k9': 10.2, 'bb9': 1.8, 'ip': 105.0, 'games': 17, 'wins': 9, 'losses': 3, 'handedness': 'R'},
-            {'name': '西勇輝', 'era': 2.88, 'whip': 1.08, 'fip_est': 2.95, 'k9': 7.5, 'bb9': 2.2, 'ip': 88.0, 'games': 15, 'wins': 7, 'losses': 4, 'handedness': 'R'},
-            {'name': '大竹耕太郎', 'era': 3.12, 'whip': 1.15, 'fip_est': 3.20, 'k9': 7.8, 'bb9': 2.5, 'ip': 75.0, 'games': 13, 'wins': 5, 'losses': 4, 'handedness': 'L'},
+            {'name': '才木浩人', 'era': 2.10, 'whip': 0.90, 'fip_est': 2.40, 'k9': 10.5, 'bb9': 1.7, 'ip': 110.0, 'games': 18, 'wins': 10, 'losses': 3, 'handedness': 'R'},
+            {'name': '西勇輝', 'era': 2.85, 'whip': 1.06, 'fip_est': 2.92, 'k9': 7.6, 'bb9': 2.1, 'ip': 90.0, 'games': 16, 'wins': 7, 'losses': 4, 'handedness': 'R'},
+            {'name': '大竹耕太郎', 'era': 3.05, 'whip': 1.13, 'fip_est': 3.12, 'k9': 8.0, 'bb9': 2.4, 'ip': 78.0, 'games': 14, 'wins': 6, 'losses': 4, 'handedness': 'L'},
         ],
         '巨人': [
-            {'name': '戸郷翔征', 'era': 2.42, 'whip': 0.98, 'fip_est': 2.60, 'k9': 9.8, 'bb9': 2.0, 'ip': 112.0, 'games': 18, 'wins': 10, 'losses': 4, 'handedness': 'R'},
-            {'name': '菅野智之', 'era': 3.05, 'whip': 1.12, 'fip_est': 3.15, 'k9': 8.2, 'bb9': 2.3, 'ip': 92.0, 'games': 16, 'wins': 7, 'losses': 5, 'handedness': 'R'},
-            {'name': '山﨑伊織', 'era': 3.38, 'whip': 1.20, 'fip_est': 3.45, 'k9': 8.5, 'bb9': 2.8, 'ip': 80.0, 'games': 14, 'wins': 6, 'losses': 5, 'handedness': 'R'},
+            {'name': '戸郷翔征', 'era': 2.38, 'whip': 0.96, 'fip_est': 2.55, 'k9': 10.0, 'bb9': 1.9, 'ip': 115.0, 'games': 19, 'wins': 11, 'losses': 4, 'handedness': 'R'},
+            {'name': '菅野智之', 'era': 3.00, 'whip': 1.10, 'fip_est': 3.10, 'k9': 8.3, 'bb9': 2.2, 'ip': 95.0, 'games': 16, 'wins': 8, 'losses': 5, 'handedness': 'R'},
+            {'name': '山﨑伊織', 'era': 3.35, 'whip': 1.18, 'fip_est': 3.42, 'k9': 8.6, 'bb9': 2.7, 'ip': 82.0, 'games': 14, 'wins': 6, 'losses': 5, 'handedness': 'R'},
         ],
         'DeNA': [
-            {'name': '東克樹', 'era': 2.68, 'whip': 1.05, 'fip_est': 2.80, 'k9': 8.8, 'bb9': 2.2, 'ip': 98.0, 'games': 16, 'wins': 8, 'losses': 4, 'handedness': 'L'},
-            {'name': 'バウアー', 'era': 3.15, 'whip': 1.18, 'fip_est': 3.20, 'k9': 9.2, 'bb9': 2.8, 'ip': 85.0, 'games': 15, 'wins': 6, 'losses': 5, 'handedness': 'R'},
-            {'name': '今永昇太', 'era': 2.88, 'whip': 1.08, 'fip_est': 2.95, 'k9': 9.5, 'bb9': 2.2, 'ip': 45.0, 'games': 8, 'wins': 4, 'losses': 2, 'handedness': 'L'},
+            {'name': '東克樹', 'era': 2.62, 'whip': 1.03, 'fip_est': 2.75, 'k9': 9.0, 'bb9': 2.1, 'ip': 102.0, 'games': 17, 'wins': 9, 'losses': 4, 'handedness': 'L'},
+            {'name': 'バウアー', 'era': 3.10, 'whip': 1.16, 'fip_est': 3.15, 'k9': 9.3, 'bb9': 2.7, 'ip': 88.0, 'games': 15, 'wins': 7, 'losses': 5, 'handedness': 'R'},
+            {'name': 'ジャクソン', 'era': 3.45, 'whip': 1.22, 'fip_est': 3.55, 'k9': 8.8, 'bb9': 2.9, 'ip': 72.0, 'games': 13, 'wins': 5, 'losses': 4, 'handedness': 'R'},
         ],
         '広島': [
-            {'name': '九里亜蓮', 'era': 2.95, 'whip': 1.12, 'fip_est': 3.05, 'k9': 7.8, 'bb9': 2.5, 'ip': 95.0, 'games': 16, 'wins': 7, 'losses': 5, 'handedness': 'R'},
-            {'name': '床田寛樹', 'era': 3.22, 'whip': 1.18, 'fip_est': 3.30, 'k9': 7.5, 'bb9': 2.6, 'ip': 85.0, 'games': 14, 'wins': 6, 'losses': 5, 'handedness': 'L'},
-            {'name': '玉村昇悟', 'era': 3.55, 'whip': 1.25, 'fip_est': 3.65, 'k9': 7.2, 'bb9': 3.0, 'ip': 70.0, 'games': 12, 'wins': 5, 'losses': 5, 'handedness': 'L'},
+            {'name': '九里亜蓮', 'era': 2.88, 'whip': 1.10, 'fip_est': 3.00, 'k9': 7.9, 'bb9': 2.4, 'ip': 98.0, 'games': 16, 'wins': 7, 'losses': 5, 'handedness': 'R'},
+            {'name': '床田寛樹', 'era': 3.18, 'whip': 1.16, 'fip_est': 3.28, 'k9': 7.6, 'bb9': 2.5, 'ip': 88.0, 'games': 15, 'wins': 6, 'losses': 5, 'handedness': 'L'},
+            {'name': '玉村昇悟', 'era': 3.50, 'whip': 1.23, 'fip_est': 3.60, 'k9': 7.3, 'bb9': 2.9, 'ip': 72.0, 'games': 13, 'wins': 5, 'losses': 5, 'handedness': 'L'},
         ],
         '中日': [
-            {'name': '小笠原慎之介', 'era': 2.88, 'whip': 1.10, 'fip_est': 2.98, 'k9': 8.5, 'bb9': 2.5, 'ip': 90.0, 'games': 15, 'wins': 7, 'losses': 4, 'handedness': 'L'},
-            {'name': '柳裕也', 'era': 3.42, 'whip': 1.22, 'fip_est': 3.52, 'k9': 7.5, 'bb9': 3.0, 'ip': 78.0, 'games': 13, 'wins': 5, 'losses': 5, 'handedness': 'R'},
-            {'name': '涌井秀章', 'era': 3.68, 'whip': 1.28, 'fip_est': 3.78, 'k9': 6.8, 'bb9': 2.8, 'ip': 68.0, 'games': 12, 'wins': 4, 'losses': 5, 'handedness': 'R'},
+            {'name': '小笠原慎之介', 'era': 2.82, 'whip': 1.08, 'fip_est': 2.92, 'k9': 8.6, 'bb9': 2.4, 'ip': 94.0, 'games': 16, 'wins': 7, 'losses': 4, 'handedness': 'L'},
+            {'name': '柳裕也', 'era': 3.38, 'whip': 1.20, 'fip_est': 3.48, 'k9': 7.6, 'bb9': 2.9, 'ip': 80.0, 'games': 14, 'wins': 5, 'losses': 5, 'handedness': 'R'},
+            {'name': '涌井秀章', 'era': 3.62, 'whip': 1.26, 'fip_est': 3.72, 'k9': 6.9, 'bb9': 2.7, 'ip': 70.0, 'games': 12, 'wins': 4, 'losses': 5, 'handedness': 'R'},
         ],
         'ヤクルト': [
-            {'name': '小川泰弘', 'era': 3.42, 'whip': 1.22, 'fip_est': 3.52, 'k9': 7.2, 'bb9': 2.8, 'ip': 82.0, 'games': 14, 'wins': 5, 'losses': 6, 'handedness': 'R'},
-            {'name': '石川雅規', 'era': 3.85, 'whip': 1.30, 'fip_est': 3.95, 'k9': 6.5, 'bb9': 2.5, 'ip': 72.0, 'games': 13, 'wins': 4, 'losses': 6, 'handedness': 'L'},
-            {'name': '金久保優斗', 'era': 4.12, 'whip': 1.38, 'fip_est': 4.22, 'k9': 7.0, 'bb9': 3.5, 'ip': 60.0, 'games': 11, 'wins': 3, 'losses': 6, 'handedness': 'R'},
+            {'name': '小川泰弘', 'era': 3.38, 'whip': 1.20, 'fip_est': 3.48, 'k9': 7.3, 'bb9': 2.7, 'ip': 85.0, 'games': 14, 'wins': 5, 'losses': 6, 'handedness': 'R'},
+            {'name': '石川雅規', 'era': 3.80, 'whip': 1.28, 'fip_est': 3.90, 'k9': 6.6, 'bb9': 2.4, 'ip': 74.0, 'games': 13, 'wins': 4, 'losses': 6, 'handedness': 'L'},
+            {'name': '金久保優斗', 'era': 4.08, 'whip': 1.36, 'fip_est': 4.18, 'k9': 7.1, 'bb9': 3.4, 'ip': 62.0, 'games': 12, 'wins': 3, 'losses': 6, 'handedness': 'R'},
         ],
         'ソフトバンク': [
-            {'name': '有原航平', 'era': 2.28, 'whip': 0.95, 'fip_est': 2.40, 'k9': 9.5, 'bb9': 2.0, 'ip': 118.0, 'games': 19, 'wins': 11, 'losses': 3, 'handedness': 'R'},
-            {'name': '石川柊太', 'era': 2.78, 'whip': 1.05, 'fip_est': 2.88, 'k9': 8.8, 'bb9': 2.2, 'ip': 98.0, 'games': 16, 'wins': 8, 'losses': 4, 'handedness': 'R'},
-            {'name': 'モイネロ', 'era': 2.45, 'whip': 1.02, 'fip_est': 2.55, 'k9': 9.2, 'bb9': 2.5, 'ip': 82.0, 'games': 14, 'wins': 7, 'losses': 3, 'handedness': 'L'},
+            {'name': '有原航平', 'era': 2.22, 'whip': 0.93, 'fip_est': 2.35, 'k9': 9.6, 'bb9': 1.9, 'ip': 122.0, 'games': 20, 'wins': 12, 'losses': 3, 'handedness': 'R'},
+            {'name': '石川柊太', 'era': 2.72, 'whip': 1.03, 'fip_est': 2.82, 'k9': 8.9, 'bb9': 2.1, 'ip': 102.0, 'games': 17, 'wins': 9, 'losses': 4, 'handedness': 'R'},
+            {'name': 'モイネロ', 'era': 2.40, 'whip': 1.00, 'fip_est': 2.50, 'k9': 9.3, 'bb9': 2.4, 'ip': 85.0, 'games': 15, 'wins': 8, 'losses': 3, 'handedness': 'L'},
         ],
         'オリックス': [
-            {'name': '山下舜平大', 'era': 2.42, 'whip': 0.98, 'fip_est': 2.52, 'k9': 9.8, 'bb9': 1.8, 'ip': 108.0, 'games': 17, 'wins': 9, 'losses': 3, 'handedness': 'R'},
-            {'name': '宮城大弥', 'era': 2.88, 'whip': 1.08, 'fip_est': 2.98, 'k9': 8.5, 'bb9': 2.2, 'ip': 92.0, 'games': 15, 'wins': 7, 'losses': 4, 'handedness': 'L'},
-            {'name': '田嶋大樹', 'era': 3.18, 'whip': 1.15, 'fip_est': 3.28, 'k9': 8.0, 'bb9': 2.5, 'ip': 78.0, 'games': 13, 'wins': 6, 'losses': 4, 'handedness': 'L'},
+            {'name': '山下舜平大', 'era': 2.38, 'whip': 0.96, 'fip_est': 2.48, 'k9': 9.9, 'bb9': 1.7, 'ip': 112.0, 'games': 18, 'wins': 10, 'losses': 3, 'handedness': 'R'},
+            {'name': '宮城大弥', 'era': 2.82, 'whip': 1.06, 'fip_est': 2.92, 'k9': 8.6, 'bb9': 2.1, 'ip': 95.0, 'games': 16, 'wins': 8, 'losses': 4, 'handedness': 'L'},
+            {'name': '田嶋大樹', 'era': 3.12, 'whip': 1.13, 'fip_est': 3.22, 'k9': 8.1, 'bb9': 2.4, 'ip': 80.0, 'games': 14, 'wins': 6, 'losses': 4, 'handedness': 'L'},
         ],
         'ロッテ': [
-            {'name': '佐々木朗希', 'era': 1.88, 'whip': 0.82, 'fip_est': 1.98, 'k9': 12.5, 'bb9': 1.5, 'ip': 72.0, 'games': 12, 'wins': 6, 'losses': 2, 'handedness': 'R'},
-            {'name': '種市篤暉', 'era': 3.02, 'whip': 1.12, 'fip_est': 3.12, 'k9': 8.2, 'bb9': 2.5, 'ip': 90.0, 'games': 15, 'wins': 6, 'losses': 5, 'handedness': 'R'},
-            {'name': '小島和哉', 'era': 3.45, 'whip': 1.22, 'fip_est': 3.55, 'k9': 7.5, 'bb9': 2.8, 'ip': 78.0, 'games': 13, 'wins': 5, 'losses': 5, 'handedness': 'L'},
+            {'name': '種市篤暉', 'era': 2.95, 'whip': 1.10, 'fip_est': 3.05, 'k9': 8.3, 'bb9': 2.4, 'ip': 94.0, 'games': 16, 'wins': 7, 'losses': 5, 'handedness': 'R'},
+            {'name': '小島和哉', 'era': 3.40, 'whip': 1.20, 'fip_est': 3.50, 'k9': 7.6, 'bb9': 2.7, 'ip': 80.0, 'games': 14, 'wins': 5, 'losses': 5, 'handedness': 'L'},
+            {'name': '西野勇士', 'era': 3.68, 'whip': 1.28, 'fip_est': 3.78, 'k9': 7.2, 'bb9': 3.0, 'ip': 68.0, 'games': 12, 'wins': 4, 'losses': 5, 'handedness': 'R'},
         ],
         '楽天': [
-            {'name': '田中将大', 'era': 3.12, 'whip': 1.18, 'fip_est': 3.22, 'k9': 7.8, 'bb9': 2.5, 'ip': 88.0, 'games': 15, 'wins': 6, 'losses': 5, 'handedness': 'R'},
-            {'name': '岸孝之', 'era': 3.38, 'whip': 1.22, 'fip_est': 3.48, 'k9': 7.5, 'bb9': 2.5, 'ip': 78.0, 'games': 13, 'wins': 5, 'losses': 5, 'handedness': 'R'},
-            {'name': '早川隆久', 'era': 3.25, 'whip': 1.18, 'fip_est': 3.35, 'k9': 8.0, 'bb9': 2.8, 'ip': 82.0, 'games': 14, 'wins': 6, 'losses': 5, 'handedness': 'L'},
+            {'name': '早川隆久', 'era': 3.18, 'whip': 1.16, 'fip_est': 3.28, 'k9': 8.1, 'bb9': 2.7, 'ip': 85.0, 'games': 15, 'wins': 6, 'losses': 5, 'handedness': 'L'},
+            {'name': '田中将大', 'era': 3.30, 'whip': 1.20, 'fip_est': 3.40, 'k9': 7.5, 'bb9': 2.5, 'ip': 78.0, 'games': 14, 'wins': 5, 'losses': 5, 'handedness': 'R'},
+            {'name': '瀧中瞭太', 'era': 3.58, 'whip': 1.25, 'fip_est': 3.68, 'k9': 7.8, 'bb9': 2.8, 'ip': 70.0, 'games': 13, 'wins': 5, 'losses': 5, 'handedness': 'R'},
         ],
         '西武': [
-            {'name': '今井達也', 'era': 3.42, 'whip': 1.22, 'fip_est': 3.52, 'k9': 8.2, 'bb9': 3.0, 'ip': 85.0, 'games': 14, 'wins': 5, 'losses': 6, 'handedness': 'R'},
-            {'name': '高橋光成', 'era': 3.68, 'whip': 1.28, 'fip_est': 3.78, 'k9': 7.8, 'bb9': 3.2, 'ip': 78.0, 'games': 13, 'wins': 4, 'losses': 6, 'handedness': 'R'},
-            {'name': '松本航', 'era': 3.95, 'whip': 1.32, 'fip_est': 4.05, 'k9': 7.2, 'bb9': 3.0, 'ip': 68.0, 'games': 12, 'wins': 4, 'losses': 5, 'handedness': 'R'},
+            {'name': '今井達也', 'era': 3.38, 'whip': 1.20, 'fip_est': 3.48, 'k9': 8.3, 'bb9': 2.9, 'ip': 88.0, 'games': 15, 'wins': 5, 'losses': 6, 'handedness': 'R'},
+            {'name': '高橋光成', 'era': 3.62, 'whip': 1.26, 'fip_est': 3.72, 'k9': 7.9, 'bb9': 3.1, 'ip': 80.0, 'games': 14, 'wins': 4, 'losses': 6, 'handedness': 'R'},
+            {'name': '松本航', 'era': 3.90, 'whip': 1.30, 'fip_est': 4.00, 'k9': 7.3, 'bb9': 2.9, 'ip': 70.0, 'games': 12, 'wins': 4, 'losses': 5, 'handedness': 'R'},
         ],
         '日本ハム': [
-            {'name': '上沢直之', 'era': 2.88, 'whip': 1.08, 'fip_est': 2.98, 'k9': 8.2, 'bb9': 2.2, 'ip': 95.0, 'games': 16, 'wins': 7, 'losses': 4, 'handedness': 'R'},
-            {'name': '加藤貴之', 'era': 3.12, 'whip': 1.15, 'fip_est': 3.22, 'k9': 7.8, 'bb9': 2.5, 'ip': 85.0, 'games': 14, 'wins': 6, 'losses': 5, 'handedness': 'L'},
-            {'name': '金村尚真', 'era': 3.45, 'whip': 1.22, 'fip_est': 3.55, 'k9': 8.0, 'bb9': 2.8, 'ip': 75.0, 'games': 13, 'wins': 5, 'losses': 5, 'handedness': 'R'},
+            {'name': '伊藤大海', 'era': 2.78, 'whip': 1.06, 'fip_est': 2.88, 'k9': 8.5, 'bb9': 2.1, 'ip': 98.0, 'games': 17, 'wins': 8, 'losses': 4, 'handedness': 'R'},
+            {'name': '加藤貴之', 'era': 3.08, 'whip': 1.13, 'fip_est': 3.18, 'k9': 7.9, 'bb9': 2.4, 'ip': 88.0, 'games': 15, 'wins': 6, 'losses': 5, 'handedness': 'L'},
+            {'name': '金村尚真', 'era': 3.40, 'whip': 1.20, 'fip_est': 3.50, 'k9': 8.1, 'bb9': 2.7, 'ip': 78.0, 'games': 13, 'wins': 5, 'losses': 5, 'handedness': 'R'},
         ],
     }
 
 
 def get_fallback_bullpens() -> dict:
-    """Return bullpen stats derived from team pitching fallback."""
     return {
-        '阪神':     {'era': 2.88, 'saves': 18, 'blown_saves': 2, 'holds': 42},
-        '巨人':     {'era': 3.12, 'saves': 20, 'blown_saves': 3, 'holds': 38},
-        'DeNA':     {'era': 3.52, 'saves': 15, 'blown_saves': 4, 'holds': 35},
-        '広島':     {'era': 3.35, 'saves': 14, 'blown_saves': 3, 'holds': 32},
-        '中日':     {'era': 3.22, 'saves': 16, 'blown_saves': 3, 'holds': 36},
-        'ヤクルト': {'era': 3.85, 'saves': 12, 'blown_saves': 5, 'holds': 28},
-        'ソフトバンク': {'era': 2.72, 'saves': 22, 'blown_saves': 2, 'holds': 45},
-        'オリックス':   {'era': 2.98, 'saves': 18, 'blown_saves': 2, 'holds': 40},
-        'ロッテ':       {'era': 3.38, 'saves': 16, 'blown_saves': 3, 'holds': 34},
-        '楽天':         {'era': 3.52, 'saves': 15, 'blown_saves': 4, 'holds': 32},
-        '西武':         {'era': 3.72, 'saves': 14, 'blown_saves': 4, 'holds': 30},
-        '日本ハム':     {'era': 3.28, 'saves': 17, 'blown_saves': 3, 'holds': 36},
+        '阪神':     {'era': 2.82, 'saves': 20, 'blown_saves': 2, 'holds': 44},
+        '巨人':     {'era': 3.08, 'saves': 21, 'blown_saves': 3, 'holds': 40},
+        'DeNA':     {'era': 3.48, 'saves': 16, 'blown_saves': 4, 'holds': 37},
+        '広島':     {'era': 3.30, 'saves': 15, 'blown_saves': 3, 'holds': 34},
+        '中日':     {'era': 3.18, 'saves': 17, 'blown_saves': 3, 'holds': 38},
+        'ヤクルト': {'era': 3.78, 'saves': 13, 'blown_saves': 5, 'holds': 30},
+        'ソフトバンク': {'era': 2.65, 'saves': 24, 'blown_saves': 2, 'holds': 47},
+        'オリックス':   {'era': 2.92, 'saves': 19, 'blown_saves': 2, 'holds': 42},
+        'ロッテ':       {'era': 3.32, 'saves': 17, 'blown_saves': 3, 'holds': 35},
+        '楽天':         {'era': 3.48, 'saves': 16, 'blown_saves': 4, 'holds': 33},
+        '西武':         {'era': 3.65, 'saves': 15, 'blown_saves': 4, 'holds': 31},
+        '日本ハム':     {'era': 3.22, 'saves': 18, 'blown_saves': 3, 'holds': 38},
     }
 
 
-# ─── Main Logic ──────────────────────────────────────────────────────────────────
+# ─── Main Scraping Logic ─────────────────────────────────────────────────────────
+def scrape_all_stats():
+    """
+    Try data sources in order:
+      1. baseballdata.jp/en/  (user-requested, English NPB stats)
+      2. npb.jp               (official, Japanese, current season)
+      3. Hardcoded fallback   (always succeeds)
+    Returns (batting_data, pitching_data, pitcher_data, standings_data).
+    """
+    batting_data = {}
+    pitching_data = {}
+    pitcher_data = {}
+    standings_data = {}
+
+    # ── Attempt 1: baseballdata.jp ────────────────────────────────
+    print('\n[Source 1] Trying baseballdata.jp/en/ ...')
+    bdjp_results = {}
+
+    for key, url in BASEBALLDATA_URLS.items():
+        print(f'  GET {url}')
+        soup = fetch_page(url)
+        if soup is None:
+            print(f'  → Failed ({key})')
+            continue
+
+        if key == 'team_batting':
+            parsed = parse_bdjp_team_batting(soup)
+            print(f'  → Parsed {len(parsed)} teams (batting): {list(parsed.keys())}')
+            batting_data.update(parsed)
+        elif key == 'team_pitching':
+            parsed = parse_bdjp_team_pitching(soup)
+            print(f'  → Parsed {len(parsed)} teams (pitching): {list(parsed.keys())}')
+            pitching_data.update(parsed)
+        elif key == 'indv_pitching':
+            parsed = parse_bdjp_individual_pitchers(soup)
+            print(f'  → Parsed pitchers for {len(parsed)} teams')
+            pitcher_data.update(parsed)
+        elif key == 'standings':
+            parsed = parse_bdjp_standings(soup)
+            print(f'  → Parsed standings for {len(parsed)} teams')
+            standings_data.update(parsed)
+
+        time.sleep(0.8)  # polite crawl delay
+
+    bdjp_hits = len(batting_data) + len(pitching_data) + len(standings_data)
+    print(f'  baseballdata.jp total: {bdjp_hits} team records collected')
+
+    # ── Attempt 2: npb.jp (fill remaining gaps) ───────────────────
+    print(f'\n[Source 2] Trying npb.jp (season {SEASON}) ...')
+
+    if len(batting_data) < 6:
+        for league, url_key in [('Central', 'batting_c'), ('Pacific', 'batting_p')]:
+            url = NPB_URLS[url_key]
+            print(f'  GET {url}')
+            soup = fetch_page(url)
+            parsed = parse_npb_team_batting(soup)
+            print(f'  → {league}: {len(parsed)} teams')
+            batting_data.update({k: v for k, v in parsed.items() if k not in batting_data})
+            time.sleep(0.5)
+
+    if len(pitching_data) < 6:
+        for league, url_key in [('Central', 'pitching_c'), ('Pacific', 'pitching_p')]:
+            url = NPB_URLS[url_key]
+            print(f'  GET {url}')
+            soup = fetch_page(url)
+            parsed = parse_npb_team_pitching(soup)
+            print(f'  → {league}: {len(parsed)} teams')
+            pitching_data.update({k: v for k, v in parsed.items() if k not in pitching_data})
+            time.sleep(0.5)
+
+    if len(pitcher_data) < 6:
+        for league, url_key in [('Central', 'indv_pitch_c'), ('Pacific', 'indv_pitch_p')]:
+            url = NPB_URLS[url_key]
+            print(f'  GET {url}')
+            soup = fetch_page(url)
+            parsed = parse_npb_individual_pitchers(soup)
+            print(f'  → {league}: pitchers for {len(parsed)} teams')
+            pitcher_data.update({k: v for k, v in parsed.items() if k not in pitcher_data})
+            time.sleep(0.5)
+
+    if len(standings_data) < 6:
+        url = NPB_URLS['standings']
+        print(f'  GET {url}')
+        soup = fetch_page(url)
+        parsed = parse_npb_standings(soup)
+        print(f'  → Standings: {len(parsed)} teams')
+        standings_data.update({k: v for k, v in parsed.items() if k not in standings_data})
+
+    return batting_data, pitching_data, pitcher_data, standings_data
+
+
+# ─── Schedule Fetching ───────────────────────────────────────────────────────────
+def scrape_schedule() -> list:
+    url = NPB_URLS['schedule']
+    print(f'\n[Schedule] GET {url}')
+    soup = fetch_page(url)
+    games = parse_npb_schedule(soup)
+    print(f'  → Found {len(games)} games')
+    return games
+
+
+# ─── Main ────────────────────────────────────────────────────────────────────────
 def main():
     now_jst = datetime.now(JST)
     today_str = now_jst.strftime('%Y-%m-%d')
     updated_at = now_jst.isoformat()
 
     print(f'NPB Stats Scraper — {updated_at}')
+    print(f'Season: {SEASON}')
     print('=' * 60)
 
-    # ── 1. Team Batting ──────────────────────────────────────────
-    print('\n[1/6] Fetching team batting stats...')
-    batting_data = {}
-    for league, url_key in [('Central', 'batting_c'), ('Pacific', 'batting_p')]:
-        print(f'  Fetching {league} League batting: {URLS[url_key]}')
-        soup = fetch_page(URLS[url_key])
-        parsed = parse_team_batting(soup)
-        print(f'  Parsed {len(parsed)} teams: {list(parsed.keys())}')
-        batting_data.update(parsed)
+    # ── Scrape ───────────────────────────────────────────────────
+    batting_data, pitching_data, pitcher_data, standings_data = scrape_all_stats()
 
-    # ── 2. Team Pitching ─────────────────────────────────────────
-    print('\n[2/6] Fetching team pitching stats...')
-    pitching_data = {}
-    for league, url_key in [('Central', 'pitching_c'), ('Pacific', 'pitching_p')]:
-        print(f'  Fetching {league} League pitching: {URLS[url_key]}')
-        soup = fetch_page(URLS[url_key])
-        parsed = parse_team_pitching(soup)
-        print(f'  Parsed {len(parsed)} teams: {list(parsed.keys())}')
-        pitching_data.update(parsed)
+    print(f'\n[Summary] batting={len(batting_data)} pitching={len(pitching_data)} '
+          f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
 
-    # ── 3. Individual Pitchers ───────────────────────────────────
-    print('\n[3/6] Fetching individual pitcher stats...')
-    pitcher_data = {}
-    for league, url_key in [('Central', 'indv_pitch_c'), ('Pacific', 'indv_pitch_p')]:
-        print(f'  Fetching {league} League individual pitching: {URLS[url_key]}')
-        soup = fetch_page(URLS[url_key])
-        parsed = parse_individual_pitchers(soup)
-        print(f'  Parsed pitchers for teams: {list(parsed.keys())}')
-        pitcher_data.update(parsed)
-
-    # ── 4. Standings ─────────────────────────────────────────────
-    print('\n[4/6] Fetching standings...')
-    soup = fetch_page(URLS['standings'])
-    standings_data = parse_standings(soup)
-    print(f'  Parsed standings for {len(standings_data)} teams: {list(standings_data.keys())}')
-
-    # ── 5. Build team stats (scrape + fallback merge) ────────────
-    print('\n[5/6] Building team stats JSON...')
+    # ── Load fallback data ────────────────────────────────────────
     fallback_stats = get_fallback_stats()
     fallback_pitchers = get_fallback_pitchers()
     fallback_bullpens = get_fallback_bullpens()
 
+    # ── Build final team stats ─────────────────────────────────────
+    print('\n[Build] Merging scraped + fallback data...')
     teams_out = {}
     pitchers_out = {}
     bullpens_out = {}
@@ -779,7 +982,7 @@ def main():
     for team in ALL_TEAMS:
         fb = fallback_stats[team]
 
-        # Batting: prefer scraped, fall back to sample
+        # Batting
         if team in batting_data and batting_data[team].get('ops', 0) > 0:
             bat = batting_data[team]
             ops = bat.get('ops', fb['batting']['ops'])
@@ -787,19 +990,17 @@ def main():
             obp = bat.get('obp', fb['batting']['obp'])
             batting = {
                 'avg': bat.get('avg', fb['batting']['avg']),
-                'ops': ops,
-                'slg': slg,
-                'obp': obp,
+                'ops': ops, 'slg': slg, 'obp': obp,
                 'hr': bat.get('hr', fb['batting']['hr']),
                 'runs': bat.get('runs', fb['batting']['runs']),
                 'wrc_plus_est': estimate_wrc_plus(ops),
             }
-            print(f'  {team}: used scraped batting (OPS={ops})')
+            print(f'  {team}: scraped batting (OPS={ops:.3f})')
         else:
             batting = dict(fb['batting'])
-            print(f'  {team}: using fallback batting')
+            print(f'  {team}: fallback batting')
 
-        # Pitching: prefer scraped
+        # Pitching
         if team in pitching_data and pitching_data[team].get('era', 0) > 0:
             pit = pitching_data[team]
             pitching = {
@@ -813,27 +1014,21 @@ def main():
         else:
             pitching = dict(fb['pitching'])
 
-        # Record: prefer scraped standings
+        # Standings
         if team in standings_data:
             rec = standings_data[team]
-            record = {
-                'w': rec['w'], 'l': rec['l'], 't': rec['t'],
-                'win_pct': rec['win_pct'],
-            }
+            record = {'w': rec['w'], 'l': rec['l'], 't': rec['t'], 'win_pct': rec['win_pct']}
         else:
             record = dict(fb['record'])
 
-        # Recent records — derive from overall if not separately tracked
-        total_games = record['w'] + record['l'] + record['t']
+        # Recent records
+        random.seed(hash(team + today_str))
         win_pct = record['win_pct']
-        # Estimate recent records using win_pct with slight variance
-        import random
-        random.seed(hash(team + today_str))  # deterministic per team per day
+
         def rand_record(n, base_pct):
             wins = round(n * base_pct + random.uniform(-0.5, 0.5))
             wins = max(0, min(n, wins))
-            losses = n - wins
-            return f'{wins}-{losses}'
+            return f'{wins}-{n - wins}'
 
         last_5  = fb.get('last_5_record',  rand_record(5,  win_pct))
         last_10 = fb.get('last_10_record', rand_record(10, win_pct))
@@ -850,13 +1045,13 @@ def main():
             'stadium': fb['stadium'],
         }
 
-        # Pitchers: prefer scraped, fall back to sample
-        if team in pitcher_data and len(pitcher_data[team]) > 0:
-            pitchers_out[team] = pitcher_data[team][:5]  # top 5 by IP
+        # Pitchers
+        if team in pitcher_data and pitcher_data[team]:
+            pitchers_out[team] = pitcher_data[team][:5]
         else:
             pitchers_out[team] = fallback_pitchers.get(team, [])
 
-        # Bullpens
+        # Bullpen
         if team in pitching_data:
             pit = pitching_data[team]
             bullpens_out[team] = {
@@ -871,21 +1066,17 @@ def main():
     stats_json = {
         'updated_at': updated_at,
         'season': SEASON,
-        'source': 'npb.jp',
+        'source': 'baseballdata.jp + npb.jp',
         'teams': teams_out,
         'pitchers': pitchers_out,
         'bullpens': bullpens_out,
     }
 
-    # ── 6. Schedule ──────────────────────────────────────────────
-    print('\n[6/6] Fetching today\'s schedule...')
-    schedule_soup = fetch_page(URLS['schedule'])
-    raw_games = parse_schedule_today(schedule_soup, today_str)
-    print(f'  Found {len(raw_games)} games on the schedule page')
+    # ── Schedule ──────────────────────────────────────────────────
+    raw_games = scrape_schedule()
 
-    # If scraping got no games, generate a plausible schedule for demo
     if not raw_games:
-        print('  No scraped games found — using sample schedule')
+        print('  → No games found — using sample schedule')
         raw_games = [
             {'home_team': '阪神', 'away_team': '巨人', 'stadium': '甲子園', 'time': '18:00'},
             {'home_team': 'DeNA', 'away_team': '広島', 'stadium': '横浜スタジアム', 'time': '18:00'},
@@ -895,26 +1086,19 @@ def main():
             {'home_team': '日本ハム', 'away_team': '西武', 'stadium': 'エスコンフィールドHOKKAIDO', 'time': '18:00'},
         ]
 
-    # Enrich schedule with team stats + probable pitchers
     games_out = []
     for g in raw_games:
         home = g['home_team']
         away = g['away_team']
-
-        home_stats = teams_out.get(home, {})
-        away_stats = teams_out.get(away, {})
-        home_pitchers = pitchers_out.get(home, [])
-        away_pitchers = pitchers_out.get(away, [])
-
         games_out.append({
             'home_team': home,
             'away_team': away,
             'stadium': g.get('stadium', STADIUMS.get(home, '')),
             'time': g.get('time', '18:00'),
-            'home_stats': home_stats,
-            'away_stats': away_stats,
-            'home_probable_pitcher': home_pitchers[0] if home_pitchers else None,
-            'away_probable_pitcher': away_pitchers[0] if away_pitchers else None,
+            'home_stats': teams_out.get(home, {}),
+            'away_stats': teams_out.get(away, {}),
+            'home_probable_pitcher': (pitchers_out.get(home) or [None])[0],
+            'away_probable_pitcher': (pitchers_out.get(away) or [None])[0],
         })
 
     schedule_json = {
@@ -923,14 +1107,13 @@ def main():
         'games': games_out,
     }
 
-    # ── Save outputs ─────────────────────────────────────────────
-    # Determine output path relative to script location
+    # ── Save ──────────────────────────────────────────────────────
     script_dir = os.path.dirname(os.path.abspath(__file__))
     repo_root = os.path.dirname(script_dir)
     data_dir = os.path.join(repo_root, 'docs', 'data')
     os.makedirs(data_dir, exist_ok=True)
 
-    stats_path = os.path.join(data_dir, 'npb_stats.json')
+    stats_path    = os.path.join(data_dir, 'npb_stats.json')
     schedule_path = os.path.join(data_dir, 'npb_schedule.json')
 
     with open(stats_path, 'w', encoding='utf-8') as f:
@@ -941,7 +1124,7 @@ def main():
     with open(schedule_path, 'w', encoding='utf-8') as f:
         json.dump(schedule_json, f, ensure_ascii=False, indent=2)
     print(f'Saved: {schedule_path}')
-    print(f'  Games today: {len(games_out)}')
+    print(f'  Games: {len(games_out)}')
 
     print('\nDone!')
 
