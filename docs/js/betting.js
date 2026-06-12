@@ -326,12 +326,12 @@ function calculateBetScore(components) {
   kellyScore = Math.max(0, Math.min(100, kellyScore));
   const kellyContribution = kellyScore * 0.20;
 
-  // 3. CLV (20%)
+  // 3. CLV (20%) — neutral base is 50 (not 30) since most users lack closing-line data
   let clvScore;
   if (clvValue >= 0.10) clvScore = 100.0;
-  else if (clvValue >= 0.03) clvScore = 60.0 + (clvValue - 0.03) * 571;
-  else if (clvValue >= 0.0) clvScore = 30.0 + clvValue * 1000;
-  else clvScore = Math.max(0, 30.0 + clvValue * 300);
+  else if (clvValue >= 0.03) clvScore = 65.0 + (clvValue - 0.03) * 500;
+  else if (clvValue >= 0.0) clvScore = 50.0 + clvValue * 500;
+  else clvScore = Math.max(0, 50.0 + clvValue * 400);
   clvScore = Math.max(0, Math.min(100, clvScore));
   const clvContribution = clvScore * 0.20;
 
@@ -351,15 +351,15 @@ function calculateBetScore(components) {
   betScore = Math.max(0, Math.min(100, betScore));
 
   let grade, recommendation, starRating;
-  if (betScore >= 80) {
+  if (betScore >= 75) {
     grade = 'A+'; recommendation = '強力推薦投注 (Strong Bet)'; starRating = 5;
-  } else if (betScore >= 70) {
+  } else if (betScore >= 65) {
     grade = 'A'; recommendation = '推薦投注 (Good Bet)'; starRating = 4;
-  } else if (betScore >= 60) {
+  } else if (betScore >= 55) {
     grade = 'B+'; recommendation = '可考慮投注 (Moderate Bet)'; starRating = 3;
-  } else if (betScore >= 50) {
+  } else if (betScore >= 44) {
     grade = 'B'; recommendation = '謹慎投注 (Cautious Bet)'; starRating = 2;
-  } else if (betScore >= 35) {
+  } else if (betScore >= 30) {
     grade = 'C'; recommendation = '觀望為宜 (Watch Only)'; starRating = 1;
   } else {
     grade = 'D'; recommendation = '不建議投注 (Avoid)'; starRating = 0;
