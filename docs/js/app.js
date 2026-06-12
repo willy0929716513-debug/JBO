@@ -1444,7 +1444,15 @@ async function renderSchedule() {
     return;
   }
 
-  _scheduleGames = sched.games;
+  // Deduplicate by home+away key
+  const seenPairs = new Set();
+  const uniqueGames = sched.games.filter(g => {
+    const key = `${g.home_team}|${g.away_team}`;
+    if (seenPairs.has(key)) return false;
+    seenPairs.add(key);
+    return true;
+  });
+  _scheduleGames = uniqueGames;
 
   const dateLabel = document.getElementById('schedule-date-label');
   if (dateLabel && sched.date) {
@@ -1452,8 +1460,10 @@ async function renderSchedule() {
     dateLabel.textContent = `${d.getMonth() + 1}月${d.getDate()}日`;
   }
 
+  const isValidName = name => name && !/^\d+$/.test(name.trim());
+
   container.innerHTML = '';
-  sched.games.forEach((game, idx) => {
+  uniqueGames.forEach((game, idx) => {
     const hp = game.home_probable_pitcher;
     const ap = game.away_probable_pitcher;
     const hs = game.home_stats || {};
@@ -1465,40 +1475,45 @@ async function renderSchedule() {
     const hr = hs.record || {};
     const ar = as_.record || {};
 
+    const hpName = (hp && isValidName(hp.name)) ? hp.name : '未公佈';
+    const apName = (ap && isValidName(ap.name)) ? ap.name : '未公佈';
+    const hpStats = (hp && isValidName(hp.name)) ? `ERA ${hp.era.toFixed(2)} / WHIP ${hp.whip.toFixed(2)}` : '';
+    const apStats = (ap && isValidName(ap.name)) ? `ERA ${ap.era.toFixed(2)} / WHIP ${ap.whip.toFixed(2)}` : '';
+
     const card = document.createElement('div');
     card.className = 'glass-card sched-game-card';
     card.innerHTML = `
-      <div class="sched-time"><i class="fa-regular fa-clock"></i> ${game.time || '18:00'}</div>
-      <div class="sched-teams-row">
-        <div class="sched-team-name home">${game.home_team}</div>
-        <div class="sched-vs-sep">VS</div>
-        <div class="sched-team-name away">${game.away_team}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="sched-team-name home">${game.home_team}</span>
+        <span style="color:var(--text-secondary);font-size:.8rem;">VS</span>
+        <span class="sched-team-name away">${game.away_team}</span>
       </div>
-      <div class="sched-venue">${game.stadium || ''}</div>
-      <div style="border-top:1px solid rgba(255,255,255,.06);margin:.4rem 0;"></div>
-      <div style="font-size:.72rem;color:var(--text-secondary);margin-bottom:.2rem;">先發投手</div>
-      <div class="sched-pitcher-line">
-        <span style="color:#00d4ff;">${hp ? hp.name : '未公佈'}</span>
-        <span style="color:var(--text-secondary);">${hp ? `ERA ${hp.era.toFixed(2)} WHIP ${hp.whip.toFixed(2)}` : ''}</span>
+      <div style="text-align:center;font-size:.72rem;color:var(--text-secondary);">${game.time || '18:00'} · ${game.stadium || ''}</div>
+      <div style="font-size:.75rem;padding:.4rem 0;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:.2rem;">
+          <span style="color:#00d4ff;">${hpName}</span>
+          <span style="color:var(--text-secondary);">${hpStats}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:#a78bfa;">${apName}</span>
+          <span style="color:var(--text-secondary);">${apStats}</span>
+        </div>
       </div>
-      <div class="sched-pitcher-line">
-        <span style="color:#a78bfa;">${ap ? ap.name : '未公佈'}</span>
-        <span style="color:var(--text-secondary);">${ap ? `ERA ${ap.era.toFixed(2)} WHIP ${ap.whip.toFixed(2)}` : ''}</span>
+      <div style="font-size:.75rem;color:var(--text-secondary);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:.15rem;">
+          <span style="color:#00d4ff;">主</span>
+          <span>OPS ${hb.ops != null ? hb.ops.toFixed(3) : '—'}</span>
+          <span>ERA ${hpi.era != null ? hpi.era.toFixed(2) : '—'}</span>
+          <span>${hr.w != null ? `${hr.w}W ${hr.l}L` : '—'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:#a78bfa;">客</span>
+          <span>OPS ${ab.ops != null ? ab.ops.toFixed(3) : '—'}</span>
+          <span>ERA ${api.era != null ? api.era.toFixed(2) : '—'}</span>
+          <span>${ar.w != null ? `${ar.w}W ${ar.l}L` : '—'}</span>
+        </div>
       </div>
-      <div style="border-top:1px solid rgba(255,255,255,.06);margin:.4rem 0;"></div>
-      <div class="sched-stat-line">
-        <span style="color:#00d4ff;">主</span>
-        <span>OPS ${hb.ops != null ? hb.ops.toFixed(3) : '—'}</span>
-        <span>ERA ${hpi.era != null ? hpi.era.toFixed(2) : '—'}</span>
-        <span>${hr.w != null ? hr.w + 'W ' + hr.l + 'L' : '—'}</span>
-      </div>
-      <div class="sched-stat-line" style="margin-top:.15rem;">
-        <span style="color:#a78bfa;">客</span>
-        <span>OPS ${ab.ops != null ? ab.ops.toFixed(3) : '—'}</span>
-        <span>ERA ${api.era != null ? api.era.toFixed(2) : '—'}</span>
-        <span>${ar.w != null ? ar.w + 'W ' + ar.l + 'L' : '—'}</span>
-      </div>
-      <button class="btn btn-primary btn-sm btn-full" style="margin-top:.5rem;" onclick="analyzeScheduleGame(${idx})">
+      <button class="btn btn-primary btn-sm btn-full" onclick="analyzeScheduleGame(${idx})">
         <i class="fa-solid fa-brain"></i> 一鍵分析
       </button>
     `;

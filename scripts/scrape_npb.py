@@ -503,6 +503,9 @@ def parse_bdjp_individual_pitchers(soup: BeautifulSoup) -> dict:
                     break
             if not name:
                 name = cells[0]
+            # Skip rows where name is a jersey number or pure digit string
+            if not name or re.match(r'^\d+$', name.strip()):
+                continue
 
             # Team
             team_raw = ''
@@ -827,7 +830,8 @@ def parse_npb_schedule(soup: BeautifulSoup) -> list:
             except Exception:
                 continue
         if games:
-            return games
+            seen_s1 = set()
+            return [g for g in games if not (((g['home_team'], g['away_team']) in seen_s1) or seen_s1.add((g['home_team'], g['away_team'])))]
 
     # Strategy 2: scan every HTML table for rows that contain 2 valid team names
     for headers, rows in extract_tables(soup):
@@ -835,6 +839,8 @@ def parse_npb_schedule(soup: BeautifulSoup) -> list:
             found = [normalize_team(c) for c in cells if normalize_team(c) in ALL_TEAMS]
             if len(found) >= 2:
                 home, away = found[0], found[1]
+                if home == away:
+                    continue
                 # Guess time from cells (look for HH:MM pattern)
                 t = '18:00'
                 for c in cells:
@@ -844,7 +850,8 @@ def parse_npb_schedule(soup: BeautifulSoup) -> list:
                 games.append({'home_team': home, 'away_team': away,
                               'stadium': STADIUMS.get(home, ''), 'time': t})
         if games:
-            return games
+            seen_s2 = set()
+            return [g for g in games if not (((g['home_team'], g['away_team']) in seen_s2) or seen_s2.add((g['home_team'], g['away_team'])))]
 
     # Strategy 3: full-text pattern scan — "TeamA vs TeamB" or "TeamA対TeamB"
     text = soup.get_text(' ', strip=True)
@@ -2230,8 +2237,20 @@ def main():
     # ── Schedule ──────────────────────────────────────────────────
     raw_games = scrape_schedule(today_str)
 
-    if not raw_games:
-        print('  → No games found — using sample schedule')
+    # Deduplicate and validate schedule
+    _seen_games: set = set()
+    _deduped: list = []
+    for _g in raw_games:
+        _key = (_g['home_team'], _g['away_team'])
+        if _key not in _seen_games:
+            _seen_games.add(_key)
+            _deduped.append(_g)
+    raw_games = _deduped
+
+    # If fewer than 2 unique games or all same single pairing, use fallback
+    _unique_pairs = len(set((g['home_team'], g['away_team']) for g in raw_games))
+    if not raw_games or _unique_pairs < 2:
+        print('  → Schedule unreliable — using sample schedule')
         raw_games = [
             {'home_team': '阪神', 'away_team': '巨人', 'stadium': '甲子園', 'time': '18:00'},
             {'home_team': 'DeNA', 'away_team': '広島', 'stadium': '横浜スタジアム', 'time': '18:00'},
