@@ -2551,19 +2551,54 @@ def main():
     }
 
     # ── Schedule ──────────────────────────────────────────────────
-    # Try live sources first; fall back to date-aware template that correctly handles
-    # 交流戦 interleague period (May 26–Jun 15) with confirmed Jun 12 matchups.
+    # During 交流戦 (May 26–Jun 14), SofaScore sometimes returns wrong/incomplete
+    # matchups (e.g. Jun 12 2026 returned only 2 games with 楽天 listed twice as away).
+    # Fix: always use the date-aware template for matchup structure during 交流戦,
+    # and merge scraped data only for pitcher enrichment on top of the correct template.
     print('\n[Schedule] Fetching today\'s schedule...')
-    scraped_games = scrape_schedule(today_str)
-
     from datetime import date as _date
     _today_date = datetime.now(JST).date()
-    if scraped_games:
-        raw_games = scraped_games
-        print(f'  → Using scraped schedule ({len(raw_games)} games)')
+
+    KORYUSEN_START = _date(SEASON, 5, 26)
+    KORYUSEN_END   = _date(SEASON, 6, 14)
+    is_koryusen = KORYUSEN_START <= _today_date <= KORYUSEN_END
+
+    template_games = get_template_schedule(_today_date)
+
+    if is_koryusen:
+        # Template has correct home/away structure; scrape only for pitcher enrichment.
+        scraped_games = scrape_schedule(today_str)
+        scraped_pitcher_map: dict[tuple, dict] = {}
+        if scraped_games:
+            for sg in scraped_games:
+                key = (sg['home_team'], sg['away_team'])
+                scraped_pitcher_map[key] = sg
+        for tg in template_games:
+            key = (tg['home_team'], tg['away_team'])
+            sg = scraped_pitcher_map.get(key, {})
+            if sg.get('home_probable_pitcher'):
+                tg['home_probable_pitcher'] = sg['home_probable_pitcher']
+            if sg.get('away_probable_pitcher'):
+                tg['away_probable_pitcher'] = sg['away_probable_pitcher']
+        raw_games = template_games
+        n_enriched = sum(1 for tg in template_games if 'home_probable_pitcher' in tg)
+        print(f'  → 交流戦: template structure ({len(raw_games)} games), '
+              f'scraped pitchers for {n_enriched} games')
     else:
-        raw_games = get_template_schedule(_today_date)
-        print(f'  → Using date-aware template ({len(raw_games)} games)')
+        scraped_games = scrape_schedule(today_str)
+        if scraped_games:
+            all_teams_s = ([g['home_team'] for g in scraped_games]
+                           + [g['away_team'] for g in scraped_games])
+            has_dup = len(all_teams_s) != len(set(all_teams_s))
+            if has_dup or len(scraped_games) < 5:
+                print(f'  [!] Scraped invalid (games={len(scraped_games)}, dup={has_dup}); using template')
+                raw_games = template_games
+            else:
+                raw_games = scraped_games
+                print(f'  → Using scraped schedule ({len(raw_games)} games)')
+        else:
+            raw_games = template_games
+            print(f'  → Using date-aware template ({len(raw_games)} games)')
 
     # NPB series structure: Tue-Thu (3 games) + Fri-Sun (3 games).
     # Map weekday → series_day (0=opener/ace, 1=second start, 2=third start).
