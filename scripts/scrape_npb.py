@@ -39,6 +39,15 @@ HEADERS = {
     'Pragma': 'no-cache',
 }
 
+MOBILE_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) '
+                  'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+}
+
 JST = pytz.timezone('Asia/Tokyo')
 SEASON = datetime.now(JST).year
 
@@ -56,6 +65,26 @@ WIKI_URLS = [
 ]
 
 BDJP_TOP = 'https://baseballdata.jp/en/'
+
+NIKKANSPORTS_URLS = {
+    'standings':     'https://www.nikkansports.com/baseball/professional/standings/',
+    'team_batting':  'https://www.nikkansports.com/baseball/professional/stats/team/?type=bat',
+    'team_pitching': 'https://www.nikkansports.com/baseball/professional/stats/team/?type=pit',
+    'indv_pitching': 'https://www.nikkansports.com/baseball/professional/stats/?type=pit',
+}
+BASEBALLKING_URLS = {
+    'standings':     'https://baseballking.jp/ns/standings',
+    'team_batting':  'https://baseballking.jp/ns/team/batting',
+    'team_pitching': 'https://baseballking.jp/ns/team/pitching',
+    'indv_pitching': 'https://baseballking.jp/ns/player/pitching',
+}
+SPORTS_YAHOO_URLS = {
+    'standings':     'https://sports.yahoo.co.jp/baseball/npb/standings/',
+    'team_batting':  'https://sports.yahoo.co.jp/baseball/npb/stats/team/?kind=bat',
+    'team_pitching': 'https://sports.yahoo.co.jp/baseball/npb/stats/team/?kind=pit',
+    'indv_pitching': 'https://sports.yahoo.co.jp/baseball/npb/stats/player/?kind=pit',
+    'schedule':      'https://sports.yahoo.co.jp/baseball/npb/schedule/',
+}
 
 # Yahoo Japan NPB stats (Japanese — uses existing Japanese column parsers)
 YAHOO_URLS = {
@@ -257,8 +286,8 @@ def fetch_page(url: str, retries: int = 3, delay: float = 1.5) -> BeautifulSoup 
     for attempt in range(retries):
         try:
             resp = requests.get(url, headers=HEADERS, timeout=20)
-            if resp.status_code == 403:
-                print(f'  [!] 403 Forbidden — {url}')
+            if resp.status_code in (403, 404, 410):
+                print(f'  [!] HTTP {resp.status_code} — {url}')
                 return None
             resp.raise_for_status()
             # Try UTF-8 then Shift-JIS for Japanese pages
@@ -276,6 +305,27 @@ def fetch_page(url: str, retries: int = 3, delay: float = 1.5) -> BeautifulSoup 
             if attempt < retries - 1:
                 time.sleep(delay * (2 ** attempt))
     return None
+
+
+def fetch_page_alt(url: str, referer: str = 'https://www.google.co.jp/') -> BeautifulSoup | None:
+    """Fetch with mobile User-Agent and Referer — helps bypass some 403 blocks."""
+    hdrs = {**MOBILE_HEADERS, 'Referer': referer}
+    try:
+        resp = requests.get(url, headers=hdrs, timeout=20)
+        if resp.status_code != 200:
+            return None
+        for enc in ('utf-8', 'shift_jis', 'euc-jp'):
+            try:
+                resp.encoding = enc
+                text = resp.text
+                if text:
+                    break
+            except Exception:
+                continue
+        return BeautifulSoup(text, 'lxml')
+    except Exception as e:
+        print(f'  [!] fetch_alt {url}: {e}')
+        return None
 
 
 # ─── Generic Table Parser ───────────────────────────────────────────────────────
@@ -1020,7 +1070,9 @@ def parse_wikipedia_standings(soup: BeautifulSoup) -> dict:
             if w == 0 and l == 0:
                 continue
 
-            results[team] = {'w': w, 'l': l, 't': t, 'win_pct': win_pct}
+            existing = results.get(team)
+            if existing is None or (w + l + t) > (existing['w'] + existing['l'] + existing['t']):
+                results[team] = {'w': w, 'l': l, 't': t, 'win_pct': win_pct}
             parsed_count += 1
 
         if parsed_count >= 3:
@@ -1044,6 +1096,119 @@ def scrape_wikipedia_standings() -> dict:
             return results
         print(f'  → page exists but no standings table found')
     return {}
+
+
+def scrape_nikkansports() -> tuple[dict, dict, dict, dict]:
+    """Scrape nikkansports.com for NPB standings, batting, pitching, pitcher stats."""
+    batting, pitching, pitchers, standings = {}, {}, {}, {}
+
+    print('\n[nikkansports.com] standings...')
+    s = fetch_page(NIKKANSPORTS_URLS['standings'])
+    if s:
+        parsed = parse_npb_standings(s)
+        print(f'  → {len(parsed)} teams')
+        standings.update(parsed)
+    time.sleep(0.5)
+
+    print('[nikkansports.com] team batting...')
+    s = fetch_page(NIKKANSPORTS_URLS['team_batting'])
+    if s:
+        parsed = parse_npb_team_batting(s)
+        print(f'  → {len(parsed)} teams')
+        batting.update(parsed)
+    time.sleep(0.5)
+
+    print('[nikkansports.com] team pitching...')
+    s = fetch_page(NIKKANSPORTS_URLS['team_pitching'])
+    if s:
+        parsed = parse_npb_team_pitching(s)
+        print(f'  → {len(parsed)} teams')
+        pitching.update(parsed)
+    time.sleep(0.5)
+
+    print('[nikkansports.com] individual pitchers...')
+    s = fetch_page(NIKKANSPORTS_URLS['indv_pitching'])
+    if s:
+        parsed = parse_npb_individual_pitchers(s)
+        print(f'  → {len(parsed)} teams')
+        pitchers.update(parsed)
+    time.sleep(0.5)
+
+    return batting, pitching, pitchers, standings
+
+
+def scrape_baseballking() -> tuple[dict, dict, dict, dict]:
+    """Scrape baseballking.jp for NPB stats."""
+    batting, pitching, pitchers, standings = {}, {}, {}, {}
+
+    print('\n[baseballking.jp] standings...')
+    s = fetch_page(BASEBALLKING_URLS['standings'])
+    if s:
+        parsed = parse_npb_standings(s)
+        if not parsed:
+            parsed = parse_wikipedia_standings(s)  # try generic parser too
+        print(f'  → {len(parsed)} teams')
+        standings.update(parsed)
+    time.sleep(0.5)
+
+    print('[baseballking.jp] team batting...')
+    s = fetch_page(BASEBALLKING_URLS['team_batting'])
+    if s:
+        parsed = parse_npb_team_batting(s)
+        print(f'  → {len(parsed)} teams')
+        batting.update(parsed)
+    time.sleep(0.5)
+
+    print('[baseballking.jp] team pitching...')
+    s = fetch_page(BASEBALLKING_URLS['team_pitching'])
+    if s:
+        parsed = parse_npb_team_pitching(s)
+        print(f'  → {len(parsed)} teams')
+        pitching.update(parsed)
+    time.sleep(0.5)
+
+    print('[baseballking.jp] individual pitchers...')
+    s = fetch_page(BASEBALLKING_URLS['indv_pitching'])
+    if s:
+        parsed = parse_npb_individual_pitchers(s)
+        print(f'  → {len(parsed)} teams')
+        pitchers.update(parsed)
+    time.sleep(0.5)
+
+    return batting, pitching, pitchers, standings
+
+
+def scrape_sports_yahoo_new() -> tuple[dict, dict, dict, dict]:
+    """Scrape sports.yahoo.co.jp (new Yahoo Sports Japan domain) for NPB stats."""
+    batting, pitching, pitchers, standings = {}, {}, {}, {}
+
+    for label, key in [('standings', 'standings'), ('batting', 'team_batting'),
+                       ('pitching', 'team_pitching'), ('pitchers', 'indv_pitching')]:
+        url = SPORTS_YAHOO_URLS[key]
+        print(f'[sports.yahoo.co.jp] {label}...')
+        s = fetch_page(url)
+        if s is None:
+            s = fetch_page_alt(url, referer='https://sports.yahoo.co.jp/')
+        if s:
+            if label == 'standings':
+                parsed = parse_npb_standings(s)
+                print(f'  → {len(parsed)} teams')
+                standings.update(parsed)
+            elif label == 'batting':
+                parsed = parse_npb_team_batting(s)
+                print(f'  → {len(parsed)} teams')
+                batting.update(parsed)
+            elif label == 'pitching':
+                parsed = parse_npb_team_pitching(s)
+                print(f'  → {len(parsed)} teams')
+                pitching.update(parsed)
+            elif label == 'pitchers':
+                parsed = parse_npb_individual_pitchers(s)
+                print(f'  → {len(parsed)} teams')
+                pitchers.update(parsed)
+        time.sleep(0.5)
+
+    return batting, pitching, pitchers, standings
 
 
 # ─── API-Sports Integration ──────────────────────────────────────────────────────
@@ -1495,6 +1660,50 @@ def scrape_all_stats():
 
     print(f'  After Yahoo: bat={len(batting_data)} pit={len(pitching_data)} '
           f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+
+    # ── Source 2b: nikkansports.com ────────────────────────────────
+    print('\n[Source 2b] nikkansports.com...')
+    nk_bat, nk_pit, nk_pitchers, nk_std = scrape_nikkansports()
+    if nk_std:
+        standings_data.update({k: v for k, v in nk_std.items() if k not in standings_data})
+    if nk_bat:
+        batting_data.update({k: v for k, v in nk_bat.items() if k not in batting_data})
+    if nk_pit:
+        pitching_data.update({k: v for k, v in nk_pit.items() if k not in pitching_data})
+    if nk_pitchers:
+        pitcher_data.update({k: v for k, v in nk_pitchers.items() if k not in pitcher_data})
+    print(f'  nikkansports: bat={len(batting_data)} pit={len(pitching_data)} '
+          f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+
+    # ── Source 2c: baseballking.jp ─────────────────────────────────
+    if len(batting_data) < 6 or len(pitching_data) < 6:
+        print('\n[Source 2c] baseballking.jp...')
+        bk_bat, bk_pit, bk_pitchers, bk_std = scrape_baseballking()
+        if bk_std:
+            standings_data.update({k: v for k, v in bk_std.items() if k not in standings_data})
+        if bk_bat:
+            batting_data.update({k: v for k, v in bk_bat.items() if k not in batting_data})
+        if bk_pit:
+            pitching_data.update({k: v for k, v in bk_pit.items() if k not in pitching_data})
+        if bk_pitchers:
+            pitcher_data.update({k: v for k, v in bk_pitchers.items() if k not in pitcher_data})
+        print(f'  baseballking: bat={len(batting_data)} pit={len(pitching_data)} '
+              f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
+
+    # ── Source 2d: sports.yahoo.co.jp (new URL) ────────────────────
+    if len(batting_data) < 6 or len(pitching_data) < 6:
+        print('\n[Source 2d] sports.yahoo.co.jp (new domain)...')
+        sy_bat, sy_pit, sy_pitchers, sy_std = scrape_sports_yahoo_new()
+        if sy_std:
+            standings_data.update({k: v for k, v in sy_std.items() if k not in standings_data})
+        if sy_bat:
+            batting_data.update({k: v for k, v in sy_bat.items() if k not in batting_data})
+        if sy_pit:
+            pitching_data.update({k: v for k, v in sy_pit.items() if k not in pitching_data})
+        if sy_pitchers:
+            pitcher_data.update({k: v for k, v in sy_pitchers.items() if k not in pitcher_data})
+        print(f'  sports.yahoo: bat={len(batting_data)} pit={len(pitching_data)} '
+              f'pitchers={len(pitcher_data)} standings={len(standings_data)}')
 
     # ── Source 3: npb.jp — current year, then previous year fallback ──
     print(f'\n[Source 3] npb.jp (season {SEASON}, then {SEASON-1} as fallback)...')
