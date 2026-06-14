@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-14T14:25:36.982775+09:00",
+  "updated_at": "2026-06-14T17:40:06.201941+09:00",
   "date": "2026-06-14",
   "games": [
     {
@@ -68,8 +68,8 @@
           "t": 1,
           "win_pct": 0.333
         },
-        "last_5_record": "1-4",
-        "last_10_record": "4-6",
+        "last_5_record": "2-3",
+        "last_10_record": "3-7",
         "last_20_record": "7-13",
         "stadium": "ナゴヤドーム"
       },
@@ -136,7 +136,7 @@
           "win_pct": 0.429
         },
         "last_5_record": "2-3",
-        "last_10_record": "4-6",
+        "last_10_record": "5-5",
         "last_20_record": "8-12",
         "stadium": "楽天モバイルパーク宮城"
       },
@@ -236,8 +236,8 @@
           "win_pct": 0.568
         },
         "last_5_record": "3-2",
-        "last_10_record": "5-5",
-        "last_20_record": "12-8",
+        "last_10_record": "6-4",
+        "last_20_record": "11-9",
         "stadium": "ベルーナドーム"
       },
       "away_stats": {
@@ -335,8 +335,8 @@
           "t": 0,
           "win_pct": 0.442
         },
-        "last_5_record": "3-2",
-        "last_10_record": "5-5",
+        "last_5_record": "2-3",
+        "last_10_record": "4-6",
         "last_20_record": "9-11",
         "stadium": "ZOZOマリン"
       },
@@ -437,7 +437,7 @@
         },
         "last_5_record": "3-2",
         "last_10_record": "6-4",
-        "last_20_record": "11-9",
+        "last_20_record": "12-8",
         "stadium": "京セラドーム大阪"
       },
       "away_stats": {
