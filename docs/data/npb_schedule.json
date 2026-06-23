@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-06-22T19:37:38.801103+09:00",
-  "date": "2026-06-22",
+  "updated_at": "2026-06-23T13:55:15.929427+09:00",
+  "date": "2026-06-23",
   "games": [
     {
       "home_team": "阪神",
@@ -137,7 +137,7 @@
         },
         "last_5_record": "2-3",
         "last_10_record": "4-6",
-        "last_20_record": "8-12",
+        "last_20_record": "9-11",
         "stadium": "横浜スタジアム"
       },
       "away_stats": {
@@ -169,7 +169,7 @@
           "win_pct": 0.386
         },
         "last_5_record": "2-3",
-        "last_10_record": "4-6",
+        "last_10_record": "3-7",
         "last_20_record": "7-13",
         "stadium": "マツダスタジアム"
       },
@@ -235,7 +235,7 @@
           "t": 1,
           "win_pct": 0.532
         },
-        "last_5_record": "2-3",
+        "last_5_record": "3-2",
         "last_10_record": "5-5",
         "last_20_record": "10-10",
         "stadium": "神宮球場"
@@ -269,8 +269,8 @@
           "win_pct": 0.339
         },
         "last_5_record": "1-4",
-        "last_10_record": "4-6",
-        "last_20_record": "6-14",
+        "last_10_record": "3-7",
+        "last_20_record": "7-13",
         "stadium": "ナゴヤドーム"
       },
       "home_probable_pitcher": {
@@ -337,7 +337,7 @@
         },
         "last_5_record": "3-2",
         "last_10_record": "6-4",
-        "last_20_record": "11-9",
+        "last_20_record": "12-8",
         "stadium": "みずほPayPayドーム"
       },
       "away_stats": {
@@ -468,7 +468,7 @@
           "t": 2,
           "win_pct": 0.492
         },
-        "last_5_record": "2-3",
+        "last_5_record": "3-2",
         "last_10_record": "5-5",
         "last_20_record": "10-10",
         "stadium": "ZOZOマリン"
@@ -569,7 +569,7 @@
           "win_pct": 0.629
         },
         "last_5_record": "3-2",
-        "last_10_record": "7-3",
+        "last_10_record": "6-4",
         "last_20_record": "13-7",
         "stadium": "ベルーナドーム"
       },
