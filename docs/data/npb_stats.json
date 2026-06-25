@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-25T13:58:03.263710+09:00",
+  "updated_at": "2026-06-25T17:22:54.217781+09:00",
   "season": 2026,
   "source": "baseballdata.jp + npb.jp",
   "teams": {
@@ -66,7 +66,7 @@
       },
       "last_5_record": "2-3",
       "last_10_record": "5-5",
-      "last_20_record": "11-9",
+      "last_20_record": "12-8",
       "stadium": "東京ドーム"
     },
     "DeNA": {
@@ -99,7 +99,7 @@
       },
       "last_5_record": "2-3",
       "last_10_record": "4-6",
-      "last_20_record": "9-11",
+      "last_20_record": "8-12",
       "stadium": "横浜スタジアム"
     },
     "中日": {
@@ -130,7 +130,7 @@
         "t": 1,
         "win_pct": 0.339
       },
-      "last_5_record": "2-3",
+      "last_5_record": "1-4",
       "last_10_record": "3-7",
       "last_20_record": "7-13",
       "stadium": "ナゴヤドーム"
@@ -164,7 +164,7 @@
         "win_pct": 0.532
       },
       "last_5_record": "3-2",
-      "last_10_record": "6-4",
+      "last_10_record": "5-5",
       "last_20_record": "11-9",
       "stadium": "神宮球場"
     },
@@ -328,9 +328,9 @@
         "t": 2,
         "win_pct": 0.629
       },
-      "last_5_record": "4-1",
+      "last_5_record": "3-2",
       "last_10_record": "6-4",
-      "last_20_record": "13-7",
+      "last_20_record": "12-8",
       "stadium": "ベルーナドーム"
     },
     "楽天": {
@@ -394,7 +394,7 @@
         "t": 1,
         "win_pct": 0.548
       },
-      "last_5_record": "2-3",
+      "last_5_record": "3-2",
       "last_10_record": "5-5",
       "last_20_record": "11-9",
       "stadium": "京セラドーム大阪"
