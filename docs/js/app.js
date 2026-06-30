@@ -1,1647 +1,756 @@
 'use strict';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
-const NPB_SPORT_KEY = 'baseball_npb';
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-// ─── API Key Management ──────────────────────────────────────────────────────
-function getApiKey() { return localStorage.getItem('npb_odds_api_key') || ''; }
-function saveApiKey(key) { localStorage.setItem('npb_odds_api_key', key); }
+const DEFAULT_SETTINGS = {
+  calorie_goal: 2000, protein_goal: 150,
+  carbs_goal: 250, fat_goal: 65, water_goal: 2000
+};
 
-// ─── API Status ───────────────────────────────────────────────────────────────
-function updateApiStatus(ok, msg) {
-  const container = document.getElementById('odds-cards-container');
-  if (!container) return;
-  // Update the section header if we have a status indicator
-  const statusEl = document.getElementById('api-status-msg');
-  if (statusEl) {
-    statusEl.textContent = msg || '';
-    statusEl.style.color = ok ? 'var(--success)' : 'var(--danger)';
+const MEAL_META = [
+  { id: 'breakfast', label: '早餐', icon: '🌅', color: '#F97316' },
+  { id: 'lunch',     label: '午餐', icon: '☀️',  color: '#22C55E' },
+  { id: 'dinner',    label: '晚餐', icon: '🌙',  color: '#3B82F6' },
+  { id: 'snack',     label: '點心', icon: '🧃',  color: '#8B5CF6' },
+];
+
+const FOOD_DB = {
+  '白飯':    { calories: 130, protein: 2.7,  carbs: 28.7, fat: 0.3  },
+  '糙米飯':  { calories: 111, protein: 2.6,  carbs: 23.5, fat: 0.9  },
+  '麵條':    { calories: 138, protein: 4.5,  carbs: 27.8, fat: 0.6  },
+  '吐司':    { calories: 265, protein: 9.0,  carbs: 49.0, fat: 3.2  },
+  '饅頭':    { calories: 223, protein: 7.1,  carbs: 46.2, fat: 0.7  },
+  '地瓜':    { calories: 86,  protein: 1.6,  carbs: 20.0, fat: 0.1  },
+  '燕麥':    { calories: 389, protein: 17.0, carbs: 66.0, fat: 7.0  },
+  '全麥吐司':{ calories: 247, protein: 10.7, carbs: 41.4, fat: 3.9  },
+  '玉米':    { calories: 86,  protein: 3.2,  carbs: 19.0, fat: 1.2  },
+  '馬鈴薯':  { calories: 77,  protein: 2.0,  carbs: 17.5, fat: 0.1  },
+  '雞胸肉':  { calories: 165, protein: 31.0, carbs: 0.0,  fat: 3.6  },
+  '雞腿肉':  { calories: 209, protein: 26.0, carbs: 0.0,  fat: 11.0 },
+  '豬里肌':  { calories: 143, protein: 22.0, carbs: 0.0,  fat: 5.4  },
+  '豬五花':  { calories: 518, protein: 14.0, carbs: 0.0,  fat: 52.0 },
+  '牛肉':    { calories: 250, protein: 26.0, carbs: 0.0,  fat: 15.0 },
+  '鮭魚':    { calories: 208, protein: 20.0, carbs: 0.0,  fat: 13.0 },
+  '鮪魚':    { calories: 128, protein: 28.0, carbs: 0.0,  fat: 1.2  },
+  '蝦子':    { calories: 99,  protein: 24.0, carbs: 0.0,  fat: 0.3  },
+  '雞蛋':    { calories: 155, protein: 13.0, carbs: 1.1,  fat: 11.0 },
+  '豆腐':    { calories: 76,  protein: 8.0,  carbs: 1.9,  fat: 4.2  },
+  '豆漿':    { calories: 54,  protein: 3.3,  carbs: 6.4,  fat: 1.7  },
+  '鮪魚罐頭':{ calories: 116, protein: 25.5, carbs: 0.0,  fat: 1.0  },
+  '花椰菜':  { calories: 34,  protein: 2.8,  carbs: 7.0,  fat: 0.4  },
+  '高麗菜':  { calories: 25,  protein: 1.3,  carbs: 5.8,  fat: 0.1  },
+  '菠菜':    { calories: 23,  protein: 2.9,  carbs: 3.6,  fat: 0.4  },
+  '番茄':    { calories: 18,  protein: 0.9,  carbs: 3.9,  fat: 0.2  },
+  '小黃瓜':  { calories: 16,  protein: 0.7,  carbs: 3.6,  fat: 0.1  },
+  '胡蘿蔔':  { calories: 41,  protein: 0.9,  carbs: 9.6,  fat: 0.2  },
+  '洋蔥':    { calories: 40,  protein: 1.1,  carbs: 9.3,  fat: 0.1  },
+  '香菇':    { calories: 34,  protein: 2.2,  carbs: 6.8,  fat: 0.5  },
+  '空心菜':  { calories: 19,  protein: 2.6,  carbs: 2.1,  fat: 0.3  },
+  '茄子':    { calories: 25,  protein: 1.0,  carbs: 5.9,  fat: 0.2  },
+  '蘋果':    { calories: 52,  protein: 0.3,  carbs: 14.0, fat: 0.2  },
+  '香蕉':    { calories: 89,  protein: 1.1,  carbs: 23.0, fat: 0.3  },
+  '橘子':    { calories: 47,  protein: 0.9,  carbs: 12.0, fat: 0.1  },
+  '西瓜':    { calories: 30,  protein: 0.6,  carbs: 7.6,  fat: 0.2  },
+  '葡萄':    { calories: 69,  protein: 0.7,  carbs: 18.0, fat: 0.2  },
+  '芒果':    { calories: 60,  protein: 0.8,  carbs: 15.0, fat: 0.4  },
+  '草莓':    { calories: 32,  protein: 0.7,  carbs: 7.7,  fat: 0.3  },
+  '鳳梨':    { calories: 50,  protein: 0.5,  carbs: 13.1, fat: 0.1  },
+  '牛奶':    { calories: 61,  protein: 3.2,  carbs: 4.8,  fat: 3.3  },
+  '優格':    { calories: 59,  protein: 3.5,  carbs: 3.6,  fat: 3.3  },
+  '起司':    { calories: 402, protein: 25.0, carbs: 1.3,  fat: 33.0 },
+  '無糖優格':{ calories: 56,  protein: 10.0, carbs: 3.6,  fat: 0.4  },
+  '花生醬':  { calories: 588, protein: 25.0, carbs: 20.0, fat: 50.0 },
+  '橄欖油':  { calories: 884, protein: 0.0,  carbs: 0.0,  fat: 100.0},
+  '核桃':    { calories: 654, protein: 15.0, carbs: 14.0, fat: 65.0 },
+  '杏仁':    { calories: 579, protein: 21.0, carbs: 22.0, fat: 50.0 },
+  '可樂':    { calories: 37,  protein: 0.0,  carbs: 9.6,  fat: 0.0  },
+  '柳橙汁':  { calories: 45,  protein: 0.7,  carbs: 10.4, fat: 0.2  },
+  '黑咖啡':  { calories: 2,   protein: 0.3,  carbs: 0.0,  fat: 0.0  },
+  '綠茶':    { calories: 1,   protein: 0.0,  carbs: 0.2,  fat: 0.0  },
+};
+
+// ── Storage ───────────────────────────────────────────────────────────────────
+
+const DB = {
+  _get: (k, def) => { try { return JSON.parse(localStorage.getItem(k) || def); } catch { return JSON.parse(def); } },
+
+  getFoods:    () => DB._get('nm_foods', '[]'),
+  getWater:    () => DB._get('nm_water', '[]'),
+  getWeights:  () => DB._get('nm_weights', '[]'),
+  getSettings: () => ({ ...DEFAULT_SETTINGS, ...DB._get('nm_settings', '{}') }),
+
+  saveFoods:    d => localStorage.setItem('nm_foods', JSON.stringify(d)),
+  saveWater:    d => localStorage.setItem('nm_water', JSON.stringify(d)),
+  saveWeights:  d => localStorage.setItem('nm_weights', JSON.stringify(d)),
+  saveSettings: d => localStorage.setItem('nm_settings', JSON.stringify(d)),
+
+  newId: () => `nm_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+
+  addFood(entry) {
+    entry.id = DB.newId();
+    const all = DB.getFoods();
+    all.push(entry);
+    DB.saveFoods(all);
+    return entry;
+  },
+  deleteFood(id) { DB.saveFoods(DB.getFoods().filter(f => f.id !== id)); },
+
+  addWater(entry) {
+    entry.id = DB.newId();
+    const all = DB.getWater();
+    all.push(entry);
+    DB.saveWater(all);
+    return entry;
+  },
+  deleteWater(id) { DB.saveWater(DB.getWater().filter(w => w.id !== id)); },
+
+  upsertWeight(date, weight, notes) {
+    const all = DB.getWeights().filter(w => w.date !== date);
+    all.push({ id: DB.newId(), date, weight: parseFloat(weight), notes: notes || '' });
+    DB.saveWeights(all.sort((a, b) => b.date.localeCompare(a.date)));
+  },
+  deleteWeight(id) { DB.saveWeights(DB.getWeights().filter(w => w.id !== id)); },
+};
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function dateRange(days) {
+  const dates = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
   }
+  return dates;
 }
 
-// ─── Odds Loading ────────────────────────────────────────────────────────────
-async function loadOdds() {
-  const key = getApiKey();
-  if (!key) { openApiKeyModal(); return; }
-
-  showLoading('載入即時賠率...');
-  const container = document.getElementById('odds-cards-container');
-  if (container) container.innerHTML = '<div class="no-games-msg"><i class="fa-solid fa-rotate fa-spin" style="margin-right:8px"></i>載入中...</div>';
-
-  try {
-    const url = `${ODDS_API_BASE}/sports/${NPB_SPORT_KEY}/odds?apiKey=${key}&regions=eu&markets=h2h,totals&oddsFormat=decimal&dateFormat=iso`;
-    const resp = await fetch(url);
-
-    if (resp.status === 401) throw new Error('API Key 無效，請檢查您的 API Key');
-    if (resp.status === 422) throw new Error('NPB 目前無賽事資料');
-    if (!resp.ok) throw new Error(`API 錯誤 (${resp.status})`);
-
-    const games = await resp.json();
-    const remaining = resp.headers.get('x-requests-remaining') || '?';
-    updateApiStatus(true, `${remaining} 次請求剩餘`);
-    renderOddsCards(games);
-  } catch (e) {
-    renderOddsError(e.message);
-    updateApiStatus(false, e.message);
-  } finally {
-    hideLoading();
-  }
-}
-
-// ─── Render Odds Cards ────────────────────────────────────────────────────────
-function renderOddsCards(games) {
-  const container = document.getElementById('odds-cards-container');
-  if (!container) return;
-
-  if (!games || games.length === 0) {
-    container.innerHTML = '<div class="no-games-msg"><i class="fa-solid fa-calendar-xmark" style="margin-right:8px"></i>NPB 目前無賽事</div>';
-    return;
-  }
-
-  container.innerHTML = '';
-  games.forEach(game => {
-    // Extract teams
-    const homeTeam = game.home_team || '主隊';
-    const awayTeam = game.away_team || '客隊';
-
-    // Format time
-    const gameTime = game.commence_time ? formatGameTime(game.commence_time) : '時間未定';
-
-    // Extract h2h odds (first bookmaker)
-    let homeOdds = null, awayOdds = null, totalLine = null, totalOverOdds = null;
-    if (game.bookmakers && game.bookmakers.length > 0) {
-      for (const bk of game.bookmakers) {
-        for (const market of (bk.markets || [])) {
-          if (market.key === 'h2h') {
-            for (const outcome of (market.outcomes || [])) {
-              if (outcome.name === homeTeam) homeOdds = outcome.price;
-              else if (outcome.name === awayTeam) awayOdds = outcome.price;
-            }
-          }
-          if (market.key === 'totals' && !totalLine) {
-            for (const outcome of (market.outcomes || [])) {
-              if (outcome.name === 'Over') {
-                totalLine = outcome.point;
-                totalOverOdds = outcome.price;
-              }
-            }
-          }
-        }
-        if (homeOdds && awayOdds) break;
-      }
-    }
-
-    const card = document.createElement('div');
-    card.className = 'odds-card';
-    card.innerHTML = `
-      <div class="odds-card-time"><i class="fa-regular fa-clock"></i> ${gameTime}</div>
-      <div class="team-vs">
-        <div class="team-name home">${homeTeam}</div>
-        <div class="vs-sep">VS</div>
-        <div class="team-name away">${awayTeam}</div>
-      </div>
-      <div class="odds-row">
-        <div class="odds-pill">
-          <span class="odds-label">主隊</span>
-          <span class="odds-value">${homeOdds ? homeOdds.toFixed(2) : '—'}</span>
-        </div>
-        <div class="odds-pill">
-          <span class="odds-label">客隊</span>
-          <span class="odds-value">${awayOdds ? awayOdds.toFixed(2) : '—'}</span>
-        </div>
-      </div>
-      ${totalLine ? `<div class="odds-total"><i class="fa-solid fa-calculator"></i> 大小分: ${totalLine} (大 ${totalOverOdds ? totalOverOdds.toFixed(2) : '—'})</div>` : ''}
-      <button class="btn btn-primary btn-sm btn-full" onclick='prefillFromOdds(${JSON.stringify(game)})'>
-        分析此場 <i class="fa-solid fa-arrow-right"></i>
-      </button>
-    `;
-    container.appendChild(card);
-  });
-}
-
-function renderOddsError(msg) {
-  const container = document.getElementById('odds-cards-container');
-  if (!container) return;
-  container.innerHTML = `
-    <div class="notice notice-error" style="width:100%">
-      <i class="fa-solid fa-circle-exclamation"></i>
-      <div>
-        <strong>載入失敗:</strong> ${msg}
-        <br><small>請確認 API Key 正確，或稍後再試。<a href="#" onclick="openApiKeyModal()">設定 API Key</a></small>
-      </div>
-    </div>`;
-}
-
-// ─── Format Game Time ─────────────────────────────────────────────────────────
-function formatGameTime(isoStr) {
-  try {
-    const d = new Date(isoStr);
-    const month = d.getMonth() + 1;
-    const day = d.getDate();
-    const h = String(d.getHours()).padStart(2, '0');
-    const m = String(d.getMinutes()).padStart(2, '0');
-    return `${month}月${day}日 ${h}:${m}`;
-  } catch {
-    return isoStr;
-  }
-}
-
-// ─── Pre-fill from Odds Card ──────────────────────────────────────────────────
-function prefillFromOdds(game) {
-  const homeTeam = game.home_team || '';
-  const awayTeam = game.away_team || '';
-
-  setVal('home_team', homeTeam);
-  setVal('away_team', awayTeam);
-
-  if (game.commence_time) {
-    const d = new Date(game.commence_time);
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'00')}:${String(d.getMinutes()).padStart(2,'00')}`;
-    setVal('datetime', dateStr);
-  }
-
-  // Extract odds
-  let homeOdds = null, awayOdds = null, totalLine = null, totalCloseOdds = null;
-  if (game.bookmakers && game.bookmakers.length > 0) {
-    for (const bk of game.bookmakers) {
-      for (const market of (bk.markets || [])) {
-        if (market.key === 'h2h') {
-          for (const outcome of (market.outcomes || [])) {
-            if (outcome.name === homeTeam) homeOdds = outcome.price;
-            else if (outcome.name === awayTeam) awayOdds = outcome.price;
-          }
-        }
-        if (market.key === 'totals' && !totalLine) {
-          for (const outcome of (market.outcomes || [])) {
-            if (outcome.name === 'Over') {
-              totalLine = outcome.point;
-              totalCloseOdds = outcome.price;
-            }
-          }
-        }
-      }
-      if (homeOdds && awayOdds) break;
-    }
-  }
-
-  if (homeOdds) setVal('home_ml', homeOdds);
-  if (awayOdds) setVal('away_ml', awayOdds);
-  if (totalLine) {
-    setVal('open_total', totalLine);
-    setVal('current_total', totalLine);
-  }
-  if (homeOdds) setVal('your_odds', homeOdds);
-
-  // Open input section and switch to odds tab
-  openFormPanel();
-
-  // Scroll to input section
-  const sec = document.getElementById('analysis-form-section');
-  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  showToast('已載入賠率資料，請補充其他分析資訊後點擊「開始分析」', 'info');
-
-  // Auto-fill team stats from scraped NPB data
-  autoFillStatsForGame(homeTeam, awayTeam);
-}
-
-// ─── Set Form Value Helper ────────────────────────────────────────────────────
-function setVal(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.value = val;
-}
-
-// ─── Load Sample Data ─────────────────────────────────────────────────────────
-function loadSampleData() {
-  const sd = SAMPLE_DATA;
-  const gi = sd.game_info;
-  const hp = sd.home_pitcher;
-  const ap = sd.away_pitcher;
-  const hb = sd.home_bullpen;
-  const ab = sd.away_bullpen;
-  const hs = sd.home_team_stats;
-  const as_ = sd.away_team_stats;
-  const odds = sd.odds;
-  const betting = sd.betting;
-
-  // Basic info
-  setVal('home_team', gi.home_team);
-  setVal('away_team', gi.away_team);
-  setVal('stadium', gi.stadium);
-  setVal('datetime', gi.datetime);
-  setVal('is_day_game', gi.is_day_game ? 'true' : 'false');
-  setVal('turf_type', gi.turf_type);
-  setVal('park_factor', gi.park_factor);
-  setVal('hr_factor', gi.hr_factor);
-  setVal('scoring_factor', gi.scoring_factor);
-  setVal('temperature', gi.temperature);
-  setVal('humidity', gi.humidity);
-  setVal('rain_pct', gi.rain_pct);
-  setVal('wind_direction', gi.wind_direction);
-  setVal('wind_speed_kmh', gi.wind_speed_kmh);
-  setVal('is_travel_game', gi.is_travel_game ? 'true' : 'false');
-  setVal('consecutive_away_games', gi.consecutive_away_games);
-  setVal('consecutive_games_played', gi.consecutive_games_played);
-  setVal('days_since_last_game', gi.days_since_last_game);
-
-  // Home pitcher
-  setVal('home_era', hp.era);
-  setVal('home_whip', hp.whip);
-  setVal('home_fip', hp.fip);
-  setVal('home_xera', hp.xera);
-  setVal('home_k9', hp.k9);
-  setVal('home_bb9', hp.bb9);
-  setVal('home_rest_days', hp.rest_days);
-  setVal('home_handedness', hp.handedness);
-  setVal('home_pitcher_home_era', hp.home_era);
-  setVal('home_pitcher_vs_opp_era', hp.vs_opponent_era);
-  setVal('home_pitcher_vs_opp_games', hp.vs_opponent_games);
-  setVal('home_vs_lhb_ops', hp.vs_lhb_ops);
-  setVal('home_vs_rhb_ops', hp.vs_rhb_ops);
-  setVal('home_recent_5_games', (hp.recent_5_games || []).join(', '));
-
-  // Away pitcher
-  setVal('away_era', ap.era);
-  setVal('away_whip', ap.whip);
-  setVal('away_fip', ap.fip);
-  setVal('away_xera', ap.xera);
-  setVal('away_k9', ap.k9);
-  setVal('away_bb9', ap.bb9);
-  setVal('away_rest_days', ap.rest_days);
-  setVal('away_handedness', ap.handedness);
-  setVal('away_pitcher_away_era', ap.away_era);
-  setVal('away_pitcher_vs_opp_era', ap.vs_opponent_era);
-  setVal('away_pitcher_vs_opp_games', ap.vs_opponent_games);
-  setVal('away_vs_lhb_ops', ap.vs_lhb_ops);
-  setVal('away_vs_rhb_ops', ap.vs_rhb_ops);
-  setVal('away_recent_5_games', (ap.recent_5_games || []).join(', '));
-
-  // Home bullpen
-  setVal('home_bullpen_era', hb.era);
-  setVal('home_bullpen_7ip', hb.last_7_days_ip);
-  setVal('home_bullpen_3ip', hb.last_3_days_ip);
-  setVal('home_bullpen_consec', hb.consecutive_days);
-  setVal('home_closer_available', hb.closer_available ? 'true' : 'false');
-  setVal('home_setup_fatigued', hb.setup_fatigued ? 'true' : 'false');
-
-  // Away bullpen
-  setVal('away_bullpen_era', ab.era);
-  setVal('away_bullpen_7ip', ab.last_7_days_ip);
-  setVal('away_bullpen_3ip', ab.last_3_days_ip);
-  setVal('away_bullpen_consec', ab.consecutive_days);
-  setVal('away_closer_available', ab.closer_available ? 'true' : 'false');
-  setVal('away_setup_fatigued', ab.setup_fatigued ? 'true' : 'false');
-
-  // Home team stats
-  setVal('home_ops', hs.ops);
-  setVal('home_wrc_plus', hs.wrc_plus);
-  setVal('home_slg', hs.slg);
-  setVal('home_obp', hs.obp);
-  setVal('home_last_5', hs.last_5_record);
-  setVal('home_last_10', hs.last_10_record);
-  setVal('home_last_20', hs.last_20_record);
-  setVal('home_fielding_pct', hs.fielding_pct);
-  setVal('home_drs', hs.drs);
-  setVal('home_uzr', hs.uzr);
-
-  // Away team stats
-  setVal('away_ops', as_.ops);
-  setVal('away_wrc_plus', as_.wrc_plus);
-  setVal('away_slg', as_.slg);
-  setVal('away_obp', as_.obp);
-  setVal('away_last_5', as_.last_5_record);
-  setVal('away_last_10', as_.last_10_record);
-  setVal('away_last_20', as_.last_20_record);
-  setVal('away_fielding_pct', as_.fielding_pct);
-  setVal('away_drs', as_.drs);
-  setVal('away_uzr', as_.uzr);
-
-  // Odds
-  setVal('home_ml', odds.home_ml);
-  setVal('away_ml', odds.away_ml);
-  setVal('open_line', odds.open_line);
-  setVal('current_line', odds.current_line);
-  setVal('open_total', odds.open_total);
-  setVal('current_total', odds.current_total);
-  setVal('bankroll', betting.bankroll);
-  setVal('your_odds', betting.your_odds);
-
-  // Open form panel and scroll
-  openFormPanel();
-  const sec = document.getElementById('analysis-form-section');
-  if (sec) sec.scrollIntoView({ behavior: 'smooth' });
-
-  showToast('範例資料已載入 (阪神 vs 巨人 @ 甲子園)', 'success');
-
-  // Auto-run analysis after short delay
-  setTimeout(() => submitAnalysis(), 500);
-}
-
-// ─── Collect Form Data ────────────────────────────────────────────────────────
-function collectFormData() {
-  function fval(id, def = 0) {
-    const el = document.getElementById(id);
-    if (!el) return def;
-    const v = parseFloat(el.value);
-    return isNaN(v) ? def : v;
-  }
-  function sval(id, def = '') {
-    const el = document.getElementById(id);
-    return el ? el.value : def;
-  }
-  function bval(id, def = false) {
-    const el = document.getElementById(id);
-    return el ? el.value === 'true' : def;
-  }
-  function parseCSV(str) {
-    return (str || '').split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-  }
-
-  const homeTeam = sval('home_team', '主隊');
-  const awayTeam = sval('away_team', '客隊');
-
+function getSummary(date) {
+  const foods = DB.getFoods().filter(f => f.date === date);
+  const water = DB.getWater().filter(w => w.date === date);
   return {
-    game_info: {
-      home_team: homeTeam,
-      away_team: awayTeam,
-      stadium: sval('stadium', '甲子園'),
-      datetime: sval('datetime', '2024-07-20 18:00'),
-      is_day_game: bval('is_day_game'),
-      park_factor: fval('park_factor', 1.0),
-      hr_factor: fval('hr_factor', 1.0),
-      scoring_factor: fval('scoring_factor', 1.0),
-      turf_type: sval('turf_type', 'natural'),
-      temperature: fval('temperature', 20),
-      humidity: fval('humidity', 60),
-      rain_pct: fval('rain_pct', 10),
-      wind_direction: sval('wind_direction', 'none'),
-      wind_speed_kmh: fval('wind_speed_kmh', 0),
-      is_travel_game: bval('is_travel_game'),
-      consecutive_away_games: fval('consecutive_away_games', 0),
-      consecutive_games_played: fval('consecutive_games_played', 0),
-      days_since_last_game: fval('days_since_last_game', 1),
-    },
-    home_pitcher: {
-      era: fval('home_era', 4.00),
-      whip: fval('home_whip', 1.30),
-      fip: fval('home_fip', 4.00),
-      xera: fval('home_xera', 4.00),
-      k9: fval('home_k9', 7.0),
-      bb9: fval('home_bb9', 3.0),
-      rest_days: fval('home_rest_days', 5),
-      handedness: sval('home_handedness', 'R'),
-      home_era: fval('home_pitcher_home_era', 4.00),
-      away_era: fval('home_pitcher_home_era', 4.00),
-      vs_opponent_era: fval('home_pitcher_vs_opp_era', 0),
-      vs_opponent_games: fval('home_pitcher_vs_opp_games', 0),
-      vs_lhb_ops: fval('home_vs_lhb_ops', 0.720),
-      vs_rhb_ops: fval('home_vs_rhb_ops', 0.720),
-      recent_5_games: parseCSV(sval('home_recent_5_games', '')),
-    },
-    away_pitcher: {
-      era: fval('away_era', 4.00),
-      whip: fval('away_whip', 1.30),
-      fip: fval('away_fip', 4.00),
-      xera: fval('away_xera', 4.00),
-      k9: fval('away_k9', 7.0),
-      bb9: fval('away_bb9', 3.0),
-      rest_days: fval('away_rest_days', 5),
-      handedness: sval('away_handedness', 'R'),
-      home_era: fval('away_pitcher_away_era', 4.00),
-      away_era: fval('away_pitcher_away_era', 4.00),
-      vs_opponent_era: fval('away_pitcher_vs_opp_era', 0),
-      vs_opponent_games: fval('away_pitcher_vs_opp_games', 0),
-      vs_lhb_ops: fval('away_vs_lhb_ops', 0.720),
-      vs_rhb_ops: fval('away_vs_rhb_ops', 0.720),
-      recent_5_games: parseCSV(sval('away_recent_5_games', '')),
-    },
-    home_bullpen: {
-      era: fval('home_bullpen_era', 4.00),
-      last_7_days_ip: fval('home_bullpen_7ip', 5.0),
-      last_3_days_ip: fval('home_bullpen_3ip', 2.0),
-      consecutive_days: fval('home_bullpen_consec', 0),
-      closer_available: bval('home_closer_available', true),
-      setup_fatigued: bval('home_setup_fatigued', false),
-      save_opportunities: 15,
-      blown_saves: 3,
-      holds: 30,
-    },
-    away_bullpen: {
-      era: fval('away_bullpen_era', 4.00),
-      last_7_days_ip: fval('away_bullpen_7ip', 5.0),
-      last_3_days_ip: fval('away_bullpen_3ip', 2.0),
-      consecutive_days: fval('away_bullpen_consec', 0),
-      closer_available: bval('away_closer_available', true),
-      setup_fatigued: bval('away_setup_fatigued', false),
-      save_opportunities: 15,
-      blown_saves: 3,
-      holds: 30,
-    },
-    home_team_stats: {
-      ops: fval('home_ops', 0.720),
-      wrc_plus: fval('home_wrc_plus', 100),
-      slg: fval('home_slg', 0.380),
-      obp: fval('home_obp', 0.320),
-      runs_scored_last_10: [4,5,3,6,4,5,3,4,5,4],
-      vs_lhp_ops: fval('home_ops', 0.720),
-      vs_rhp_ops: fval('home_ops', 0.720),
-      fielding_pct: fval('home_fielding_pct', 0.982),
-      drs: fval('home_drs', 0),
-      uzr: fval('home_uzr', 0),
-      catcher_cs_pct: 0.30,
-      error_rate: 0.020,
-      last_5_record: sval('home_last_5', '3-2'),
-      last_10_record: sval('home_last_10', '5-5'),
-      last_20_record: sval('home_last_20', '10-10'),
-      team_ops_trend: 0,
-      team_era_trend: 0,
-    },
-    away_team_stats: {
-      ops: fval('away_ops', 0.720),
-      wrc_plus: fval('away_wrc_plus', 100),
-      slg: fval('away_slg', 0.380),
-      obp: fval('away_obp', 0.320),
-      runs_scored_last_10: [4,3,5,3,4,5,3,4,3,4],
-      vs_lhp_ops: fval('away_ops', 0.720),
-      vs_rhp_ops: fval('away_ops', 0.720),
-      fielding_pct: fval('away_fielding_pct', 0.982),
-      drs: fval('away_drs', 0),
-      uzr: fval('away_uzr', 0),
-      catcher_cs_pct: 0.28,
-      error_rate: 0.022,
-      last_5_record: sval('away_last_5', '3-2'),
-      last_10_record: sval('away_last_10', '5-5'),
-      last_20_record: sval('away_last_20', '10-10'),
-      team_ops_trend: 0,
-      team_era_trend: 0,
-    },
-    odds: {
-      open_line: fval('open_line', -1.5),
-      current_line: fval('current_line', -1.5),
-      open_total: fval('open_total', 7.5),
-      current_total: fval('current_total', 7.5),
-      home_ml: fval('home_ml', 1.90),
-      away_ml: fval('away_ml', 1.90),
-    },
-    betting: {
-      your_odds: fval('your_odds', 1.90),
-      bankroll: fval('bankroll', 10000),
-      open_odds: fval('home_ml', 1.90),
-      close_odds: fval('home_ml', 1.90),
-    },
+    calories: foods.reduce((s, f) => s + f.calories, 0),
+    protein:  foods.reduce((s, f) => s + f.protein, 0),
+    carbs:    foods.reduce((s, f) => s + f.carbs, 0),
+    fat:      foods.reduce((s, f) => s + f.fat, 0),
+    water:    water.reduce((s, w) => s + w.amount, 0),
   };
 }
 
-// ─── Submit Analysis ──────────────────────────────────────────────────────────
-function submitAnalysis() {
-  const data = collectFormData();
-  runAnalysis(data);
+function getMeals(date) {
+  const meals = { breakfast: [], lunch: [], dinner: [], snack: [] };
+  DB.getFoods().filter(f => f.date === date).forEach(f => {
+    if (meals[f.meal_type]) meals[f.meal_type].push(f);
+  });
+  return meals;
 }
 
-// ─── Run Analysis ─────────────────────────────────────────────────────────────
-function runAnalysis(data) {
-  showLoading('AI 正在分析中...');
-
-  // Use setTimeout to allow UI to update before heavy computation
-  setTimeout(() => {
-    try {
-      const gi = data.game_info;
-      const hp = data.home_pitcher;
-      const ap = data.away_pitcher;
-      const hb = data.home_bullpen;
-      const ab = data.away_bullpen;
-      const hts = data.home_team_stats;
-      const ats = data.away_team_stats;
-      const oddsData = data.odds;
-      const bettingData = data.betting;
-
-      // Run all analyzers
-      const homePitcher = analyzePitcher(hp);
-      const awayPitcher = analyzePitcher(ap);
-      const homeBullpen = analyzeBullpen(hb);
-      const awayBullpen = analyzeBullpen(ab);
-      const homeLineup = analyzeLineup(hts, ap);
-      const awayLineup = analyzeLineup(ats, hp);
-      const homeDefense = analyzeDefense(hts);
-      const awayDefense = analyzeDefense(ats);
-      const park = analyzePark(gi);
-      const weather = analyzeWeather(gi);
-      const homeForm = analyzeForm(hts);
-      const awayForm = analyzeForm(ats);
-      const homeSchedule = analyzeSchedule(gi);
-
-      // Away schedule (away team traveling)
-      const awayGI = Object.assign({}, gi, {
-        is_travel_game: true,
-        consecutive_away_games: gi.consecutive_away_games || 4,
-      });
-      const awaySchedule = analyzeSchedule(awayGI);
-
-      // Win probability (pre-odds)
-      const winModel = calculateWinProbability(
-        {
-          pitcher_score: homePitcher.score,
-          bullpen_score: homeBullpen.score,
-          lineup_score: homeLineup.score,
-          defense_score: homeDefense.score,
-          form_score: homeForm.form_score,
-          fatigue_score: homeSchedule.fatigue_score,
-          park_adjustment: park.run_adjustment,
-        },
-        {
-          pitcher_score: awayPitcher.score,
-          bullpen_score: awayBullpen.score,
-          lineup_score: awayLineup.score,
-          defense_score: awayDefense.score,
-          form_score: awayForm.form_score,
-          fatigue_score: awaySchedule.fatigue_score,
-          park_adjustment: 1.0,
-        }
-      );
-
-      // Odds analysis
-      const oddsAnalysis = analyzeOdds(
-        oddsData.open_line,
-        oddsData.current_line,
-        oddsData.open_total,
-        oddsData.current_total,
-        oddsData.home_ml,
-        oddsData.away_ml,
-        winModel.home_win_prob
-      );
-
-      // Totals model
-      const totals = predictTotalRuns(homeLineup, awayLineup, homePitcher, awayPitcher, park, weather);
-
-      // Monte Carlo (10,000 simulations)
-      const mc = runMonteCarlo(winModel.home_win_prob, totals.predicted_total, 1.8, 10000);
-
-      // ELO
-      const homeElo = getTeamElo(gi.home_team);
-      const awayElo = getTeamElo(gi.away_team);
-      const elo = calculateEloWinProb(homeElo, awayElo, 35);
-
-      // Kelly
-      const homeKelly = kellyCriterion(winModel.home_win_prob, oddsData.home_ml, bettingData.bankroll, 0.25);
-      const awayKelly = kellyCriterion(winModel.away_win_prob, oddsData.away_ml, bettingData.bankroll, 0.25);
-
-      // CLV
-      const homeCLV = calculateCLV(bettingData.open_odds, bettingData.close_odds, bettingData.your_odds);
-      const awayCLV = calculateCLV(bettingData.open_odds * 1.05, bettingData.close_odds * 1.05, bettingData.your_odds * 1.05);
-
-      // Bet Score
-      const impliedHome = oddsData.home_ml > 0 ? 1.0 / oddsData.home_ml : 0.5;
-      const edge = winModel.home_win_prob - impliedHome;
-      const mcConfidence = Math.max(0, Math.min(1, 1.0 - mc.std_dev_result / 5.0));
-      const sharpScore = oddsAnalysis.sharp_lean === 'home' ? 1.0 : 0.5;
-
-      const betScore = calculateBetScore({
-        win_prob_edge: edge,
-        kelly_pct: (homeKelly.kelly_pct || 0) / 100.0,
-        clv_value: homeCLV.clv_value || 0,
-        model_confidence: mcConfidence,
-        line_value: Math.min(1.0, Math.max(0.0, 0.5 + edge * 5)),
-        sharp_lean_score: sharpScore,
-      });
-
-      // Final recommendation
-      const finalRec = generateFinalRecommendation(winModel, totals, betScore, oddsAnalysis);
-
-      // Render results
-      const result = {
-        game_info: gi,
-        home_pitcher: homePitcher,
-        away_pitcher: awayPitcher,
-        home_bullpen: homeBullpen,
-        away_bullpen: awayBullpen,
-        home_lineup: homeLineup,
-        away_lineup: awayLineup,
-        home_defense: homeDefense,
-        away_defense: awayDefense,
-        park,
-        weather,
-        home_form: homeForm,
-        away_form: awayForm,
-        home_schedule: homeSchedule,
-        away_schedule: awaySchedule,
-        odds: oddsAnalysis,
-        win_probability: winModel,
-        totals,
-        monte_carlo: mc,
-        elo,
-        home_kelly: homeKelly,
-        away_kelly: awayKelly,
-        home_clv: homeCLV,
-        away_clv: awayCLV,
-        bet_score: betScore,
-        final_rec: finalRec,
-        star_rating: finalRec.star_rating,
-        home_elo: homeElo,
-        away_elo: awayElo,
-        raw_odds: oddsData,
-        raw_betting: bettingData,
-      };
-
-      hideLoading();
-      renderResults(result);
-    } catch (err) {
-      hideLoading();
-      console.error('Analysis error:', err);
-      showToast('分析發生錯誤: ' + err.message, 'error');
-    }
-  }, 50);
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ─── Render Results ───────────────────────────────────────────────────────────
-function renderResults(r) {
-  const sec = document.getElementById('results-section');
-  if (!sec) return;
-  sec.style.display = 'block';
+// ── Toast ─────────────────────────────────────────────────────────────────────
 
-  const gi = r.game_info;
-  const homeTeam = gi.home_team;
-  const awayTeam = gi.away_team;
+function showToast(msg, dur = 2000) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
 
-  // Match header
-  const homeEl = sec.querySelector('.match-team.home');
-  const awayEl = sec.querySelector('.match-team.away');
-  if (homeEl) homeEl.textContent = homeTeam;
-  if (awayEl) awayEl.textContent = awayTeam;
+// ── Ring ──────────────────────────────────────────────────────────────────────
 
-  const stadiumEl = sec.querySelector('.match-stadium');
-  const dtEl = sec.querySelector('.match-datetime');
-  const dnEl = sec.querySelector('.match-day-night');
-  if (stadiumEl) stadiumEl.textContent = gi.stadium;
-  if (dtEl) dtEl.textContent = gi.datetime;
-  if (dnEl) dnEl.textContent = gi.is_day_game ? '日場' : '夜場';
+function drawRing(svgId, val, goal, color, trackColor, size, stroke) {
+  color      = color      || '#22C55E';
+  trackColor = trackColor || '#E5E7EB';
+  size       = size       || 160;
+  stroke     = stroke     || 12;
+  const r    = (size - stroke * 2) / 2;
+  const cx   = size / 2;
+  const circ = 2 * Math.PI * r;
+  const pct  = Math.min(val / (goal || 1), 1);
+  const off  = circ * (1 - pct);
+  const fill = val > goal ? '#EF4444' : color;
+  const el   = document.getElementById(svgId);
+  if (!el) return;
+  el.setAttribute('width', size);
+  el.setAttribute('height', size);
+  el.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  el.innerHTML = `
+    <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${trackColor}" stroke-width="${stroke}"/>
+    <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${fill}" stroke-width="${stroke}"
+      stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"
+      stroke-linecap="round" transform="rotate(-90 ${cx} ${cx})"
+      style="transition:stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1)"/>
+  `;
+}
 
-  // Win gauges
-  const homeProb = r.win_probability.home_win_prob;
-  const awayProb = r.win_probability.away_win_prob;
-  animateGauge('win-gauge-fill-home', homeProb);
-  animateGauge('win-gauge-fill-away', awayProb);
-  setText('win-gauge-pct-home', `${(homeProb * 100).toFixed(1)}%`);
-  setText('win-gauge-pct-away', `${(awayProb * 100).toFixed(1)}%`);
-  setText('win-gauge-team-home', homeTeam);
-  setText('win-gauge-team-away', awayTeam);
-  setText('win-gauge-composite-home', `複合分: ${r.win_probability.home_composite_score.toFixed(1)}`);
+// ── Router ─────────────────────────────────────────────────────────────────────
 
-  // Bet score dial
-  drawBetScoreDial(r.bet_score.bet_score);
-  setText('dial-score-num', r.bet_score.bet_score.toFixed(1));
-  const dialNumEl = document.getElementById('dial-score-num');
-  if (dialNumEl) dialNumEl.style.color = betScoreColor(r.bet_score.bet_score);
-  setText('dial-grade', r.bet_score.grade);
+let charts = {};
 
-  // Star rating display
-  renderStars('star-rating-display', r.bet_score.star_rating);
-  setText('rec-text', r.bet_score.recommendation);
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item[data-page]').forEach(n =>
+    n.classList.toggle('active', n.dataset.page === page));
+  const el = document.getElementById(`page-${page}`);
+  if (el) el.classList.add('active');
 
-  // Score bars overview
-  renderScoreBar('pitcher-bar', r.home_pitcher.score, r.away_pitcher.score);
-  renderScoreBar('bullpen-bar', r.home_bullpen.score, r.away_bullpen.score);
-  renderScoreBar('lineup-bar', r.home_lineup.score, r.away_lineup.score);
-  renderScoreBar('defense-bar', r.home_defense.score, r.away_defense.score);
-  renderScoreBar('form-bar', r.home_form.form_score, r.away_form.form_score);
-
-  // Pitcher card
-  setText('pitcher-home-team', homeTeam);
-  setText('pitcher-away-team', awayTeam);
-  setText('pitcher-home-score', r.home_pitcher.score.toFixed(1));
-  setText('pitcher-away-score', r.away_pitcher.score.toFixed(1));
-  setText('pitcher-home-stats', `ERA ${r.home_pitcher.era.toFixed(2)} / WHIP ${r.home_pitcher.whip.toFixed(2)} / K9 ${r.home_pitcher.k9.toFixed(1)}`);
-  setText('pitcher-away-stats', `ERA ${r.away_pitcher.era.toFixed(2)} / WHIP ${r.away_pitcher.whip.toFixed(2)} / K9 ${r.away_pitcher.k9.toFixed(1)}`);
-  renderNotes('pitcher-notes', [...r.home_pitcher.notes.slice(0, 3), ...r.away_pitcher.notes.slice(0, 3)]);
-
-  // Bullpen card
-  setText('bullpen-home-era', r.home_bullpen.era.toFixed(2));
-  setText('bullpen-away-era', r.away_bullpen.era.toFixed(2));
-  setText('bullpen-home-fatigue', `${r.home_bullpen.fatigue_level.toFixed(0)}%`);
-  setText('bullpen-away-fatigue', `${r.away_bullpen.fatigue_level.toFixed(0)}%`);
-  setText('bullpen-home-closer', r.home_bullpen.closer_available ? '✓ 可用' : '✗ 不可用');
-  setText('bullpen-away-closer', r.away_bullpen.closer_available ? '✓ 可用' : '✗ 不可用');
-  const hCloserEl = document.getElementById('bullpen-home-closer');
-  const aCloserEl = document.getElementById('bullpen-away-closer');
-  if (hCloserEl) hCloserEl.style.color = r.home_bullpen.closer_available ? 'var(--success)' : 'var(--danger)';
-  if (aCloserEl) aCloserEl.style.color = r.away_bullpen.closer_available ? 'var(--success)' : 'var(--danger)';
-
-  // Lineup card
-  setText('lineup-home-re', r.home_lineup.run_expectancy.toFixed(2) + ' 分');
-  setText('lineup-away-re', r.away_lineup.run_expectancy.toFixed(2) + ' 分');
-  setText('lineup-home-wrc', r.home_lineup.wrc_plus);
-  setText('lineup-away-wrc', r.away_lineup.wrc_plus);
-
-  // Park card
-  const parkTypeMap = { hitter_friendly: '打者友好', pitcher_friendly: '投手友好', neutral: '中性球場' };
-  setText('park-type', parkTypeMap[r.park.park_type] || r.park.park_type);
-  setText('park-factor', r.park.park_factor.toFixed(3));
-  setText('park-hr-factor', r.park.hr_factor.toFixed(3));
-  setText('park-run-adj', `×${r.park.run_adjustment.toFixed(3)}`);
-  renderNotes('park-notes', r.park.notes.slice(0, 3));
-
-  // Weather card
-  const weatherImpactEl = document.getElementById('weather-hr-impact');
-  if (weatherImpactEl) {
-    const hrImp = r.weather.hr_impact;
-    weatherImpactEl.textContent = `×${hrImp.toFixed(3)}`;
-    weatherImpactEl.style.color = hrImp > 1 ? 'var(--danger)' : hrImp < 1 ? 'var(--success)' : 'var(--text-primary)';
+  // Destroy old charts when leaving trends/weight to avoid canvas reuse errors
+  if (page !== 'trends') {
+    ['tCalChart','tWaterChart','tMacroChart','tWeightChart'].forEach(k => {
+      if (charts[k]) { charts[k].destroy(); delete charts[k]; }
+    });
   }
-  setText('weather-run-impact', `×${r.weather.run_impact.toFixed(3)}`);
-  const pitcherImpactMap = { favorable: '有利投手', unfavorable: '不利投手', neutral: '中性' };
-  setText('weather-pitcher-impact', pitcherImpactMap[r.weather.pitcher_impact] || r.weather.pitcher_impact);
-  setText('weather-temp', `${r.weather.temperature.toFixed(0)}°C`);
-  setText('weather-rain', `${r.weather.rain_pct.toFixed(0)}%`);
-  setText('weather-wind', `${r.weather.wind_speed_kmh.toFixed(0)} km/h ${r.weather.wind_direction || ''}`);
-  renderNotes('weather-notes', r.weather.notes.slice(0, 3));
-
-  // Form card
-  renderFormTrend('form-home-trend', r.home_form.trend, r.home_form.trend_text);
-  renderFormTrend('form-away-trend', r.away_form.trend, r.away_form.trend_text);
-  setText('form-home-records', `近5場: ${r.home_form.last_5_record} | 近10場: ${r.home_form.last_10_record} | 近20場: ${r.home_form.last_20_record}`);
-  setText('form-away-records', `近5場: ${r.away_form.last_5_record} | 近10場: ${r.away_form.last_10_record} | 近20場: ${r.away_form.last_20_record}`);
-
-  // Schedule card
-  renderFatigueBar('schedule-home-bar', r.home_schedule.fatigue_score, r.home_schedule.fatigue_text);
-  renderFatigueBar('schedule-away-bar', r.away_schedule.fatigue_score, r.away_schedule.fatigue_text);
-
-  // Odds card
-  setText('odds-value-bet', r.odds.value_bet_exists ? `✓ ${r.odds.value_details}` : '無顯著價值投注');
-  const oddsValueEl = document.getElementById('odds-value-bet');
-  if (oddsValueEl) oddsValueEl.style.color = r.odds.value_bet_exists ? 'var(--success)' : 'var(--text-muted)';
-  const sharpMap = { home: `主隊 (${homeTeam})`, away: `客隊 (${awayTeam})`, none: '方向不明' };
-  setText('odds-sharp-lean', sharpMap[r.odds.sharp_lean] || r.odds.sharp_lean);
-  setText('odds-steam', r.odds.steam_move ? '✓ 蒸汽移動偵測' : '無蒸汽移動');
-  const steamEl = document.getElementById('odds-steam');
-  if (steamEl) steamEl.style.color = r.odds.steam_move ? 'var(--warning)' : 'var(--text-muted)';
-  setText('odds-home-impl', `${(r.odds.home_implied_prob * 100).toFixed(1)}%`);
-  setText('odds-away-impl', `${(r.odds.away_implied_prob * 100).toFixed(1)}%`);
-  renderNotes('odds-notes', r.odds.notes.slice(0, 3));
-
-  // Totals card
-  setText('totals-predicted', r.totals.predicted_total.toFixed(2));
-  const ouLeanEl = document.getElementById('totals-ou-lean');
-  if (ouLeanEl) {
-    ouLeanEl.textContent = r.totals.over_under_text;
-    ouLeanEl.style.color = r.totals.over_under_lean === 'over' ? 'var(--danger)' : r.totals.over_under_lean === 'under' ? 'var(--success)' : 'var(--warning)';
+  if (page !== 'weight') {
+    if (charts.wHistChart) { charts.wHistChart.destroy(); delete charts.wHistChart; }
   }
-  setText('totals-home-runs', r.totals.predicted_home_runs.toFixed(2) + ' 分');
-  setText('totals-away-runs', r.totals.predicted_away_runs.toFixed(2) + ' 分');
 
-  // ELO / Kelly / CLV card
-  setText('elo-home-prob', `${(r.elo.home_win_prob * 100).toFixed(1)}%`);
-  setText('elo-away-prob', `${(r.elo.away_win_prob * 100).toFixed(1)}%`);
-  setText('elo-home-elo', r.home_elo.toFixed(0));
-  setText('elo-away-elo', r.away_elo.toFixed(0));
-  setText('elo-diff', `${r.elo.elo_diff >= 0 ? '+' : ''}${r.elo.elo_diff.toFixed(0)}`);
-  setText('kelly-home-pct', `${(r.home_kelly.kelly_pct || 0).toFixed(1)}%`);
-  setText('kelly-away-pct', `${(r.away_kelly.kelly_pct || 0).toFixed(1)}%`);
-  setText('kelly-home-frac', `${(r.home_kelly.fractional_kelly_pct || 0).toFixed(1)}%`);
-  setText('kelly-away-frac', `${(r.away_kelly.fractional_kelly_pct || 0).toFixed(1)}%`);
-  setText('kelly-home-amt', `¥${(r.home_kelly.bet_amount || 0).toFixed(0)}`);
-  setText('kelly-away-amt', `¥${(r.away_kelly.bet_amount || 0).toFixed(0)}`);
-  const homeCLVPct = r.home_clv.clv_pct || 0;
-  const awayCLVPct = r.away_clv.clv_pct || 0;
-  setText('clv-home', `${homeCLVPct >= 0 ? '+' : ''}${homeCLVPct.toFixed(1)}% (${r.home_clv.quality_grade || 'C'})`);
-  setText('clv-away', `${awayCLVPct >= 0 ? '+' : ''}${awayCLVPct.toFixed(1)}% (${r.away_clv.quality_grade || 'C'})`);
+  switch (page) {
+    case 'dashboard': renderDashboard(); break;
+    case 'food-log':  renderFoodLog();   break;
+    case 'water':     renderWater();     break;
+    case 'weight':    renderWeight();    break;
+    case 'trends':    renderTrends(7);   break;
+    case 'settings':  renderSettings();  break;
+  }
+}
 
-  // Top 3 scores
-  renderTop3Scores(r.totals.top3_scores);
+// ── Dashboard ──────────────────────────────────────────────────────────────────
 
-  // Monte Carlo stats
-  setText('mc-home-win', `${r.monte_carlo.home_win_pct.toFixed(1)}%`);
-  setText('mc-away-win', `${r.monte_carlo.away_win_pct.toFixed(1)}%`);
-  setText('mc-mean-total', r.monte_carlo.mean_total.toFixed(2));
-  setText('mc-over', `${r.monte_carlo.over_pct.toFixed(1)}%`);
-  setText('mc-under', `${r.monte_carlo.under_pct.toFixed(1)}%`);
-  setText('mc-ci', r.monte_carlo.confidence_interval_95);
+function renderDashboard() {
+  const today    = todayStr();
+  const settings = DB.getSettings();
+  const sum      = getSummary(today);
+  const meals    = getMeals(today);
 
-  // Monte Carlo chart
-  renderMonteCarloChart(r.monte_carlo);
+  // Date
+  const dateEl = document.getElementById('dash-date');
+  if (dateEl) dateEl.textContent = today;
 
-  // Final recommendation
-  setText('rec-winner', r.final_rec.winner);
-  setText('rec-spread', r.final_rec.spread);
-  setText('rec-total', r.totals.over_under_text.split(' — ')[0] || r.final_rec.total);
-  setText('rec-home-prob', `${(r.win_probability.home_win_prob * 100).toFixed(1)}%`);
-  setText('rec-away-prob', `${(r.win_probability.away_win_prob * 100).toFixed(1)}%`);
-  setText('rec-reasoning', r.final_rec.reasoning);
-  renderStars('star-rating-rec', r.final_rec.star_rating);
+  // Ring
+  document.getElementById('ring-cal').textContent = Math.round(sum.calories);
+  const remain = Math.max(settings.calorie_goal - sum.calories, 0);
+  document.getElementById('ring-remain').textContent =
+    sum.calories > settings.calorie_goal ? '🎉 已超過目標' : `還差 ${Math.round(remain)} 大卡`;
+  drawRing('calRing', sum.calories, settings.calorie_goal);
 
-  // Glow effect on recommendation box
-  const recBox = sec.querySelector('.recommendation-box');
-  if (recBox) {
-    if (r.final_rec.star_rating >= 4) {
-      recBox.style.boxShadow = '0 0 30px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.2)';
-      recBox.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+  // Macro bars
+  setBar('barProtein', sum.protein, settings.protein_goal, '#8B5CF6');
+  setBar('barCarbs',   sum.carbs,   settings.carbs_goal,   '#06B6D4');
+  setBar('barFat',     sum.fat,     settings.fat_goal,     '#EAB308');
+
+  ['protein','carbs','fat'].forEach(k => {
+    const el = document.getElementById(`dash-${k}`);
+    if (el) el.textContent = `${Math.round(sum[k])}g`;
+  });
+
+  // Water
+  const wpct = Math.min((sum.water / settings.water_goal) * 100, 100);
+  const wbar = document.getElementById('waterProgressBar');
+  if (wbar) wbar.style.width = wpct + '%';
+  const wtxt = document.getElementById('waterText');
+  if (wtxt) wtxt.textContent = `${Math.round(sum.water)} / ${settings.water_goal} ml`;
+
+  // Meals
+  const mealsEl = document.getElementById('dash-meals');
+  if (mealsEl) mealsEl.innerHTML = renderMealsHTML(meals, false);
+
+  // Weight card
+  const wt    = DB.getWeights().find(w => w.date === today);
+  const wtCard = document.getElementById('dash-weight');
+  if (wtCard) {
+    if (wt) {
+      wtCard.style.display = 'block';
+      const valEl = wtCard.querySelector('.wt-val');
+      if (valEl) valEl.textContent = `${wt.weight} kg`;
     } else {
-      recBox.style.boxShadow = '0 0 30px rgba(0, 212, 255, 0.4)';
-      recBox.style.borderColor = 'rgba(0, 212, 255, 0.3)';
+      wtCard.style.display = 'none';
     }
   }
-
-  // Scroll to results
-  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ─── Helper: setText ──────────────────────────────────────────────────────────
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
-}
-
-// ─── Animate Win Gauge ────────────────────────────────────────────────────────
-function animateGauge(id, prob) {
+function setBar(id, val, goal, color) {
   const el = document.getElementById(id);
   if (!el) return;
-  const circumference = 2 * Math.PI * 60; // r=60
-  const offset = circumference * (1 - prob);
-  requestAnimationFrame(() => {
-    el.style.strokeDashoffset = offset;
-  });
+  el.style.width   = Math.min((val / (goal || 1)) * 100, 100) + '%';
+  el.style.background = color;
 }
 
-// ─── Draw Bet Score Dial (Canvas) ─────────────────────────────────────────────
-function drawBetScoreDial(score) {
-  const canvas = document.getElementById('bet-score-canvas');
-  if (!canvas || !canvas.getContext) return;
-  const ctx = canvas.getContext('2d');
-  const W = 220, H = 130;
-  const cx = W / 2, cy = H - 10;
-  const r = 105;
-  ctx.clearRect(0, 0, W, H);
+function renderMealsHTML(meals, showActions) {
+  return MEAL_META.map(m => {
+    const items   = meals[m.id] || [];
+    const totalCal = items.reduce((s, f) => s + f.calories, 0);
+    const addBtn  = showActions
+      ? `<button onclick="setActiveMeal('${m.id}')" style="margin-left:auto;background:${m.color}22;border:none;border-radius:8px;padding:4px 10px;color:${m.color};font-size:0.75rem;font-weight:700;cursor:pointer">+ 新增</button>`
+      : (items.length ? `<div class="meal-cals">${Math.round(totalCal)} kcal</div>` : '');
 
-  // Draw background arc zones (semi-circle: Math.PI to 2*Math.PI)
-  const zones = [
-    { from: 0, to: 0.4, color: '#ef4444' },   // 0-40: red
-    { from: 0.4, to: 0.6, color: '#f59e0b' },  // 40-60: yellow
-    { from: 0.6, to: 0.8, color: '#00d4ff' },  // 60-80: cyan
-    { from: 0.8, to: 1.0, color: '#10b981' },  // 80-100: green
+    const itemsHTML = items.length
+      ? items.map(f => `
+          <div class="food-item" id="fi-${esc(f.id)}">
+            <div class="food-dot" style="background:${m.color}"></div>
+            <div class="food-info">
+              <div class="food-name-text">${esc(f.food_name)}</div>
+              <div class="food-meta">${esc(f.amount)}${esc(f.unit)} · P ${Math.round(f.protein)}g · C ${Math.round(f.carbs)}g · F ${Math.round(f.fat)}g</div>
+            </div>
+            <div class="food-cal">${Math.round(f.calories)}</div>
+            ${showActions ? `<button class="del-btn" onclick="deleteFoodItem('${esc(f.id)}')" ><i class="bi bi-trash3"></i></button>` : ''}
+          </div>`).join('')
+      : `<div style="font-size:0.8rem;color:var(--muted);padding:6px 0">
+           尚未記錄${showActions ? ` · <span onclick="setActiveMeal('${m.id}')" style="color:var(--green);cursor:pointer">+ 新增</span>` : ''}
+         </div>`;
+
+    return `
+      <div class="meal-section">
+        <div class="meal-header">
+          <div class="meal-icon" style="background:${m.color}22;font-size:1rem">${m.icon}</div>
+          <div class="meal-name">${m.label}</div>
+          ${addBtn}
+        </div>
+        ${itemsHTML}
+      </div>`;
+  }).join('');
+}
+
+// ── Food Log ───────────────────────────────────────────────────────────────────
+
+let activeMeal = 'breakfast';
+let selectedFood = null;
+let searchCache = [];
+
+function renderFoodLog() {
+  const today = todayStr();
+  const dateEl = document.getElementById('fl-date');
+  if (dateEl) dateEl.textContent = today;
+
+  const meals   = getMeals(today);
+  const flMeals = document.getElementById('fl-meals');
+  if (flMeals) flMeals.innerHTML = renderMealsHTML(meals, true);
+
+  const sum     = getSummary(today);
+  const totalEl = document.getElementById('fl-total');
+  if (totalEl) totalEl.textContent = `${Math.round(sum.calories)} kcal`;
+}
+
+function setActiveMeal(mt) {
+  activeMeal = mt;
+  document.querySelectorAll('.chip[data-meal]').forEach(c =>
+    c.classList.toggle('active', c.dataset.meal === mt));
+  const si = document.getElementById('foodSearch');
+  if (si) si.focus();
+}
+
+function doSearch(q) {
+  q = q.trim();
+  const box = document.getElementById('searchResults');
+  if (!q) { box.classList.remove('show'); return; }
+
+  searchCache = Object.entries(FOOD_DB)
+    .filter(([name]) => name.includes(q))
+    .map(([name, info]) => ({ name, ...info }))
+    .slice(0, 15);
+
+  if (!searchCache.length) { box.classList.remove('show'); return; }
+
+  box.innerHTML = searchCache.map((f, i) => `
+    <div class="result-item" onclick="selectFoodByIdx(${i})">
+      <div>
+        <div class="result-name">${esc(f.name)}</div>
+        <div class="result-info">蛋白 ${f.protein}g · 碳水 ${f.carbs}g · 脂肪 ${f.fat}g <span style="font-size:0.7rem">/100g</span></div>
+      </div>
+      <div class="result-cal">${f.calories} kcal</div>
+    </div>`).join('');
+  box.classList.add('show');
+}
+
+function selectFoodByIdx(i) {
+  selectedFood = searchCache[i];
+  document.getElementById('searchResults').classList.remove('show');
+  document.getElementById('foodSearch').value = selectedFood.name;
+  document.getElementById('modalFoodName').textContent = selectedFood.name;
+  document.getElementById('modalCal').textContent = selectedFood.calories;
+  document.getElementById('modalAmt').value = 100;
+  updateModalCalc();
+  document.getElementById('foodModal').classList.remove('hidden');
+}
+
+function updateModalCalc() {
+  if (!selectedFood) return;
+  const amt = parseFloat(document.getElementById('modalAmt').value) || 100;
+  const r   = amt / 100;
+  document.getElementById('modalCalc').textContent =
+    `卡路里 ${Math.round(selectedFood.calories * r)} | 蛋白 ${(selectedFood.protein * r).toFixed(1)}g | 碳水 ${(selectedFood.carbs * r).toFixed(1)}g | 脂肪 ${(selectedFood.fat * r).toFixed(1)}g`;
+}
+
+function closeModal() {
+  document.getElementById('foodModal').classList.add('hidden');
+  selectedFood = null;
+}
+
+function confirmAddFood() {
+  if (!selectedFood) return;
+  const amt = parseFloat(document.getElementById('modalAmt').value) || 100;
+  const r   = amt / 100;
+  DB.addFood({
+    date: todayStr(), meal_type: activeMeal,
+    food_name: selectedFood.name, amount: amt, unit: 'g',
+    calories: selectedFood.calories * r,
+    protein:  selectedFood.protein  * r,
+    carbs:    selectedFood.carbs    * r,
+    fat:      selectedFood.fat      * r,
+  });
+  closeModal();
+  document.getElementById('foodSearch').value = '';
+  showToast(`✅ 已加入${MEAL_META.find(m => m.id === activeMeal)?.label || ''}`);
+  renderFoodLog();
+  if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+}
+
+function deleteFoodItem(id) {
+  DB.deleteFood(id);
+  const el = document.getElementById(`fi-${id}`);
+  if (el) el.style.opacity = '0.3';
+  showToast('已刪除');
+  setTimeout(() => renderFoodLog(), 300);
+}
+
+function openManualEntry()  { document.getElementById('manualModal').classList.remove('hidden'); }
+function closeManualModal() { document.getElementById('manualModal').classList.add('hidden'); }
+
+function submitManualFood() {
+  const name = document.getElementById('mName').value.trim();
+  const cal  = parseFloat(document.getElementById('mCal').value);
+  if (!name || !cal) { showToast('請填寫食物名稱和卡路里'); return; }
+  DB.addFood({
+    date: todayStr(), meal_type: activeMeal, food_name: name,
+    amount: parseFloat(document.getElementById('mAmt').value) || 1, unit: '份',
+    calories: cal,
+    protein:  parseFloat(document.getElementById('mProtein').value) || 0,
+    carbs:    parseFloat(document.getElementById('mCarbs').value)   || 0,
+    fat:      parseFloat(document.getElementById('mFat').value)     || 0,
+  });
+  closeManualModal();
+  showToast('✅ 已新增');
+  ['mName','mCal','mProtein','mCarbs','mFat'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('mAmt').value = 1;
+  renderFoodLog();
+}
+
+// ── Water ─────────────────────────────────────────────────────────────────────
+
+function renderWater() {
+  const today    = todayStr();
+  const settings = DB.getSettings();
+  const logs     = DB.getWater().filter(w => w.date === today);
+  const total    = logs.reduce((s, w) => s + w.amount, 0);
+  const goal     = settings.water_goal;
+  const pct      = Math.min((total / goal) * 100, 100);
+
+  document.getElementById('waterRingVal').textContent  = Math.round(total);
+  document.getElementById('waterRingGoal').textContent = `目標 ${goal} ml`;
+  document.getElementById('waterPct').style.width      = pct + '%';
+  const remEl = document.getElementById('waterRemain');
+  if (remEl) {
+    remEl.textContent = total >= goal ? '🎉 今日目標達成！' : `還差 ${Math.round(goal - total)} ml 達成目標`;
+    remEl.style.color = total >= goal ? 'var(--green)' : 'var(--muted)';
+  }
+  drawRing('waterRing', total, goal, '#3B82F6', '#DBEAFE', 150, 12);
+
+  const listEl = document.getElementById('waterList');
+  if (!listEl) return;
+  if (!logs.length) {
+    listEl.innerHTML = '<div class="empty-state"><i class="bi bi-droplet" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:6px"></i>還沒有記錄，快喝水吧！</div>';
+    return;
+  }
+  listEl.innerHTML = [...logs].reverse().map(w => `
+    <div class="water-log-item" id="wl-${esc(w.id)}">
+      <i class="bi bi-droplet-fill" style="color:#3B82F6;font-size:1.1rem"></i>
+      <div class="water-log-ml">${w.amount} ml</div>
+      <div style="margin-left:auto;font-size:0.75rem;color:var(--muted)">${w.date}</div>
+      <button class="del-btn" onclick="deleteWaterItem('${esc(w.id)}')" ><i class="bi bi-trash3"></i></button>
+    </div>`).join('');
+}
+
+function addWater(ml) {
+  if (!ml || ml <= 0) { showToast('請輸入有效水量'); return; }
+  DB.addWater({ date: todayStr(), amount: ml });
+  showToast(`💧 +${ml}ml 已記錄`);
+  renderWater();
+}
+
+function addCustomWater() {
+  const ml = parseInt(document.getElementById('customWaterAmt').value);
+  addWater(ml);
+  document.getElementById('customWaterAmt').value = '';
+}
+
+function deleteWaterItem(id) {
+  DB.deleteWater(id);
+  showToast('已刪除');
+  renderWater();
+}
+
+// ── Weight ─────────────────────────────────────────────────────────────────────
+
+function renderWeight() {
+  const today   = todayStr();
+  const weights = DB.getWeights();
+  const todayW  = weights.find(w => w.date === today);
+
+  const inp     = document.getElementById('weightInput');
+  const saveBtn = document.getElementById('weightSaveBtn');
+  const noteEl  = document.getElementById('todayWeightNote');
+
+  if (todayW) {
+    if (inp)     inp.value         = todayW.weight;
+    if (saveBtn) saveBtn.textContent = '更新今日體重';
+    if (noteEl)  { noteEl.textContent = `今日已記錄：${todayW.weight} kg`; noteEl.style.display = 'block'; }
+  } else {
+    if (saveBtn) saveBtn.textContent = '記錄體重';
+    if (noteEl)  noteEl.style.display = 'none';
+  }
+
+  // History
+  const listEl = document.getElementById('weightList');
+  if (listEl) {
+    if (!weights.length) {
+      listEl.innerHTML = '<div class="empty-state"><i class="bi bi-speedometer2" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:6px"></i>還沒有體重記錄</div>';
+    } else {
+      listEl.innerHTML = weights.slice(0, 30).map(w => `
+        <div class="weight-item" id="wt-${esc(w.id)}">
+          <i class="bi bi-calendar3" style="color:var(--muted);font-size:0.9rem"></i>
+          <div>
+            <div style="font-size:0.8rem;font-weight:600">${w.date}</div>
+            ${w.notes ? `<div style="font-size:0.72rem;color:var(--muted)">${esc(w.notes)}</div>` : ''}
+          </div>
+          <div class="weight-item-val">${w.weight} kg</div>
+          <button class="del-btn" onclick="deleteWeightItem('${esc(w.id)}')" ><i class="bi bi-trash3"></i></button>
+        </div>`).join('');
+    }
+  }
+
+  // Chart
+  const wrapEl = document.getElementById('weightChartWrap');
+  if (wrapEl) wrapEl.style.display = weights.length > 1 ? 'block' : 'none';
+  if (weights.length > 1) {
+    const sorted = [...weights].sort((a, b) => a.date.localeCompare(b.date)).slice(-20);
+    renderWeightHistChart(sorted.map(w => w.date.slice(5)), sorted.map(w => w.weight));
+  }
+}
+
+function submitWeight() {
+  const w = parseFloat(document.getElementById('weightInput').value);
+  if (!w || w < 20 || w > 300) { showToast('請輸入有效體重（20-300 kg）'); return; }
+  const notes = document.getElementById('weightNotes')?.value || '';
+  DB.upsertWeight(todayStr(), w, notes);
+  showToast('✅ 體重已記錄');
+  renderWeight();
+}
+
+function deleteWeightItem(id) {
+  DB.deleteWeight(id);
+  showToast('已刪除');
+  renderWeight();
+}
+
+function calcBMI() {
+  const h = parseFloat(document.getElementById('heightInput').value);
+  const w = parseFloat(document.getElementById('bmiWeight').value);
+  const r = document.getElementById('bmiResult');
+  if (!h || !w || !r) { if (r) r.style.display = 'none'; return; }
+  const bmi = w / ((h / 100) ** 2);
+  document.getElementById('bmiVal').textContent = bmi.toFixed(1);
+  r.style.display = 'block';
+  const configs = [
+    [18.5, '體重過輕', '#DBEAFE', '#3B82F6'],
+    [24,   '健康體重', '#DCFCE7', '#22C55E'],
+    [27,   '體重過重', '#FFF7ED', '#F97316'],
+    [999,  '肥胖',     '#FEF2F2', '#EF4444'],
+  ];
+  const [, label, bg, color] = configs.find(([max]) => bmi < max);
+  r.style.background = bg;
+  document.getElementById('bmiVal').style.color   = color;
+  document.getElementById('bmiLabel').textContent  = label;
+  document.getElementById('bmiLabel').style.color  = color;
+}
+
+function renderWeightHistChart(labels, data) {
+  if (charts.wHistChart) { charts.wHistChart.destroy(); delete charts.wHistChart; }
+  const ctx = document.getElementById('wHistChart')?.getContext('2d');
+  if (!ctx) return;
+  charts.wHistChart = mkLineChart(ctx, labels, data, '#EC4899');
+}
+
+// ── Trends ─────────────────────────────────────────────────────────────────────
+
+function renderTrends(days) {
+  document.querySelectorAll('.period-tab').forEach(t =>
+    t.classList.toggle('active', parseInt(t.dataset.days) === days));
+
+  const dates = dateRange(days);
+  const labels = dates.map(d => d.slice(5));
+  const sums   = dates.map(d => getSummary(d));
+
+  const wLogs = DB.getWeights()
+    .filter(w => w.date >= dates[0])
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const pairs = [
+    ['tCalChart',    () => mkLineChart(document.getElementById('tCalChart')?.getContext('2d'),   labels, sums.map(s => Math.round(s.calories)), '#F97316')],
+    ['tWaterChart',  () => mkBarChart(document.getElementById('tWaterChart')?.getContext('2d'),   labels, sums.map(s => Math.round(s.water)),    '#3B82F6')],
+    ['tMacroChart',  () => mkMacroChart(labels, sums)],
+    ['tWeightChart', () => wLogs.length > 0 ? mkLineChart(document.getElementById('tWeightChart')?.getContext('2d'), wLogs.map(w=>w.date.slice(5)), wLogs.map(w=>w.weight), '#EC4899') : null],
   ];
 
-  zones.forEach(z => {
-    const startAngle = Math.PI + z.from * Math.PI;
-    const endAngle = Math.PI + z.to * Math.PI;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.strokeStyle = z.color + '40';
-    ctx.lineWidth = 18;
-    ctx.stroke();
+  pairs.forEach(([key, fn]) => {
+    if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+    const c = fn();
+    if (c) charts[key] = c;
   });
-
-  // Track arc
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, Math.PI, 2 * Math.PI);
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth = 20;
-  ctx.stroke();
-
-  // Fill arc (animated via setTimeout)
-  const fillAngle = Math.PI + (score / 100) * Math.PI;
-  const color = betScoreColor(score);
-
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, Math.PI, fillAngle);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 14;
-  ctx.lineCap = 'round';
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 12;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  // Needle
-  const needleAngle = Math.PI + (score / 100) * Math.PI;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(
-    cx + (r - 20) * Math.cos(needleAngle),
-    cy + (r - 20) * Math.sin(needleAngle)
-  );
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Center dot
-  ctx.beginPath();
-  ctx.arc(cx, cy, 5, 0, 2 * Math.PI);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-
-  // Scale labels
-  ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
-  ctx.font = '10px system-ui';
-  ctx.textAlign = 'center';
-  ctx.fillText('0', cx - r + 5, cy + 14);
-  ctx.fillText('50', cx, cy - r + 14);
-  ctx.fillText('100', cx + r - 5, cy + 14);
 }
 
-function betScoreColor(score) {
-  if (score >= 80) return '#10b981';
-  if (score >= 60) return '#00d4ff';
-  if (score >= 40) return '#f59e0b';
-  return '#ef4444';
-}
-
-// ─── Render Stars ─────────────────────────────────────────────────────────────
-function renderStars(containerId, rating) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.innerHTML = '';
-  for (let i = 1; i <= 5; i++) {
-    const star = document.createElement('span');
-    star.className = i <= rating ? 'star lit' : 'star';
-    star.textContent = '★';
-    star.style.fontSize = '2.5rem';
-    if (i <= rating) {
-      star.style.color = '#f59e0b';
-      star.style.filter = 'drop-shadow(0 0 8px #f59e0b)';
-    } else {
-      star.style.color = 'var(--text-muted)';
+function mkLineChart(ctx, labels, data, color) {
+  if (!ctx) return null;
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{
+      data, borderColor: color, backgroundColor: color + '22',
+      borderWidth: 2.5, pointBackgroundColor: color, pointRadius: 4, fill: true, tension: 0.4,
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: '#F3F4F6' }, ticks: { font: { size: 11 } } }
+      }
     }
-    el.appendChild(star);
-  }
-}
-
-// ─── Render Score Bar ─────────────────────────────────────────────────────────
-function renderScoreBar(containerId, homeScore, awayScore) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const homeValEl = el.querySelector('.home-val');
-  const awayValEl = el.querySelector('.away-val');
-  const homeFillEl = el.querySelector('.home-fill');
-  const awayFillEl = el.querySelector('.away-fill');
-
-  if (homeValEl) homeValEl.textContent = homeScore.toFixed(1);
-  if (awayValEl) awayValEl.textContent = awayScore.toFixed(1);
-
-  // Animate bars
-  requestAnimationFrame(() => {
-    if (homeFillEl) homeFillEl.style.width = `${homeScore}%`;
-    if (awayFillEl) awayFillEl.style.width = `${awayScore}%`;
   });
 }
 
-// ─── Render Form Trend Badge ──────────────────────────────────────────────────
-function renderFormTrend(id, trend, trendText) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.className = 'pill';
-  if (trend === 'hot') {
-    el.classList.add('pill-hot');
-    el.textContent = '🔥 ' + trendText;
-  } else if (trend === 'cold') {
-    el.classList.add('pill-cold');
-    el.textContent = '❄️ ' + trendText;
-  } else {
-    el.classList.add('pill-neutral');
-    el.textContent = '➡️ ' + trendText;
-  }
-}
-
-// ─── Render Fatigue Bar ───────────────────────────────────────────────────────
-function renderFatigueBar(containerId, fatigueScore, fatigueText) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const labelEl = el.querySelector('.fatigue-label');
-  const valEl = el.querySelector('.fatigue-val');
-  const fillEl = el.querySelector('.fatigue-fill');
-  if (labelEl) labelEl.textContent = fatigueText || '';
-  if (valEl) valEl.textContent = `${fatigueScore.toFixed(0)}%`;
-  if (fillEl) {
-    requestAnimationFrame(() => { fillEl.style.width = `${fatigueScore}%`; });
-    // Color by severity
-    if (fatigueScore >= 60) fillEl.style.background = 'linear-gradient(90deg, var(--danger), #ff6b6b)';
-    else if (fatigueScore >= 40) fillEl.style.background = 'linear-gradient(90deg, var(--warning), #fbbf24)';
-    else fillEl.style.background = 'linear-gradient(90deg, var(--success), #34d399)';
-  }
-}
-
-// ─── Render Notes List ────────────────────────────────────────────────────────
-function renderNotes(id, notes) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = '';
-  (notes || []).slice(0, 5).forEach(note => {
-    const li = document.createElement('li');
-    li.textContent = note;
-    el.appendChild(li);
+function mkBarChart(ctx, labels, data, color) {
+  if (!ctx) return null;
+  return new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{
+      data, backgroundColor: color + '33', borderColor: color, borderWidth: 2, borderRadius: 6,
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: '#F3F4F6' }, ticks: { font: { size: 11 } } }
+      }
+    }
   });
 }
 
-// ─── Render Top 3 Scores ──────────────────────────────────────────────────────
-function renderTop3Scores(scores) {
-  const el = document.getElementById('top3-scores');
-  if (!el) return;
-  el.innerHTML = '';
-  const ranks = ['最可能', '第二', '第三'];
-  (scores || []).slice(0, 3).forEach((s, i) => {
-    const card = document.createElement('div');
-    card.className = 'score-pred-card';
-    card.innerHTML = `
-      <div class="score-pred-rank">${ranks[i] || '#' + (i+1)}</div>
-      <div class="score-pred-val">${s.home_score}-${s.away_score}</div>
-      <div class="score-pred-prob">機率 ${s.probability_pct.toFixed(1)}%</div>
-    `;
-    el.appendChild(card);
-  });
-}
-
-// ─── Monte Carlo Chart ────────────────────────────────────────────────────────
-let mcChart = null;
-function renderMonteCarloChart(mc) {
-  const canvas = document.getElementById('mc-chart');
-  if (!canvas || typeof Chart === 'undefined') return;
-
-  if (mcChart) { mcChart.destroy(); mcChart = null; }
-
-  const dist = mc.score_distribution || [];
-  const labels = dist.map(d => d.score);
-  const values = dist.map(d => d.pct);
-  const colors = dist.map(d => d.home_favored ? 'rgba(0, 212, 255, 0.7)' : 'rgba(124, 58, 237, 0.7)');
-  const borderColors = dist.map(d => d.home_favored ? '#00d4ff' : '#7c3aed');
-
-  mcChart = new Chart(canvas, {
+function mkMacroChart(labels, sums) {
+  const ctx = document.getElementById('tMacroChart')?.getContext('2d');
+  if (!ctx) return null;
+  return new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
-      datasets: [{
-        label: '比分機率 (%)',
-        data: values,
-        backgroundColor: colors,
-        borderColor: borderColors,
-        borderWidth: 1,
-        borderRadius: 4,
-      }],
+      datasets: [
+        { label: '蛋白質', data: sums.map(s => Math.round(s.protein)), backgroundColor: '#8B5CF6', borderRadius: 3, stack: 'm' },
+        { label: '碳水',   data: sums.map(s => Math.round(s.carbs)),   backgroundColor: '#06B6D4', borderRadius: 3, stack: 'm' },
+        { label: '脂肪',   data: sums.map(s => Math.round(s.fat)),     backgroundColor: '#EAB308', borderRadius: 3, stack: 'm' },
+      ]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => `${ctx.parsed.y.toFixed(1)}% (${Math.round(ctx.parsed.y * mc.n_simulations / 100)} 次)`,
-          },
-        },
-      },
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } },
       scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#94a3b8', font: { size: 11 } },
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#94a3b8', font: { size: 11 }, callback: v => v + '%' },
-          beginAtZero: true,
-        },
-      },
-    },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } }, stacked: true },
+        y: { grid: { color: '#F3F4F6' }, ticks: { font: { size: 11 } }, stacked: true }
+      }
+    }
   });
 }
 
-// ─── Loading State ────────────────────────────────────────────────────────────
-function showLoading(msg) {
-  const overlay = document.getElementById('loading-overlay');
-  const textEl = overlay && overlay.querySelector('.loading-text');
-  if (overlay) overlay.classList.add('active');
-  if (textEl) textEl.textContent = msg || 'AI 正在分析中...';
-}
-function hideLoading() {
-  const overlay = document.getElementById('loading-overlay');
-  if (overlay) overlay.classList.remove('active');
+// ── Settings ───────────────────────────────────────────────────────────────────
+
+function renderSettings() {
+  const s = DB.getSettings();
+  document.getElementById('sCalorie').value = s.calorie_goal;
+  document.getElementById('sProtein').value = s.protein_goal;
+  document.getElementById('sCarbs').value   = s.carbs_goal;
+  document.getElementById('sFat').value     = s.fat_goal;
+  document.getElementById('sWater').value   = s.water_goal;
 }
 
-// ─── Toast Notifications ──────────────────────────────────────────────────────
-function showToast(msg, type = 'info') {
-  const container = document.getElementById('notice-container');
-  if (!container) return;
-  const typeMap = { info: 'notice-info', success: 'notice-success', error: 'notice-error', warn: 'notice-warn' };
-  const iconMap = { info: 'fa-circle-info', success: 'fa-circle-check', error: 'fa-circle-exclamation', warn: 'fa-triangle-exclamation' };
-  const notice = document.createElement('div');
-  notice.className = `notice ${typeMap[type] || 'notice-info'}`;
-  notice.innerHTML = `<i class="fa-solid ${iconMap[type] || iconMap.info}"></i><span>${msg}</span>`;
-  container.appendChild(notice);
-  setTimeout(() => { notice.style.opacity = '0'; notice.style.transition = 'opacity 0.5s'; setTimeout(() => notice.remove(), 500); }, 4000);
+function saveSettings() {
+  DB.saveSettings({
+    calorie_goal: parseFloat(document.getElementById('sCalorie').value) || 2000,
+    protein_goal: parseFloat(document.getElementById('sProtein').value) || 150,
+    carbs_goal:   parseFloat(document.getElementById('sCarbs').value)   || 250,
+    fat_goal:     parseFloat(document.getElementById('sFat').value)     || 65,
+    water_goal:   parseFloat(document.getElementById('sWater').value)   || 2000,
+  });
+  showToast('✅ 設定已儲存');
 }
 
-// ─── Tab Switching ────────────────────────────────────────────────────────────
-function switchTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-
-  const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
-  const activePane = document.getElementById(`tab-${tabName}`);
-  if (activeBtn) activeBtn.classList.add('active');
-  if (activePane) activePane.classList.add('active');
+function applyPreset(cal, p, c, f) {
+  document.getElementById('sCalorie').value = cal;
+  document.getElementById('sProtein').value = p;
+  document.getElementById('sCarbs').value   = c;
+  document.getElementById('sFat').value     = f;
+  showToast('✅ 已套用，記得儲存！');
 }
 
-// ─── Form Panel Toggle ────────────────────────────────────────────────────────
-function openFormPanel() {
-  const body = document.getElementById('form-panel-body');
-  const icon = document.querySelector('.toggle-icon');
-  if (body) body.style.display = 'block';
-  if (icon) icon.style.transform = 'rotate(180deg)';
-}
-function toggleFormPanel() {
-  const body = document.getElementById('form-panel-body');
-  const icon = document.querySelector('.toggle-icon');
-  if (!body) return;
-  const isVisible = body.style.display !== 'none';
-  body.style.display = isVisible ? 'none' : 'block';
-  if (icon) icon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
-}
+// ── Init ─────────────────────────────────────────────────────────────────────
 
-// ─── Modal Management ─────────────────────────────────────────────────────────
-function openApiKeyModal() {
-  const modal = document.getElementById('api-key-modal');
-  if (modal) modal.classList.add('active');
-  const input = document.getElementById('modal-api-key-input');
-  if (input) input.value = getApiKey();
-}
-function closeApiKeyModal() {
-  const modal = document.getElementById('api-key-modal');
-  if (modal) modal.classList.remove('active');
-}
-function saveApiKeyFromModal() {
-  const input = document.getElementById('modal-api-key-input');
-  const key = input ? input.value.trim() : '';
-  if (key) {
-    saveApiKey(key);
-    closeApiKeyModal();
-    showToast('API Key 已儲存，正在載入賠率...', 'success');
-    loadOdds();
-  } else {
-    showToast('請輸入有效的 API Key', 'warn');
-  }
-}
-
-// ─── Sample Data ──────────────────────────────────────────────────────────────
-const SAMPLE_DATA = {
-  game_info: {
-    home_team: '阪神', away_team: '巨人', stadium: '甲子園',
-    datetime: '2024-07-20 18:00', is_day_game: false,
-    park_factor: 0.95, hr_factor: 0.85, scoring_factor: 0.93,
-    turf_type: 'natural', temperature: 28, humidity: 72,
-    rain_pct: 10, wind_direction: 'infield', wind_speed_kmh: 12,
-    is_travel_game: false, consecutive_away_games: 4,
-    consecutive_games_played: 6, days_since_last_game: 1,
-  },
-  home_pitcher: {
-    era: 2.45, whip: 0.98, fip: 2.80, xera: 2.90,
-    k9: 9.8, bb9: 2.1,
-    recent_5_games: [1.8, 3.6, 2.0, 1.5, 2.7],
-    home_era: 2.10, away_era: 2.85,
-    day_era: 2.80, night_era: 2.20,
-    vs_opponent_era: 2.15, vs_opponent_games: 8,
-    vs_lhb_ops: 0.640, vs_rhb_ops: 0.680,
-    pitch_count_limit: 100, rest_days: 6, handedness: 'R',
-  },
-  away_pitcher: {
-    era: 3.85, whip: 1.22, fip: 3.70, xera: 3.95,
-    k9: 7.2, bb9: 3.1,
-    recent_5_games: [5.2, 3.1, 4.8, 3.6, 4.1],
-    home_era: 3.40, away_era: 4.30,
-    day_era: 4.10, night_era: 3.65,
-    vs_opponent_era: 4.20, vs_opponent_games: 6,
-    vs_lhb_ops: 0.720, vs_rhb_ops: 0.760,
-    pitch_count_limit: 100, rest_days: 5, handedness: 'L',
-  },
-  home_bullpen: {
-    era: 2.88, last_7_days_ip: 8.2, last_3_days_ip: 2.1,
-    consecutive_days: 1, closer_available: true, setup_fatigued: false,
-    save_opportunities: 18, blown_saves: 2, holds: 42,
-  },
-  away_bullpen: {
-    era: 4.15, last_7_days_ip: 12.1, last_3_days_ip: 5.2,
-    consecutive_days: 3, closer_available: false, setup_fatigued: true,
-    save_opportunities: 15, blown_saves: 5, holds: 28,
-  },
-  home_team_stats: {
-    ops: 0.768, wrc_plus: 112,
-    runs_scored_last_10: [5, 3, 7, 4, 6, 5, 2, 8, 4, 6],
-    slg: 0.410, obp: 0.348,
-    vs_lhp_ops: 0.720, vs_rhp_ops: 0.780,
-    fielding_pct: 0.988, drs: 12, uzr: 8.5,
-    catcher_cs_pct: 0.38, error_rate: 0.014,
-    last_5_record: '4-1', last_10_record: '7-3', last_20_record: '14-6',
-    team_ops_trend: 0.025, team_era_trend: -0.15,
-  },
-  away_team_stats: {
-    ops: 0.735, wrc_plus: 98,
-    runs_scored_last_10: [3, 4, 5, 2, 6, 3, 4, 2, 5, 3],
-    slg: 0.385, obp: 0.328,
-    vs_lhp_ops: 0.750, vs_rhp_ops: 0.720,
-    fielding_pct: 0.981, drs: 3, uzr: 1.2,
-    catcher_cs_pct: 0.28, error_rate: 0.022,
-    last_5_record: '2-3', last_10_record: '4-6', last_20_record: '9-11',
-    team_ops_trend: -0.018, team_era_trend: 0.22,
-  },
-  odds: {
-    open_line: -1.5, current_line: -1.8,
-    open_total: 7.5, current_total: 7.0,
-    home_ml: 1.72, away_ml: 2.15,
-  },
-  betting: {
-    your_odds: 1.76, bankroll: 10000,
-    open_odds: 1.78, close_odds: 1.72,
-  },
-};
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Auto-load odds if API key exists
-  if (getApiKey()) {
-    loadOdds();
-  } else {
-    const container = document.getElementById('odds-cards-container');
-    if (container) {
-      container.innerHTML = `
-        <div class="no-games-msg">
-          <i class="fa-solid fa-key" style="margin-right:8px"></i>
-          請先設定 API Key 以載入即時賠率
-          <br><button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="openApiKeyModal()">設定 API Key</button>
-        </div>`;
+  navigate('dashboard');
+
+  // Food search with debounce
+  let timer;
+  const si = document.getElementById('foodSearch');
+  if (si) {
+    si.addEventListener('input', e => {
+      clearTimeout(timer);
+      timer = setTimeout(() => doSearch(e.target.value), 250);
+    });
+  }
+
+  // Meal chips
+  document.querySelectorAll('.chip[data-meal]').forEach(chip => {
+    chip.addEventListener('click', () => setActiveMeal(chip.dataset.meal));
+  });
+
+  // Close search results on outside click
+  document.addEventListener('click', e => {
+    const s = document.getElementById('foodSearch');
+    const r = document.getElementById('searchResults');
+    if (s && r && !s.contains(e.target) && !r.contains(e.target)) {
+      r.classList.remove('show');
     }
-  }
-
-  // Tab switching
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  // Form panel toggle
-  const header = document.getElementById('form-panel-header');
-  if (header) header.addEventListener('click', toggleFormPanel);
-
-  // Modal close on backdrop click
-  const modal = document.getElementById('api-key-modal');
-  if (modal) {
-    modal.addEventListener('click', e => {
-      if (e.target === modal) closeApiKeyModal();
-    });
-  }
-
-  // Enter key in API modal
-  const apiInput = document.getElementById('modal-api-key-input');
-  if (apiInput) {
-    apiInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') saveApiKeyFromModal();
-    });
-  }
-
-  // Close loading on Escape
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeApiKeyModal(); hideLoading(); }
+  // Period tabs for trends
+  document.querySelectorAll('.period-tab').forEach(tab => {
+    tab.addEventListener('click', () => renderTrends(parseInt(tab.dataset.days)));
   });
 
-  // Load and render NPB data on page load
-  renderSchedule();
-  renderStandings();
+  // BMI inputs
+  ['heightInput','bmiWeight'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', calcBMI);
+  });
+
+  // Modal backdrop
+  ['foodModal','manualModal'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', function(e) {
+      if (e.target === this) {
+        if (id === 'foodModal') closeModal();
+        else closeManualModal();
+      }
+    });
+  });
 });
-
-// ─── Schedule game index for onclick handlers ────────────────────────────────
-let _scheduleGames = [];
-
-// ─── NPB Stats Auto-loader ────────────────────────────────────────────────────
-let npbStatsCache = null;
-let npbScheduleCache = null;
-
-async function loadNpbStats() {
-  if (npbStatsCache) return npbStatsCache;
-  try {
-    const resp = await fetch('./data/npb_stats.json');
-    if (!resp.ok) throw new Error('stats not found');
-    npbStatsCache = await resp.json();
-    console.log('NPB stats loaded:', npbStatsCache.updated_at);
-    updateStatsTimestamp(npbStatsCache.updated_at);
-    return npbStatsCache;
-  } catch (e) {
-    console.warn('Could not load NPB stats:', e.message);
-    return null;
-  }
-}
-
-async function loadNpbSchedule() {
-  if (npbScheduleCache) return npbScheduleCache;
-  try {
-    const resp = await fetch('./data/npb_schedule.json');
-    if (!resp.ok) throw new Error('schedule not found');
-    npbScheduleCache = await resp.json();
-    return npbScheduleCache;
-  } catch (e) {
-    return null;
-  }
-}
-
-function updateStatsTimestamp(isoStr) {
-  const el = document.getElementById('stats-updated-at');
-  if (el && isoStr) {
-    const d = new Date(isoStr);
-    el.textContent = `資料更新: ${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  }
-}
-
-async function autoFillStatsForGame(homeTeam, awayTeam) {
-  if (!homeTeam || !awayTeam) return;
-  const stats = await loadNpbStats();
-  if (!stats) {
-    showToast('無法載入 NPB 統計資料，請手動填寫', 'warning');
-    return;
-  }
-
-  const homeStats = stats.teams[homeTeam];
-  const awayStats = stats.teams[awayTeam];
-
-  if (!homeStats && !awayStats) {
-    showToast(`找不到 ${homeTeam} 或 ${awayTeam} 的統計資料`, 'warning');
-    return;
-  }
-
-  // Fill home team stats
-  if (homeStats) {
-    setVal('home_ops', homeStats.batting.ops);
-    setVal('home_wrc_plus', homeStats.batting.wrc_plus_est || 100);
-    setVal('home_slg', homeStats.batting.slg);
-    setVal('home_obp', homeStats.batting.obp);
-    setVal('home_last_5', homeStats.last_5_record);
-    setVal('home_last_10', homeStats.last_10_record);
-    setVal('home_last_20', homeStats.last_20_record);
-    setVal('home_fielding_pct', homeStats.defense ? homeStats.defense.fielding_pct : 0.982);
-
-    // Bullpen ERA from team pitching
-    if (homeStats.pitching) {
-      setVal('home_bullpen_era', homeStats.pitching.era);
-    }
-    if (stats.bullpens && stats.bullpens[homeTeam]) {
-      setVal('home_bullpen_era', stats.bullpens[homeTeam].era);
-    }
-  }
-
-  // Fill away team stats
-  if (awayStats) {
-    setVal('away_ops', awayStats.batting.ops);
-    setVal('away_wrc_plus', awayStats.batting.wrc_plus_est || 100);
-    setVal('away_slg', awayStats.batting.slg);
-    setVal('away_obp', awayStats.batting.obp);
-    setVal('away_last_5', awayStats.last_5_record);
-    setVal('away_last_10', awayStats.last_10_record);
-    setVal('away_last_20', awayStats.last_20_record);
-    setVal('away_fielding_pct', awayStats.defense ? awayStats.defense.fielding_pct : 0.982);
-
-    if (stats.bullpens && stats.bullpens[awayTeam]) {
-      setVal('away_bullpen_era', stats.bullpens[awayTeam].era);
-    }
-  }
-
-  // Auto-fill best probable pitcher for each team
-  if (stats.pitchers && stats.pitchers[homeTeam] && stats.pitchers[homeTeam].length > 0) {
-    const p = stats.pitchers[homeTeam][0];
-    setVal('home_era', p.era);
-    setVal('home_whip', p.whip);
-    setVal('home_fip', p.fip_est || p.era);
-    setVal('home_k9', p.k9);
-    setVal('home_bb9', p.bb9);
-    setVal('home_handedness', p.handedness || 'R');
-    setVal('home_rest_days', 5);
-  }
-
-  if (stats.pitchers && stats.pitchers[awayTeam] && stats.pitchers[awayTeam].length > 0) {
-    const p = stats.pitchers[awayTeam][0];
-    setVal('away_era', p.era);
-    setVal('away_whip', p.whip);
-    setVal('away_fip', p.fip_est || p.era);
-    setVal('away_k9', p.k9);
-    setVal('away_bb9', p.bb9);
-    setVal('away_handedness', p.handedness || 'R');
-    setVal('away_rest_days', 5);
-  }
-
-  showToast(`已自動載入 ${homeTeam} vs ${awayTeam} 的統計資料`, 'success');
-}
-
-async function autoFillFromTeamNames() {
-  const home = document.getElementById('home_team') ? document.getElementById('home_team').value.trim() : '';
-  const away = document.getElementById('away_team') ? document.getElementById('away_team').value.trim() : '';
-  if (!home || !away) {
-    showToast('請先輸入主隊和客隊名稱', 'warning');
-    return;
-  }
-  showLoading('載入球隊統計資料...');
-  await autoFillStatsForGame(home, away);
-  hideLoading();
-}
-
-// ─── Render Today's Schedule ──────────────────────────────────────────────────
-async function renderSchedule() {
-  const container = document.getElementById('npb-schedule-container');
-  if (!container) return;
-
-  const sched = await loadNpbSchedule();
-  if (!sched || !sched.games || sched.games.length === 0) {
-    container.innerHTML = '<div class="no-games-msg" style="grid-column:1/-1;">今日無賽事資料</div>';
-    return;
-  }
-
-  // Deduplicate by home+away key
-  const seenPairs = new Set();
-  const uniqueGames = sched.games.filter(g => {
-    const key = `${g.home_team}|${g.away_team}`;
-    if (seenPairs.has(key)) return false;
-    seenPairs.add(key);
-    return true;
-  });
-  _scheduleGames = uniqueGames;
-
-  const dateLabel = document.getElementById('schedule-date-label');
-  if (dateLabel && sched.date) {
-    const d = new Date(sched.date);
-    dateLabel.textContent = `${d.getMonth() + 1}月${d.getDate()}日`;
-  }
-
-  const TEAM_ALIASES = new Set(['阪神','巨人','DeNA','ヤクルト','中日','広島','ソフトバンク','日本ハム','ロッテ','西武','楽天','オリックス','Giants','Eagles','Tigers','Carp','Dragons','Swallows','BayStars','Lions','Marines','Buffaloes','Hawks','Fighters']);
-  const isValidName = name => name && !/^\d+$/.test(name.trim()) && !TEAM_ALIASES.has(name.trim());
-
-  container.innerHTML = '';
-  uniqueGames.forEach((game, idx) => {
-    const hs = game.home_stats || {};
-    const as_ = game.away_stats || {};
-    const hb = hs.batting || {};
-    const ab = as_.batting || {};
-    const hpi = hs.pitching || {};
-    const api = as_.pitching || {};
-    const hr = hs.record || {};
-    const ar = as_.record || {};
-
-    const card = document.createElement('div');
-    card.className = 'glass-card sgc';
-    card.innerHTML = `
-<div class="sgc-header">
-  <span class="sgc-time"><i class="fa-regular fa-clock"></i> ${game.time || '18:00'}</span>
-  <span class="sgc-venue">${game.stadium || ''}</span>
-</div>
-<div class="sgc-matchup">
-  <div class="sgc-side home">
-    <div class="sgc-badge home">${game.home_team.slice(0, 2)}</div>
-    <div class="sgc-team-name home">${game.home_team}</div>
-    <div class="sgc-wl">${hr.w != null ? `${hr.w}勝 ${hr.l}負` : '—'}</div>
-    <div class="sgc-recent">${hs.last_5_record ? `近5: ${hs.last_5_record}` : ''}</div>
-  </div>
-  <div class="sgc-vs">VS</div>
-  <div class="sgc-side away">
-    <div class="sgc-badge away">${game.away_team.slice(0, 2)}</div>
-    <div class="sgc-team-name away">${game.away_team}</div>
-    <div class="sgc-wl">${ar.w != null ? `${ar.w}勝 ${ar.l}負` : '—'}</div>
-    <div class="sgc-recent">${as_.last_5_record ? `近5: ${as_.last_5_record}` : ''}</div>
-  </div>
-</div>
-<div class="sgc-chips">
-  <span class="sgc-chip home">打率 ${hb.avg != null ? hb.avg.toFixed(3) : '—'}</span>
-  <span class="sgc-chip home">防 ${hpi.era != null ? hpi.era.toFixed(2) : '—'}</span>
-  <span class="sgc-chip away">打率 ${ab.avg != null ? ab.avg.toFixed(3) : '—'}</span>
-  <span class="sgc-chip away">防 ${api.era != null ? api.era.toFixed(2) : '—'}</span>
-</div>
-<button class="sgc-analyze-btn" onclick="analyzeScheduleGame(${idx})">
-  <i class="fa-solid fa-brain"></i> 一鍵分析
-</button>
-`;
-    container.appendChild(card);
-  });
-}
-
-// ─── Render Standings Table ───────────────────────────────────────────────────
-async function renderStandings() {
-  const container = document.getElementById('npb-standings-container');
-  if (!container) return;
-
-  const stats = await loadNpbStats();
-  if (!stats || !stats.teams) {
-    container.innerHTML = '<div class="no-games-msg">無法載入球隊數據</div>';
-    return;
-  }
-
-  const CL = ['阪神', '巨人', 'DeNA', 'ヤクルト', '中日', '広島'];
-  const PL = ['ソフトバンク', '日本ハム', 'ロッテ', '西武', '楽天', 'オリックス'];
-
-  function sortedLeague(names) {
-    return names
-      .filter(n => stats.teams[n])
-      .sort((a, b) => (stats.teams[b].record?.win_pct || 0) - (stats.teams[a].record?.win_pct || 0));
-  }
-
-  function buildTable(names, title, titleColor) {
-    const rows = sortedLeague(names).map((name, rank) => {
-      const d = stats.teams[name];
-      const r = d.record || {};
-      const b = d.batting || {};
-      const p = d.pitching || {};
-      const wpct = r.win_pct != null ? r.win_pct.toFixed(3) : '—';
-      const wl = (r.w != null && r.l != null) ? `${r.w}-${r.l}` : '—';
-      const rankColor = rank === 0 ? '#f59e0b' : rank <= 2 ? '#00d4ff' : 'var(--text-secondary)';
-      return `<tr>
-        <td style="font-size:.75rem;color:${rankColor};width:1.4rem;">${rank + 1}</td>
-        <td style="font-weight:700;">${name}</td>
-        <td>${wl}</td>
-        <td style="font-weight:700;color:var(--primary);">${wpct}</td>
-        <td>${b.ops != null ? b.ops.toFixed(3) : '—'}</td>
-        <td>${p.era != null ? p.era.toFixed(2) : '—'}</td>
-      </tr>`;
-    }).join('');
-
-    return `
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:.78rem;font-weight:700;color:${titleColor};margin-bottom:.5rem;padding-bottom:.3rem;border-bottom:1px solid rgba(255,255,255,.1);">${title}</div>
-        <table class="standings-table">
-          <thead><tr>
-            <th style="width:1.4rem;"></th>
-            <th style="text-align:left;">球隊</th>
-            <th>勝-負</th><th>勝率</th><th>OPS</th><th>ERA</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`;
-  }
-
-  container.innerHTML = `<div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
-    ${buildTable(CL, 'セ・リーグ', '#00d4ff')}
-    ${buildTable(PL, 'パ・リーグ', '#a78bfa')}
-  </div>`;
-}
-
-// ─── Analyze a game from today's schedule ────────────────────────────────────
-function analyzeScheduleGame(idx) {
-  const game = _scheduleGames[idx];
-  if (!game) return;
-
-  setVal('home_team', game.home_team);
-  setVal('away_team', game.away_team);
-
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')} ${game.time || '18:00'}`;
-  setVal('datetime', dateStr);
-
-  const stadiumEl = document.getElementById('stadium');
-  if (stadiumEl && game.stadium) {
-    for (const opt of stadiumEl.options) {
-      if (opt.value === game.stadium) { opt.selected = true; break; }
-    }
-  }
-
-  const hs = game.home_stats || {};
-  const as_ = game.away_stats || {};
-
-  if (hs.batting) {
-    setVal('home_ops', hs.batting.ops || '');
-    setVal('home_slg', hs.batting.slg || '');
-    setVal('home_obp', hs.batting.obp || '');
-    setVal('home_wrc_plus', hs.batting.wrc_plus_est || 100);
-  }
-  if (hs.pitching) setVal('home_bullpen_era', hs.pitching.era || '');
-  if (hs.defense) setVal('home_fielding_pct', hs.defense.fielding_pct || 0.982);
-  setVal('home_last_5', hs.last_5_record || '');
-  setVal('home_last_10', hs.last_10_record || '');
-  setVal('home_last_20', hs.last_20_record || '');
-
-  if (as_.batting) {
-    setVal('away_ops', as_.batting.ops || '');
-    setVal('away_slg', as_.batting.slg || '');
-    setVal('away_obp', as_.batting.obp || '');
-    setVal('away_wrc_plus', as_.batting.wrc_plus_est || 100);
-  }
-  if (as_.pitching) setVal('away_bullpen_era', as_.pitching.era || '');
-  if (as_.defense) setVal('away_fielding_pct', as_.defense.fielding_pct || 0.982);
-  setVal('away_last_5', as_.last_5_record || '');
-  setVal('away_last_10', as_.last_10_record || '');
-  setVal('away_last_20', as_.last_20_record || '');
-
-  const hp = game.home_probable_pitcher;
-  if (hp) {
-    setVal('home_era', hp.era);
-    setVal('home_whip', hp.whip);
-    setVal('home_fip', hp.fip_est || hp.era);
-    setVal('home_k9', hp.k9);
-    setVal('home_bb9', hp.bb9);
-    setVal('home_handedness', hp.handedness || 'R');
-    setVal('home_rest_days', 5);
-  }
-
-  const ap = game.away_probable_pitcher;
-  if (ap) {
-    setVal('away_era', ap.era);
-    setVal('away_whip', ap.whip);
-    setVal('away_fip', ap.fip_est || ap.era);
-    setVal('away_k9', ap.k9);
-    setVal('away_bb9', ap.bb9);
-    setVal('away_handedness', ap.handedness || 'R');
-    setVal('away_rest_days', 5);
-  }
-
-  openFormPanel();
-  showToast(`已載入 ${game.home_team} vs ${game.away_team} — 分析中...`, 'success');
-  setTimeout(() => {
-    submitAnalysis();
-    const sec = document.getElementById('results-section');
-    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 300);
-}
