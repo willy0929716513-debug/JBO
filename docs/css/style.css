@@ -281,12 +281,11 @@ body {
 }
 
 .search-results {
-    position: absolute;
-    top: calc(100% + 6px); left: 0; right: 0;
+    position: fixed;
     background: white;
     border-radius: 12px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-    z-index: 100;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    z-index: 1000;
     max-height: 280px;
     overflow-y: auto;
     display: none;

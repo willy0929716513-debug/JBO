@@ -6,7 +6,8 @@ const DEFAULT_SETTINGS = {
   gender: 'male', age: null, height: null, weight: null,
   activity_level: 1.55, goal_mode: 'loss',
   calorie_goal: 2000, protein_goal: 150,
-  carbs_goal: 225, fat_goal: 65, water_goal: 2000
+  carbs_goal: 225, fat_goal: 65, water_goal: 2000,
+  claude_api_key: null,
 };
 
 const MEAL_META = [
@@ -385,7 +386,8 @@ function setActiveMeal(mt) {
 
 function doSearch(q) {
   q = q.trim();
-  const box = document.getElementById('searchResults');
+  const box   = document.getElementById('searchResults');
+  const input = document.getElementById('foodSearch');
   if (!q) { box.classList.remove('show'); return; }
 
   searchCache = Object.entries(FOOD_DB)
@@ -394,6 +396,12 @@ function doSearch(q) {
     .slice(0, 15);
 
   if (!searchCache.length) { box.classList.remove('show'); return; }
+
+  // Position fixed relative to the input element (avoids overflow:hidden clipping)
+  const rect = input.getBoundingClientRect();
+  box.style.top   = (rect.bottom + 6) + 'px';
+  box.style.left  = rect.left + 'px';
+  box.style.width = rect.width + 'px';
 
   box.innerHTML = searchCache.map((f, i) => `
     <div class="result-item" onclick="selectFoodByIdx(${i})">
@@ -459,6 +467,185 @@ function deleteFoodItem(id) {
 
 function openManualEntry()  { document.getElementById('manualModal').classList.remove('hidden'); }
 function closeManualModal() { document.getElementById('manualModal').classList.add('hidden'); }
+
+// ── AI Photo Scan ──────────────────────────────────────────────────────────────
+
+let scanResults     = [];
+let scanImageBase64 = null;
+let scanMediaType   = 'image/jpeg';
+
+function openPhotoScan() {
+  document.getElementById('photoModal').classList.remove('hidden');
+  scanResults     = [];
+  scanImageBase64 = null;
+  document.getElementById('scanDrop').style.display         = 'block';
+  document.getElementById('scanPreviewWrap').style.display  = 'none';
+  document.getElementById('scanAnalyzeBtn').style.display   = 'none';
+  document.getElementById('scanResultsWrap').style.display  = 'none';
+}
+
+function closePhotoScan() {
+  document.getElementById('photoModal').classList.add('hidden');
+  document.getElementById('photoFileInput').value = '';
+}
+
+function triggerPhotoInput() {
+  document.getElementById('photoFileInput').click();
+}
+
+function resizeImage(dataUrl, maxPx) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      const max = maxPx || 1024;
+      if (w > max || h > max) {
+        const ratio = Math.min(max / w, max / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = dataUrl;
+  });
+}
+
+async function handlePhotoSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  scanMediaType = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const resized = await resizeImage(ev.target.result, 1024);
+    scanImageBase64 = resized.split(',')[1];
+    scanMediaType   = 'image/jpeg'; // canvas always outputs jpeg after resize
+
+    document.getElementById('scanPreviewImg').src        = resized;
+    document.getElementById('scanDrop').style.display    = 'none';
+    document.getElementById('scanPreviewWrap').style.display  = 'block';
+    document.getElementById('scanResultsWrap').style.display  = 'none';
+    document.getElementById('scanAnalyzeBtn').style.display   = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzePhoto() {
+  const s      = DB.getSettings();
+  const apiKey = s.claude_api_key;
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    showToast('請先在設定頁面填入 Claude API 金鑰');
+    closePhotoScan();
+    navigate('settings');
+    return;
+  }
+  if (!scanImageBase64) return;
+
+  const btn = document.getElementById('scanAnalyzeBtn');
+  btn.disabled   = true;
+  btn.innerHTML  = '<div style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px"></div>AI 分析中…';
+  document.getElementById('scanResultsWrap').style.display    = 'block';
+  document.getElementById('scanResultsContent').innerHTML     =
+    '<div class="spinner"></div><div style="text-align:center;font-size:0.82rem;color:var(--muted);margin-top:10px">AI 正在辨識食物…</div>';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: scanMediaType, data: scanImageBase64 } },
+            { type: 'text', text:
+              '請分析這張食物照片，識別所有可見食物並估算熱量與三大營養素。\n' +
+              '請只回傳 JSON，格式如下（不要其他文字）：\n' +
+              '{"foods":[{"name":"食物名稱（繁體中文）","amount":100,"unit":"g","calories":150,"protein":5.0,"carbs":20.0,"fat":3.0}]}\n' +
+              '請使用台灣常見食物的真實營養數據，amount 為目視估算份量。'
+            }
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API 錯誤 ${resp.status}`);
+    }
+
+    const data    = await resp.json();
+    const text    = data.content?.[0]?.text || '';
+    const jsonStr = text.match(/\{[\s\S]*\}/)?.[0];
+    if (!jsonStr) throw new Error('無法解析 AI 回應，請重試');
+    const parsed  = JSON.parse(jsonStr);
+    scanResults   = (parsed.foods || []).filter(f => f.name && f.calories > 0);
+    if (!scanResults.length) throw new Error('未偵測到食物，請換張照片');
+    renderScanResults();
+  } catch (err) {
+    document.getElementById('scanResultsContent').innerHTML = `
+      <div style="text-align:center;padding:20px;color:var(--red)">
+        <i class="bi bi-exclamation-circle" style="font-size:2rem;display:block;margin-bottom:8px"></i>
+        <div style="font-size:0.84rem">${esc(String(err.message))}</div>
+      </div>`;
+  } finally {
+    btn.disabled  = false;
+    btn.innerHTML = '<i class="bi bi-stars"></i> 重新分析';
+  }
+}
+
+function renderScanResults() {
+  const total = scanResults.reduce((s, f) => s + (f.calories || 0), 0);
+  document.getElementById('scanResultsContent').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="ai-badge"><i class="bi bi-stars"></i> AI 辨識結果</div>
+      <div style="font-size:0.8rem;color:var(--muted)">共 <strong style="color:var(--orange)">${Math.round(total)}</strong> kcal</div>
+    </div>
+    ${scanResults.map((f, i) => `
+      <div class="scan-food-card">
+        <input type="checkbox" id="sfc-${i}" checked style="width:17px;height:17px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
+        <div style="flex:1;min-width:0">
+          <div class="scan-food-name">${esc(f.name)}</div>
+          <div class="scan-food-meta">約 ${f.amount}${f.unit||'g'} · 蛋白 ${(+f.protein||0).toFixed(1)}g · 碳水 ${(+f.carbs||0).toFixed(1)}g · 脂肪 ${(+f.fat||0).toFixed(1)}g</div>
+        </div>
+        <div class="scan-food-cal">${Math.round(f.calories)} kcal</div>
+      </div>`).join('')}
+    <button class="btn-primary" style="width:100%;justify-content:center;margin-top:12px" onclick="addScanResults()">
+      <i class="bi bi-plus-circle"></i> 加入今日紀錄
+    </button>`;
+}
+
+function addScanResults() {
+  let added = 0;
+  scanResults.forEach((f, i) => {
+    const chk = document.getElementById(`sfc-${i}`);
+    if (chk && chk.checked) {
+      DB.addFood({
+        date: todayStr(), meal_type: activeMeal,
+        food_name: f.name,
+        amount: f.amount || 100, unit: f.unit || 'g',
+        calories: +f.calories || 0,
+        protein:  +f.protein  || 0,
+        carbs:    +f.carbs    || 0,
+        fat:      +f.fat      || 0,
+      });
+      added++;
+    }
+  });
+  if (added === 0) { showToast('請至少勾選一項食物'); return; }
+  closePhotoScan();
+  showToast(`✅ 已加入 ${added} 項食物到${MEAL_META.find(m => m.id === activeMeal)?.label || ''}！`);
+  renderFoodLog();
+  if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+}
 
 function submitManualFood() {
   const name = document.getElementById('mName').value.trim();
@@ -873,6 +1060,9 @@ function renderSettings() {
   document.getElementById('sFat').value     = s.fat_goal     || 65;
   document.getElementById('sWater').value   = s.water_goal   || 2000;
 
+  const apiEl = document.getElementById('sApiKey');
+  if (apiEl && s.claude_api_key) apiEl.value = s.claude_api_key;
+
   liveCalcTDEE();
 }
 
@@ -881,6 +1071,7 @@ function saveSettings() {
   const height   = parseFloat(document.getElementById('sHeight').value)   || null;
   const weight   = parseFloat(document.getElementById('sWeight').value)   || null;
   const activity = parseFloat(document.getElementById('sActivity').value) || 1.55;
+  const apiKey   = document.getElementById('sApiKey').value.trim() || null;
 
   DB.saveSettings({
     gender:       currentGender,
@@ -892,6 +1083,7 @@ function saveSettings() {
     carbs_goal:   parseFloat(document.getElementById('sCarbs').value)   || 225,
     fat_goal:     parseFloat(document.getElementById('sFat').value)     || 65,
     water_goal:   parseFloat(document.getElementById('sWater').value)   || 2000,
+    claude_api_key: apiKey,
   });
   showToast('✅ 設定已儲存');
 }
@@ -1159,11 +1351,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(id)?.addEventListener('input', calcBMI);
   });
 
-  ['foodModal','manualModal'].forEach(id => {
+  ['foodModal','manualModal','photoModal'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', function(e) {
       if (e.target === this) {
         if (id === 'foodModal') closeModal();
-        else closeManualModal();
+        else if (id === 'manualModal') closeManualModal();
+        else closePhotoScan();
       }
     });
   });
