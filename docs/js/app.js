@@ -83,6 +83,8 @@ const DB = {
   saveWater:    d => localStorage.setItem('nm_water', JSON.stringify(d)),
   saveWeights:  d => localStorage.setItem('nm_weights', JSON.stringify(d)),
   saveSettings: d => localStorage.setItem('nm_settings', JSON.stringify(d)),
+  getGoals:     () => DB._get('nm_goals', '{}'),
+  saveGoals:    d => localStorage.setItem('nm_goals', JSON.stringify(d)),
 
   newId: () => `nm_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
 
@@ -215,6 +217,7 @@ function navigate(page) {
     case 'weight':    renderWeight();    break;
     case 'trends':    renderTrends(7);   break;
     case 'settings':  renderSettings();  break;
+    case 'goals':     renderGoals();     break;
   }
 }
 
@@ -703,6 +706,204 @@ function applyPreset(cal, p, c, f) {
   document.getElementById('sCarbs').value   = c;
   document.getElementById('sFat').value     = f;
   showToast('✅ 已套用，記得儲存！');
+}
+
+// ── Goals ──────────────────────────────────────────────────────────────────────
+
+function renderGoals() {
+  const g = DB.getGoals();
+  if (g.height)        document.getElementById('gHeight').value       = g.height;
+  if (g.start_weight)  document.getElementById('gStartWeight').value  = g.start_weight;
+  if (g.target_weight) document.getElementById('gTargetWeight').value = g.target_weight;
+  if (g.target_date)   document.getElementById('gTargetDate').value   = g.target_date;
+
+  if (g.start_weight && g.target_weight) {
+    const weights   = DB.getWeights();
+    const currentWt = weights.length > 0 ? weights[0].weight : g.start_weight;
+    _renderGoalProgress(g, currentWt);
+    if (g.height) _renderGoalBMI(g, currentWt);
+    _renderGoalEstimate(g, currentWt);
+  }
+}
+
+function saveGoals() {
+  const height       = parseFloat(document.getElementById('gHeight').value);
+  const startWeight  = parseFloat(document.getElementById('gStartWeight').value);
+  const targetWeight = parseFloat(document.getElementById('gTargetWeight').value);
+  const targetDate   = document.getElementById('gTargetDate').value;
+  if (!startWeight || !targetWeight) { showToast('請填寫起始體重和目標體重'); return; }
+  if (startWeight === targetWeight)  { showToast('起始體重和目標體重不能相同'); return; }
+  DB.saveGoals({ height: height || null, start_weight: startWeight, target_weight: targetWeight, target_date: targetDate || null });
+  showToast('✅ 目標已儲存');
+  renderGoals();
+}
+
+function _renderGoalProgress(g, currentWt) {
+  const isLosing  = g.target_weight < g.start_weight;
+  const totalDiff = Math.abs(g.target_weight - g.start_weight);
+  const achieved  = isLosing
+    ? Math.max(0, g.start_weight - currentWt)
+    : Math.max(0, currentWt - g.start_weight);
+  const remaining = Math.abs(currentWt - g.target_weight);
+  const pct       = Math.min((achieved / totalDiff) * 100, 100);
+  const done      = isLosing ? currentWt <= g.target_weight : currentWt >= g.target_weight;
+  const dir       = isLosing ? '減' : '增';
+
+  const card = document.getElementById('goalProgress');
+  card.style.display = 'block';
+  document.getElementById('goalProgressContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;text-align:center">
+      <div style="background:#F9FAFB;border-radius:12px;padding:12px">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">起始</div>
+        <div style="font-size:1.4rem;font-weight:800">${g.start_weight}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">kg</div>
+      </div>
+      <div style="background:${done ? 'var(--green-light)' : 'var(--orange-light)'};border-radius:12px;padding:12px">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">現在</div>
+        <div style="font-size:1.4rem;font-weight:800;color:${done ? 'var(--green)' : 'var(--orange)'}">${currentWt}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">kg</div>
+      </div>
+      <div style="background:var(--green-light);border-radius:12px;padding:12px">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">目標</div>
+        <div style="font-size:1.4rem;font-weight:800;color:var(--green)">${g.target_weight}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">kg</div>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:6px">
+        <span style="color:var(--muted)">進度</span>
+        <span style="font-weight:700;color:var(--green)">${pct.toFixed(1)}%</span>
+      </div>
+      <div style="height:14px;background:var(--border);border-radius:7px;overflow:hidden">
+        <div style="height:100%;background:${done ? 'var(--green)' : 'linear-gradient(90deg,var(--green),var(--cyan))'};border-radius:7px;width:${pct}%;transition:width 0.6s"></div>
+      </div>
+    </div>
+    ${done
+      ? `<div style="text-align:center;padding:14px;background:var(--green-light);border-radius:12px;color:var(--green);font-weight:700;font-size:1rem">🎉 恭喜！已達成目標！</div>`
+      : `<div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:10px 0">
+           <span style="color:var(--muted)">還差 <strong style="color:var(--orange);font-size:1rem">${remaining.toFixed(1)} kg</strong></span>
+           ${achieved > 0 ? `<span style="color:var(--muted)">已${dir} <strong style="color:var(--green)">${achieved.toFixed(1)} kg</strong></span>` : ''}
+         </div>`
+    }
+  `;
+}
+
+function _renderGoalBMI(g, currentWt) {
+  const h   = g.height / 100;
+  const cur = (currentWt / (h * h)).toFixed(1);
+  const tgt = (g.target_weight / (h * h)).toFixed(1);
+
+  const bmiInfo = bmi => {
+    if (bmi < 18.5) return ['體重過輕', '#3B82F6', '#DBEAFE'];
+    if (bmi < 24)   return ['健康體重', '#22C55E', '#DCFCE7'];
+    if (bmi < 27)   return ['體重過重', '#F97316', '#FFF7ED'];
+    return               ['肥胖',     '#EF4444', '#FEF2F2'];
+  };
+
+  const [cL, cC, cBg] = bmiInfo(parseFloat(cur));
+  const [tL, tC, tBg] = bmiInfo(parseFloat(tgt));
+
+  const card = document.getElementById('goalBMICard');
+  card.style.display = 'block';
+  document.getElementById('goalBMIContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+      <div style="background:${cBg};border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px">目前 BMI</div>
+        <div style="font-size:2.2rem;font-weight:800;color:${cC};line-height:1">${cur}</div>
+        <div style="font-size:0.78rem;font-weight:700;color:${cC};margin-top:4px">${cL}</div>
+      </div>
+      <div style="background:${tBg};border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px">目標 BMI</div>
+        <div style="font-size:2.2rem;font-weight:800;color:${tC};line-height:1">${tgt}</div>
+        <div style="font-size:0.78rem;font-weight:700;color:${tC};margin-top:4px">${tL}</div>
+      </div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);text-align:center">BMI 健康範圍：18.5 – 24.0</div>
+  `;
+}
+
+function _renderGoalEstimate(g, currentWt) {
+  const isLosing  = g.target_weight < g.start_weight;
+  const remaining = Math.abs(currentWt - g.target_weight);
+  const done      = isLosing ? currentWt <= g.target_weight : currentWt >= g.target_weight;
+
+  const card = document.getElementById('goalEstimateCard');
+  card.style.display = 'block';
+
+  const settings = DB.getSettings();
+  const tdee     = settings.calorie_goal;
+
+  // Average calories over last 7 days (skip days with 0)
+  const recentDates = dateRange(7);
+  const recentSums  = recentDates.map(d => getSummary(d).calories).filter(c => c > 0);
+  const avgCal      = recentSums.length > 0 ? recentSums.reduce((a, b) => a + b, 0) / recentSums.length : 0;
+
+  let html = '';
+
+  // Countdown to target date
+  if (g.target_date) {
+    const today    = new Date();
+    const target   = new Date(g.target_date);
+    const daysLeft = Math.ceil((target - today) / 86400000);
+    html += `
+      <div style="background:${daysLeft > 0 ? 'var(--green-light)' : '#FEF2F2'};border-radius:12px;padding:16px;text-align:center;margin-bottom:14px">
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px">距離目標日期</div>
+        <div style="font-size:2.5rem;font-weight:800;color:${daysLeft > 0 ? 'var(--green)' : '#EF4444'};line-height:1">${Math.max(0, daysLeft)}</div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">天</div>
+      </div>
+    `;
+    if (!done && daysLeft > 0 && remaining > 0) {
+      const kgPerDay  = remaining / daysLeft;
+      const calPerDay = kgPerDay * 7700;
+      const needCal   = isLosing ? Math.round(tdee - calPerDay) : Math.round(tdee + calPerDay);
+      html += `
+        <div style="background:#F9FAFB;border-radius:12px;padding:12px;font-size:0.82rem;line-height:1.9;margin-bottom:14px">
+          每日需${isLosing ? '製造' : '增加'} <strong style="color:var(--orange)">${Math.round(calPerDay)} kcal</strong> 的熱量${isLosing ? '缺口' : '盈餘'}<br>
+          建議每天攝取約 <strong style="color:var(--green)">${needCal} kcal</strong>
+        </div>
+      `;
+    }
+  }
+
+  // Estimate based on current eating habits
+  if (done) {
+    html += `<div style="text-align:center;padding:14px;background:var(--green-light);border-radius:12px;color:var(--green);font-weight:700">🎉 已達成目標！繼續保持！</div>`;
+  } else if (avgCal > 0) {
+    const dailyDiff = isLosing ? (tdee - avgCal) : (avgCal - tdee);
+    html += `<div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">依過去 ${recentSums.length} 天飲食習慣推算</div>`;
+    if (dailyDiff > 50) {
+      const daysToGoal = Math.round(remaining * 7700 / dailyDiff);
+      const goalDate   = new Date();
+      goalDate.setDate(goalDate.getDate() + daysToGoal);
+      const goalDateStr = goalDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
+      html += `
+        <div style="background:var(--blue-light);border-radius:12px;padding:14px;font-size:0.84rem;line-height:2">
+          平均每日攝取 <strong>${Math.round(avgCal)} kcal</strong><br>
+          每日熱量${isLosing ? '缺口' : '盈餘'} <strong style="color:var(--green)">${Math.round(dailyDiff)} kcal</strong><br>
+          預計約 <strong style="color:var(--green);font-size:1rem">${daysToGoal} 天</strong>後達成<br>
+          <span style="color:var(--muted)">（約 ${goalDateStr}）</span>
+        </div>
+      `;
+    } else if (dailyDiff <= 0) {
+      html += `
+        <div style="background:#FEF2F2;border-radius:12px;padding:14px;font-size:0.84rem;line-height:1.9;color:#EF4444">
+          ⚠️ 目前攝取量 (${Math.round(avgCal)} kcal) ${isLosing ? '≥ 目標卡路里，無法製造缺口' : '低於目標，無法增重'}<br>
+          <span style="font-size:0.78rem">請${isLosing ? '減少' : '增加'}每日攝取量</span>
+        </div>
+      `;
+    } else {
+      html += `
+        <div style="background:#FFF7ED;border-radius:12px;padding:14px;font-size:0.84rem;line-height:1.9;color:#F97316">
+          目前熱量${isLosing ? '缺口' : '盈餘'}僅 ${Math.round(dailyDiff)} kcal，進度較慢<br>
+          <span style="font-size:0.78rem">建議${isLosing ? '每日再減少 200-300 kcal 攝取' : '每日再增加 200-300 kcal 攝取'}</span>
+        </div>
+      `;
+    }
+  } else {
+    html += `<div style="font-size:0.82rem;color:var(--muted);text-align:center;padding:14px">請先記錄幾天的飲食，才能計算預估時間</div>`;
+  }
+
+  document.getElementById('goalEstimateContent').innerHTML = html;
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
