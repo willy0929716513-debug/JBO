@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-06-29T18:25:53.834314+09:00",
-  "date": "2026-06-29",
+  "updated_at": "2026-06-30T13:57:44.234465+09:00",
+  "date": "2026-06-30",
   "games": [
     {
       "home_team": "巨人",
@@ -37,7 +37,7 @@
         },
         "last_5_record": "3-2",
         "last_10_record": "5-5",
-        "last_20_record": "11-9",
+        "last_20_record": "12-8",
         "stadium": "東京ドーム"
       },
       "away_stats": {
@@ -68,8 +68,8 @@
           "t": 1,
           "win_pct": 0.55
         },
-        "last_5_record": "2-3",
-        "last_10_record": "5-5",
+        "last_5_record": "3-2",
+        "last_10_record": "6-4",
         "last_20_record": "11-9",
         "stadium": "甲子園"
       },
@@ -336,8 +336,8 @@
           "win_pct": 0.377
         },
         "last_5_record": "2-3",
-        "last_10_record": "4-6",
-        "last_20_record": "8-12",
+        "last_10_record": "3-7",
+        "last_20_record": "7-13",
         "stadium": "楽天モバイルパーク宮城"
       },
       "away_stats": {
@@ -568,8 +568,8 @@
           "t": 0,
           "win_pct": 0.554
         },
-        "last_5_record": "2-3",
-        "last_10_record": "6-4",
+        "last_5_record": "3-2",
+        "last_10_record": "5-5",
         "last_20_record": "11-9",
         "stadium": "エスコンフィールドHOKKAIDO"
       },
