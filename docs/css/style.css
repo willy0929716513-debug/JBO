@@ -598,6 +598,51 @@ body {
 
 .fade-in { animation: slideUp 0.3s ease; }
 
+/* ── Gender buttons ────────────────────────────────────────── */
+.gender-btn {
+    padding: 12px 8px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--muted);
+    transition: all 0.15s;
+    text-align: center;
+    width: 100%;
+}
+.gender-btn.active {
+    border-color: var(--green);
+    background: var(--green-light);
+    color: var(--green);
+}
+.gender-btn:hover:not(.active) { border-color: #86EFAC; color: var(--green-dark); }
+
+/* ── Goal mode cards ───────────────────────────────────────── */
+.goal-mode-card {
+    padding: 14px 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    background: white;
+    transition: all 0.15s;
+}
+.goal-mode-card.active {
+    border-color: var(--green);
+    background: var(--green-light);
+}
+.goal-mode-card:hover:not(.active) { border-color: #86EFAC; }
+
+/* ── Macro dot ─────────────────────────────────────────────── */
+.macro-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
 /* ── Responsive ────────────────────────────────────────────── */
 @media (min-width: 600px) {
     .app-content { max-width: 480px; margin-left: auto; margin-right: auto; }

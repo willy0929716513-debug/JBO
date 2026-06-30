@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#22C55E">
-  <title>NutriMate - AI 智慧飲食追蹤</title>
+  <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet" href="css/style.css">
   <style>
@@ -15,7 +15,7 @@
 </head>
 <body>
 
-<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<!-- ── Header ───────────────────────────────────────────────────────────────── -->
 <header class="app-header">
   <div class="app-logo">🥗</div>
   <span class="app-name">Nutri<span>Mate</span></span>
@@ -26,7 +26,7 @@
   </div>
 </header>
 
-<!-- ── Pages ─────────────────────────────────────────────────────────────── -->
+<!-- ── Pages ────────────────────────────────────────────────────────────────── -->
 <main class="app-content">
 
   <!-- Dashboard -->
@@ -75,6 +75,8 @@
         </div>
       </div>
     </div>
+
+    <div id="dashTDEEBanner" style="display:none;margin-bottom:14px"></div>
 
     <div style="display:flex;gap:10px;margin-bottom:14px">
       <div style="flex:1;cursor:pointer" onclick="navigate('food-log')">
@@ -167,14 +169,19 @@
       <div class="subgreeting">設定目標，追蹤每日進度</div>
     </div>
 
+    <!-- Profile Notice -->
+    <div id="goalProfileNotice" class="card fade-in" style="display:none;background:var(--blue-light);border:none">
+      <div class="card-body" style="display:flex;align-items:center;gap:12px;padding:14px 16px">
+        <div style="font-size:1.4rem">💡</div>
+        <div style="flex:1;font-size:0.82rem;color:#1D4ED8">前往<strong>設定</strong>填寫個人資料，解鎖精準 TDEE 與建議熱量計算</div>
+        <button onclick="navigate('settings')" style="background:var(--blue);border:none;border-radius:8px;padding:7px 12px;color:white;font-size:0.78rem;font-weight:700;cursor:pointer;flex-shrink:0">前往設定</button>
+      </div>
+    </div>
+
     <!-- 設定目標 -->
     <div class="card fade-in">
       <div class="card-body">
         <div class="card-title">設定目標</div>
-        <div class="form-group">
-          <label class="form-label"><i class="bi bi-rulers" style="color:var(--muted)"></i> 身高 (cm)</label>
-          <input id="gHeight" class="form-input" type="number" placeholder="例：170">
-        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="form-group">
             <label class="form-label">起始體重 (kg)</label>
@@ -206,15 +213,15 @@
     <!-- BMI -->
     <div id="goalBMICard" class="card fade-in" style="display:none">
       <div class="card-body">
-        <div class="card-title">BMI 追蹤</div>
+        <div class="card-title">BMI 分析</div>
         <div id="goalBMIContent"></div>
       </div>
     </div>
 
-    <!-- 預估時間 -->
+    <!-- 熱量分析 -->
     <div id="goalEstimateCard" class="card fade-in" style="display:none">
       <div class="card-body">
-        <div class="card-title">預估達成時間</div>
+        <div class="card-title">熱量分析與預估</div>
         <div id="goalEstimateContent"></div>
       </div>
     </div>
@@ -224,9 +231,9 @@
       <div class="card-body">
         <div style="font-weight:700;font-size:0.9rem;margin-bottom:10px">💡 健康小提示</div>
         <div style="font-size:0.8rem;color:var(--text-2);line-height:1.9">
-          • 每週減重 <strong>0.5-1 kg</strong> 是最健康的速度<br>
+          • 每週減重 <strong>0.5–1 kg</strong> 是最健康的速度<br>
           • 1 kg 體脂 ≈ 7700 kcal 的熱量缺口<br>
-          • 搭配規律運動效果更好<br>
+          • 高蛋白飲食可在減重時有效保留肌肉<br>
           • 記錄體重請在<strong>每天早上空腹</strong>測量較準確
         </div>
       </div>
@@ -294,7 +301,7 @@
       <div class="card-body">
         <div style="font-weight:700;font-size:0.88rem;color:var(--blue);margin-bottom:8px">💡 喝水小知識</div>
         <div style="font-size:0.78rem;color:#1D4ED8;line-height:1.7">
-          • 每天建議喝 <strong>8 杯水（約 2000ml）</strong><br>
+          • 建議每日飲水量：體重 × 35 ml<br>
           • 運動後記得補充流失的水分<br>
           • 喝水可幫助維持正常代謝<br>
           • 咖啡、茶也計入每日水分攝取
@@ -411,10 +418,10 @@
       <div class="card-body">
         <div style="font-weight:700;font-size:0.9rem;margin-bottom:10px">💡 健康小提示</div>
         <div style="font-size:0.8rem;color:var(--text-2);line-height:1.9">
-          • 每天攝取 <strong>1500-2500 kcal</strong> 是大多數人的合理範圍<br>
-          • 蛋白質建議每公斤體重攝取 <strong>1.2-2.0g</strong><br>
-          • 碳水化合物佔總熱量 <strong>45-65%</strong> 為宜<br>
-          • 每天至少飲水 <strong>2000ml</strong>
+          • 每天攝取 <strong>1500–2500 kcal</strong> 是大多數人的合理範圍<br>
+          • 蛋白質建議每公斤體重攝取 <strong>1.2–2.0 g</strong><br>
+          • 碳水化合物佔總熱量 <strong>45–65%</strong> 為宜<br>
+          • 每天至少飲水 <strong>體重 × 35 ml</strong>
         </div>
       </div>
     </div>
@@ -424,69 +431,155 @@
   <div id="page-settings" class="page">
     <div style="margin-bottom:16px">
       <div class="greeting">個人設定 <span>⚙️</span></div>
-      <div class="subgreeting">調整您的每日健康目標</div>
+      <div class="subgreeting">填寫資料，精準計算每日所需</div>
     </div>
 
+    <!-- ① 個人資料 -->
     <div class="card fade-in">
       <div class="card-body">
-        <div class="card-title">每日目標</div>
+        <div class="card-title">① 個人資料</div>
         <div class="form-group">
-          <label class="form-label"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:#F97316;border-radius:50%;display:inline-block"></span>卡路里目標 (kcal)</span></label>
-          <input id="sCalorie" class="form-input" type="number">
+          <label class="form-label">性別</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button id="genderMale"   class="gender-btn active" onclick="setGender('male')">♂ 男性</button>
+            <button id="genderFemale" class="gender-btn"        onclick="setGender('female')">♀ 女性</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group">
+            <label class="form-label">年齡</label>
+            <input id="sAge"    class="form-input" type="number" min="10" max="99" placeholder="例：25" oninput="liveCalcTDEE()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">身高 (cm)</label>
+            <input id="sHeight" class="form-input" type="number" placeholder="例：170" oninput="liveCalcTDEE()">
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:#8B5CF6;border-radius:50%;display:inline-block"></span>蛋白質目標 (g)</span></label>
-          <input id="sProtein" class="form-input" type="number">
+          <label class="form-label">目前體重 (kg)</label>
+          <input id="sWeight" class="form-input" type="number" step="0.1" placeholder="例：70.0" oninput="liveCalcTDEE()">
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:4px">開啟時自動帶入最新體重紀錄</div>
         </div>
-        <div class="form-group">
-          <label class="form-label"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:#06B6D4;border-radius:50%;display:inline-block"></span>碳水化合物目標 (g)</span></label>
-          <input id="sCarbs" class="form-input" type="number">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">日常活動量</label>
+          <select id="sActivity" class="form-input" onchange="liveCalcTDEE()">
+            <option value="1.2">🪑 久坐為主（幾乎不運動）</option>
+            <option value="1.375">🚶 輕度活動（每週運動 1–3 天）</option>
+            <option value="1.55" selected>🏃 中度活動（每週運動 3–5 天）</option>
+            <option value="1.725">🏋️ 積極運動（每週運動 6–7 天）</option>
+            <option value="1.9">⚡ 非常積極（體力勞動 / 每日訓練）</option>
+          </select>
         </div>
-        <div class="form-group">
-          <label class="form-label"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:#EAB308;border-radius:50%;display:inline-block"></span>脂肪目標 (g)</span></label>
-          <input id="sFat" class="form-input" type="number">
+      </div>
+    </div>
+
+    <!-- TDEE 計算結果 -->
+    <div id="tdeeCard" class="card fade-in" style="display:none">
+      <div class="card-body">
+        <div class="card-title">📊 代謝率分析（Mifflin-St Jeor 公式）</div>
+        <div id="tdeeContent"></div>
+      </div>
+    </div>
+
+    <!-- ② 目標模式 -->
+    <div class="card fade-in">
+      <div class="card-body">
+        <div class="card-title">② 選擇目標</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="goal-mode-card" data-mode="loss" onclick="setGoalMode('loss')">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-size:1.5rem">🔥</div>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:0.9rem">減重模式</div>
+                <div style="font-size:0.73rem;color:var(--muted)">熱量缺口 500 kcal，每週健康減 0.5 kg</div>
+              </div>
+              <div class="mode-check"></div>
+            </div>
+          </div>
+          <div class="goal-mode-card" data-mode="maintain" onclick="setGoalMode('maintain')">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-size:1.5rem">⚖️</div>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:0.9rem">維持體重</div>
+                <div style="font-size:0.73rem;color:var(--muted)">攝取等於消耗，均衡維持健康</div>
+              </div>
+              <div class="mode-check"></div>
+            </div>
+          </div>
+          <div class="goal-mode-card" data-mode="gain" onclick="setGoalMode('gain')">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-size:1.5rem">💪</div>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:0.9rem">增肌模式</div>
+                <div style="font-size:0.73rem;color:var(--muted)">熱量盈餘 250 kcal，精實增肌</div>
+              </div>
+              <div class="mode-check"></div>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:#3B82F6;border-radius:50%;display:inline-block"></span>飲水目標 (ml)</span></label>
-          <input id="sWater" class="form-input" type="number">
-        </div>
-        <button class="btn-primary" style="width:100%;justify-content:center" onclick="saveSettings()">
-          <i class="bi bi-check-circle"></i> 儲存設定
+      </div>
+    </div>
+
+    <!-- ③ 建議攝取 -->
+    <div id="macroRecCard" class="card fade-in" style="display:none">
+      <div class="card-body">
+        <div class="card-title">③ 每日建議攝取</div>
+        <div id="macroRecContent"></div>
+        <button class="btn-primary" style="width:100%;justify-content:center;margin-top:12px" onclick="applyRecommended()">
+          <i class="bi bi-lightning-fill"></i> 套用建議值
         </button>
       </div>
     </div>
 
+    <!-- 手動微調 -->
     <div class="card fade-in">
       <div class="card-body">
-        <div class="card-title">快速套用目標</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#F9FAFB;border-radius:10px">
-            <div><div style="font-weight:700;font-size:0.88rem">減重模式</div><div style="font-size:0.75rem;color:var(--muted)">低卡高蛋白，促進減脂</div></div>
-            <button onclick="applyPreset(1500,120,150,45)" style="background:var(--green-light);border:none;border-radius:8px;padding:6px 12px;color:var(--green);font-weight:700;font-size:0.8rem;cursor:pointer">套用</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleManualAdj()">
+          <div class="card-title" style="margin-bottom:0">手動微調（選填）</div>
+          <i class="bi bi-chevron-down" id="adjChevron" style="color:var(--muted);font-size:0.9rem;transition:transform 0.2s"></i>
+        </div>
+        <div id="manualAdj" style="display:none;margin-top:14px">
+          <div class="form-group">
+            <label class="form-label"><span class="macro-dot" style="background:#F97316"></span>卡路里目標 (kcal)</label>
+            <input id="sCalorie" class="form-input" type="number">
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#F9FAFB;border-radius:10px">
-            <div><div style="font-weight:700;font-size:0.88rem">維持體重</div><div style="font-size:0.75rem;color:var(--muted)">均衡飲食，維持健康</div></div>
-            <button onclick="applyPreset(2000,150,250,65)" style="background:var(--green-light);border:none;border-radius:8px;padding:6px 12px;color:var(--green);font-weight:700;font-size:0.8rem;cursor:pointer">套用</button>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#F9FAFB;border-radius:10px">
-            <div><div style="font-weight:700;font-size:0.88rem">增肌模式</div><div style="font-size:0.75rem;color:var(--muted)">高蛋白高熱量，支援訓練</div></div>
-            <button onclick="applyPreset(2500,200,300,80)" style="background:var(--green-light);border:none;border-radius:8px;padding:6px 12px;color:var(--green);font-weight:700;font-size:0.8rem;cursor:pointer">套用</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group">
+              <label class="form-label"><span class="macro-dot" style="background:#8B5CF6"></span>蛋白質 (g)</label>
+              <input id="sProtein" class="form-input" type="number">
+            </div>
+            <div class="form-group">
+              <label class="form-label"><span class="macro-dot" style="background:#06B6D4"></span>碳水 (g)</label>
+              <input id="sCarbs" class="form-input" type="number">
+            </div>
+            <div class="form-group">
+              <label class="form-label"><span class="macro-dot" style="background:#EAB308"></span>脂肪 (g)</label>
+              <input id="sFat" class="form-input" type="number">
+            </div>
+            <div class="form-group">
+              <label class="form-label"><span class="macro-dot" style="background:#3B82F6"></span>飲水 (ml)</label>
+              <input id="sWater" class="form-input" type="number">
+            </div>
           </div>
         </div>
       </div>
     </div>
 
+    <button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:14px" onclick="saveSettings()">
+      <i class="bi bi-check-circle"></i> 儲存設定
+    </button>
+
     <div style="text-align:center;padding:16px 0;color:var(--muted);font-size:0.75rem">
       <div style="font-size:1.5rem;margin-bottom:6px">🥗</div>
       <div style="font-weight:800;font-size:0.9rem">NutriMate</div>
-      <div>AI 智慧飲食追蹤 · v1.0</div>
+      <div>智慧飲食追蹤 · v2.0</div>
       <div style="margin-top:4px;font-size:0.7rem">資料儲存於本機（localStorage）</div>
     </div>
   </div>
 
 </main>
 
-<!-- ── Bottom Nav ─────────────────────────────────────────────────────────── -->
+<!-- ── Bottom Nav ────────────────────────────────────────────────────────────── -->
 <nav class="bottom-nav">
   <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
     <i class="bi bi-house-door-fill"></i><span>首頁</span>
@@ -507,8 +600,6 @@
 </nav>
 
 <div id="toast" class="toast"></div>
-
-<!-- ── Modals ─────────────────────────────────────────────────────────────── -->
 
 <!-- Food amount modal -->
 <div id="foodModal" class="modal-overlay hidden">

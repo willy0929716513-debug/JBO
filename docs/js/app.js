@@ -3,8 +3,10 @@
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_SETTINGS = {
+  gender: 'male', age: null, height: null, weight: null,
+  activity_level: 1.55, goal_mode: 'loss',
   calorie_goal: 2000, protein_goal: 150,
-  carbs_goal: 250, fat_goal: 65, water_goal: 2000
+  carbs_goal: 225, fat_goal: 65, water_goal: 2000
 };
 
 const MEAL_META = [
@@ -152,6 +154,49 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Nutrition Science (Mifflin-St Jeor + TDEE + per-kg macros) ───────────────
+
+let currentGender   = 'male';
+let currentGoalMode = 'loss';
+
+function calcBMR(gender, age, height, weight) {
+  const base = 10 * weight + 6.25 * height - 5 * age;
+  return Math.round(gender === 'female' ? base - 161 : base + 5);
+}
+
+function calcTDEE(bmr, activityLevel) {
+  return Math.round(bmr * activityLevel);
+}
+
+function calcMacros(goalMode, tdee, weight, gender) {
+  const minCal = gender === 'female' ? 1200 : 1500;
+  let calories, protein, fat;
+  if (goalMode === 'loss') {
+    calories = Math.max(tdee - 500, minCal);
+    protein  = Math.round(weight * 1.8);
+    fat      = Math.round(weight * 1.0);
+  } else if (goalMode === 'gain') {
+    calories = tdee + 250;
+    protein  = Math.round(weight * 2.0);
+    fat      = Math.round(weight * 1.0);
+  } else {
+    calories = tdee;
+    protein  = Math.round(weight * 1.4);
+    fat      = Math.round(weight * 0.9);
+  }
+  const carbs = Math.max(Math.round((calories - protein * 4 - fat * 9) / 4), 50);
+  const water  = Math.round(weight * 35 / 100) * 100;
+  return { calories, protein, fat, carbs, water };
+}
+
+function getBMIInfo(bmi) {
+  if (bmi < 18.5) return ['體重過輕', '#3B82F6', '#DBEAFE', '建議增加優質蛋白質與健康脂肪攝取'];
+  if (bmi < 24)   return ['健康體重', '#22C55E', '#DCFCE7', '維持目前飲食習慣，持續規律運動'];
+  if (bmi < 27)   return ['體重過重', '#F97316', '#FFF7ED', '建議逐步減少精緻糖和高脂食物'];
+  if (bmi < 30)   return ['輕度肥胖', '#EF4444', '#FEF2F2', '建議諮詢營養師制定個人化飲食計畫'];
+  return               ['中重度肥胖', '#991B1B', '#FEE2E2', '建議尋求醫療協助並配合飲食介入'];
+}
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
 function showToast(msg, dur = 2000) {
@@ -200,7 +245,6 @@ function navigate(page) {
   const el = document.getElementById(`page-${page}`);
   if (el) el.classList.add('active');
 
-  // Destroy old charts when leaving trends/weight to avoid canvas reuse errors
   if (page !== 'trends') {
     ['tCalChart','tWaterChart','tMacroChart','tWeightChart'].forEach(k => {
       if (charts[k]) { charts[k].destroy(); delete charts[k]; }
@@ -229,18 +273,15 @@ function renderDashboard() {
   const sum      = getSummary(today);
   const meals    = getMeals(today);
 
-  // Date
   const dateEl = document.getElementById('dash-date');
   if (dateEl) dateEl.textContent = today;
 
-  // Ring
   document.getElementById('ring-cal').textContent = Math.round(sum.calories);
   const remain = Math.max(settings.calorie_goal - sum.calories, 0);
   document.getElementById('ring-remain').textContent =
     sum.calories > settings.calorie_goal ? '🎉 已超過目標' : `還差 ${Math.round(remain)} 大卡`;
   drawRing('calRing', sum.calories, settings.calorie_goal);
 
-  // Macro bars
   setBar('barProtein', sum.protein, settings.protein_goal, '#8B5CF6');
   setBar('barCarbs',   sum.carbs,   settings.carbs_goal,   '#06B6D4');
   setBar('barFat',     sum.fat,     settings.fat_goal,     '#EAB308');
@@ -250,18 +291,15 @@ function renderDashboard() {
     if (el) el.textContent = `${Math.round(sum[k])}g`;
   });
 
-  // Water
   const wpct = Math.min((sum.water / settings.water_goal) * 100, 100);
   const wbar = document.getElementById('waterProgressBar');
   if (wbar) wbar.style.width = wpct + '%';
   const wtxt = document.getElementById('waterText');
   if (wtxt) wtxt.textContent = `${Math.round(sum.water)} / ${settings.water_goal} ml`;
 
-  // Meals
   const mealsEl = document.getElementById('dash-meals');
   if (mealsEl) mealsEl.innerHTML = renderMealsHTML(meals, false);
 
-  // Weight card
   const wt    = DB.getWeights().find(w => w.date === today);
   const wtCard = document.getElementById('dash-weight');
   if (wtCard) {
@@ -278,15 +316,15 @@ function renderDashboard() {
 function setBar(id, val, goal, color) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.style.width   = Math.min((val / (goal || 1)) * 100, 100) + '%';
+  el.style.width      = Math.min((val / (goal || 1)) * 100, 100) + '%';
   el.style.background = color;
 }
 
 function renderMealsHTML(meals, showActions) {
   return MEAL_META.map(m => {
-    const items   = meals[m.id] || [];
+    const items    = meals[m.id] || [];
     const totalCal = items.reduce((s, f) => s + f.calories, 0);
-    const addBtn  = showActions
+    const addBtn   = showActions
       ? `<button onclick="setActiveMeal('${m.id}')" style="margin-left:auto;background:${m.color}22;border:none;border-radius:8px;padding:4px 10px;color:${m.color};font-size:0.75rem;font-weight:700;cursor:pointer">+ 新增</button>`
       : (items.length ? `<div class="meal-cals">${Math.round(totalCal)} kcal</div>` : '');
 
@@ -299,7 +337,7 @@ function renderMealsHTML(meals, showActions) {
               <div class="food-meta">${esc(f.amount)}${esc(f.unit)} · P ${Math.round(f.protein)}g · C ${Math.round(f.carbs)}g · F ${Math.round(f.fat)}g</div>
             </div>
             <div class="food-cal">${Math.round(f.calories)}</div>
-            ${showActions ? `<button class="del-btn" onclick="deleteFoodItem('${esc(f.id)}')" ><i class="bi bi-trash3"></i></button>` : ''}
+            ${showActions ? `<button class="del-btn" onclick="deleteFoodItem('${esc(f.id)}')"><i class="bi bi-trash3"></i></button>` : ''}
           </div>`).join('')
       : `<div style="font-size:0.8rem;color:var(--muted);padding:6px 0">
            尚未記錄${showActions ? ` · <span onclick="setActiveMeal('${m.id}')" style="color:var(--green);cursor:pointer">+ 新增</span>` : ''}
@@ -319,9 +357,9 @@ function renderMealsHTML(meals, showActions) {
 
 // ── Food Log ───────────────────────────────────────────────────────────────────
 
-let activeMeal = 'breakfast';
+let activeMeal   = 'breakfast';
 let selectedFood = null;
-let searchCache = [];
+let searchCache  = [];
 
 function renderFoodLog() {
   const today = todayStr();
@@ -332,7 +370,7 @@ function renderFoodLog() {
   const flMeals = document.getElementById('fl-meals');
   if (flMeals) flMeals.innerHTML = renderMealsHTML(meals, true);
 
-  const sum     = getSummary(today);
+  const sum    = getSummary(today);
   const totalEl = document.getElementById('fl-total');
   if (totalEl) totalEl.textContent = `${Math.round(sum.calories)} kcal`;
 }
@@ -475,7 +513,7 @@ function renderWater() {
       <i class="bi bi-droplet-fill" style="color:#3B82F6;font-size:1.1rem"></i>
       <div class="water-log-ml">${w.amount} ml</div>
       <div style="margin-left:auto;font-size:0.75rem;color:var(--muted)">${w.date}</div>
-      <button class="del-btn" onclick="deleteWaterItem('${esc(w.id)}')" ><i class="bi bi-trash3"></i></button>
+      <button class="del-btn" onclick="deleteWaterItem('${esc(w.id)}')"><i class="bi bi-trash3"></i></button>
     </div>`).join('');
 }
 
@@ -510,15 +548,14 @@ function renderWeight() {
   const noteEl  = document.getElementById('todayWeightNote');
 
   if (todayW) {
-    if (inp)     inp.value         = todayW.weight;
-    if (saveBtn) saveBtn.textContent = '更新今日體重';
+    if (inp)     inp.value            = todayW.weight;
+    if (saveBtn) saveBtn.textContent  = '更新今日體重';
     if (noteEl)  { noteEl.textContent = `今日已記錄：${todayW.weight} kg`; noteEl.style.display = 'block'; }
   } else {
-    if (saveBtn) saveBtn.textContent = '記錄體重';
+    if (saveBtn) saveBtn.textContent  = '記錄體重';
     if (noteEl)  noteEl.style.display = 'none';
   }
 
-  // History
   const listEl = document.getElementById('weightList');
   if (listEl) {
     if (!weights.length) {
@@ -532,12 +569,11 @@ function renderWeight() {
             ${w.notes ? `<div style="font-size:0.72rem;color:var(--muted)">${esc(w.notes)}</div>` : ''}
           </div>
           <div class="weight-item-val">${w.weight} kg</div>
-          <button class="del-btn" onclick="deleteWeightItem('${esc(w.id)}')" ><i class="bi bi-trash3"></i></button>
+          <button class="del-btn" onclick="deleteWeightItem('${esc(w.id)}')"><i class="bi bi-trash3"></i></button>
         </div>`).join('');
     }
   }
 
-  // Chart
   const wrapEl = document.getElementById('weightChartWrap');
   if (wrapEl) wrapEl.style.display = weights.length > 1 ? 'block' : 'none';
   if (weights.length > 1) {
@@ -569,13 +605,7 @@ function calcBMI() {
   const bmi = w / ((h / 100) ** 2);
   document.getElementById('bmiVal').textContent = bmi.toFixed(1);
   r.style.display = 'block';
-  const configs = [
-    [18.5, '體重過輕', '#DBEAFE', '#3B82F6'],
-    [24,   '健康體重', '#DCFCE7', '#22C55E'],
-    [27,   '體重過重', '#FFF7ED', '#F97316'],
-    [999,  '肥胖',     '#FEF2F2', '#EF4444'],
-  ];
-  const [, label, bg, color] = configs.find(([max]) => bmi < max);
+  const [label, color, bg] = getBMIInfo(bmi);
   r.style.background = bg;
   document.getElementById('bmiVal').style.color   = color;
   document.getElementById('bmiLabel').textContent  = label;
@@ -595,7 +625,7 @@ function renderTrends(days) {
   document.querySelectorAll('.period-tab').forEach(t =>
     t.classList.toggle('active', parseInt(t.dataset.days) === days));
 
-  const dates = dateRange(days);
+  const dates  = dateRange(days);
   const labels = dates.map(d => d.slice(5));
   const sums   = dates.map(d => getSummary(d));
 
@@ -680,60 +710,233 @@ function mkMacroChart(labels, sums) {
 
 // ── Settings ───────────────────────────────────────────────────────────────────
 
+function setGender(g) {
+  currentGender = g;
+  document.getElementById('genderMale').classList.toggle('active', g === 'male');
+  document.getElementById('genderFemale').classList.toggle('active', g === 'female');
+  liveCalcTDEE();
+}
+
+function setGoalMode(mode) {
+  currentGoalMode = mode;
+  document.querySelectorAll('.goal-mode-card').forEach(el => {
+    const isActive = el.dataset.mode === mode;
+    el.classList.toggle('active', isActive);
+    const checkEl = el.querySelector('.mode-check');
+    if (checkEl) {
+      checkEl.innerHTML = isActive
+        ? '<i class="bi bi-check-circle-fill" style="color:var(--green);font-size:1.1rem"></i>'
+        : '<i class="bi bi-circle" style="color:var(--border);font-size:1.1rem"></i>';
+    }
+  });
+  liveCalcTDEE();
+}
+
+function liveCalcTDEE() {
+  const age      = parseFloat(document.getElementById('sAge').value);
+  const height   = parseFloat(document.getElementById('sHeight').value);
+  const weight   = parseFloat(document.getElementById('sWeight').value);
+  const activity = parseFloat(document.getElementById('sActivity').value) || 1.55;
+  const tdeeCard  = document.getElementById('tdeeCard');
+  const macroCard = document.getElementById('macroRecCard');
+
+  if (!age || !height || !weight) {
+    if (tdeeCard)  tdeeCard.style.display  = 'none';
+    if (macroCard) macroCard.style.display = 'none';
+    return;
+  }
+
+  const bmr    = calcBMR(currentGender, age, height, weight);
+  const tdee   = calcTDEE(bmr, activity);
+  const macros = calcMacros(currentGoalMode, tdee, weight, currentGender);
+
+  const actLabels = { '1.2': '久坐', '1.375': '輕度活動', '1.55': '中度活動', '1.725': '積極運動', '1.9': '非常積極' };
+  const actLabel  = actLabels[String(activity)] || '中度活動';
+
+  if (tdeeCard) {
+    tdeeCard.style.display = 'block';
+    document.getElementById('tdeeContent').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="background:#F9FAFB;border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">基礎代謝率 BMR</div>
+          <div style="font-size:1.9rem;font-weight:800;color:var(--text)">${bmr}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">kcal / 天</div>
+        </div>
+        <div style="background:var(--green-light);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">每日總消耗 TDEE</div>
+          <div style="font-size:1.9rem;font-weight:800;color:var(--green)">${tdee}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">kcal / 天</div>
+        </div>
+      </div>
+      <div style="font-size:0.74rem;color:var(--muted);background:#F9FAFB;border-radius:10px;padding:10px;line-height:1.7">
+        <strong>Mifflin-St Jeor 公式</strong>（臨床最準確非侵入式公式）<br>
+        活動係數 ×${activity}（${actLabel}）
+      </div>
+    `;
+  }
+
+  if (macroCard) {
+    macroCard.style.display = 'block';
+    const modeInfo = {
+      loss:     { label: '減重 · TDEE − 500 kcal',     proteinRatio: '1.8g/kg', fatRatio: '1.0g/kg' },
+      maintain: { label: '維持 · 等熱量飲食',           proteinRatio: '1.4g/kg', fatRatio: '0.9g/kg' },
+      gain:     { label: '增肌 · TDEE + 250 kcal',     proteinRatio: '2.0g/kg', fatRatio: '1.0g/kg' },
+    };
+    const info = modeInfo[currentGoalMode] || modeInfo.maintain;
+
+    document.getElementById('macroRecContent').innerHTML = `
+      <div style="background:var(--green-light);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px">
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px">${info.label}</div>
+        <div style="font-size:2.4rem;font-weight:800;color:var(--green);line-height:1">${macros.calories}</div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">kcal / 天</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+        <div style="text-align:center;background:#F5F3FF;border-radius:10px;padding:10px">
+          <div style="font-size:0.65rem;color:#8B5CF6;font-weight:700;margin-bottom:2px">蛋白質</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#8B5CF6">${macros.protein}g</div>
+          <div style="font-size:0.62rem;color:var(--muted)">${info.proteinRatio}</div>
+        </div>
+        <div style="text-align:center;background:#ECFEFF;border-radius:10px;padding:10px">
+          <div style="font-size:0.65rem;color:#06B6D4;font-weight:700;margin-bottom:2px">碳水</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#06B6D4">${macros.carbs}g</div>
+          <div style="font-size:0.62rem;color:var(--muted)">剩餘熱量</div>
+        </div>
+        <div style="text-align:center;background:#FEFCE8;border-radius:10px;padding:10px">
+          <div style="font-size:0.65rem;color:#EAB308;font-weight:700;margin-bottom:2px">脂肪</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#EAB308">${macros.fat}g</div>
+          <div style="font-size:0.62rem;color:var(--muted)">${info.fatRatio}</div>
+        </div>
+        <div style="text-align:center;background:var(--blue-light);border-radius:10px;padding:10px">
+          <div style="font-size:0.65rem;color:var(--blue);font-weight:700;margin-bottom:2px">飲水</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--blue)">${macros.water}ml</div>
+          <div style="font-size:0.62rem;color:var(--muted)">35ml/kg</div>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('sCalorie').value = macros.calories;
+  document.getElementById('sProtein').value = macros.protein;
+  document.getElementById('sCarbs').value   = macros.carbs;
+  document.getElementById('sFat').value     = macros.fat;
+  document.getElementById('sWater').value   = macros.water;
+}
+
+function applyRecommended() {
+  liveCalcTDEE();
+  showToast('✅ 已套用建議值，記得儲存！');
+  const adj = document.getElementById('manualAdj');
+  if (adj && adj.style.display === 'none') toggleManualAdj();
+}
+
+function toggleManualAdj() {
+  const adj = document.getElementById('manualAdj');
+  const ch  = document.getElementById('adjChevron');
+  if (!adj) return;
+  const isOpen = adj.style.display !== 'none';
+  adj.style.display = isOpen ? 'none' : 'block';
+  if (ch) ch.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
 function renderSettings() {
   const s = DB.getSettings();
-  document.getElementById('sCalorie').value = s.calorie_goal;
-  document.getElementById('sProtein').value = s.protein_goal;
-  document.getElementById('sCarbs').value   = s.carbs_goal;
-  document.getElementById('sFat').value     = s.fat_goal;
-  document.getElementById('sWater').value   = s.water_goal;
+
+  currentGender   = s.gender    || 'male';
+  currentGoalMode = s.goal_mode || 'loss';
+
+  document.getElementById('genderMale').classList.toggle('active', currentGender === 'male');
+  document.getElementById('genderFemale').classList.toggle('active', currentGender === 'female');
+
+  if (s.age)    document.getElementById('sAge').value    = s.age;
+  if (s.height) document.getElementById('sHeight').value = s.height;
+
+  const weights      = DB.getWeights();
+  const latestWeight = weights.length > 0 ? weights[0].weight : (s.weight || null);
+  if (latestWeight)  document.getElementById('sWeight').value = latestWeight;
+
+  document.getElementById('sActivity').value = s.activity_level || 1.55;
+
+  document.querySelectorAll('.goal-mode-card').forEach(el => {
+    const isActive = el.dataset.mode === currentGoalMode;
+    el.classList.toggle('active', isActive);
+    const checkEl = el.querySelector('.mode-check');
+    if (checkEl) {
+      checkEl.innerHTML = isActive
+        ? '<i class="bi bi-check-circle-fill" style="color:var(--green);font-size:1.1rem"></i>'
+        : '<i class="bi bi-circle" style="color:var(--border);font-size:1.1rem"></i>';
+    }
+  });
+
+  document.getElementById('sCalorie').value = s.calorie_goal || 2000;
+  document.getElementById('sProtein').value = s.protein_goal || 150;
+  document.getElementById('sCarbs').value   = s.carbs_goal   || 225;
+  document.getElementById('sFat').value     = s.fat_goal     || 65;
+  document.getElementById('sWater').value   = s.water_goal   || 2000;
+
+  liveCalcTDEE();
 }
 
 function saveSettings() {
+  const age      = parseFloat(document.getElementById('sAge').value)      || null;
+  const height   = parseFloat(document.getElementById('sHeight').value)   || null;
+  const weight   = parseFloat(document.getElementById('sWeight').value)   || null;
+  const activity = parseFloat(document.getElementById('sActivity').value) || 1.55;
+
   DB.saveSettings({
+    gender:       currentGender,
+    age, height, weight,
+    activity_level: activity,
+    goal_mode:    currentGoalMode,
     calorie_goal: parseFloat(document.getElementById('sCalorie').value) || 2000,
     protein_goal: parseFloat(document.getElementById('sProtein').value) || 150,
-    carbs_goal:   parseFloat(document.getElementById('sCarbs').value)   || 250,
+    carbs_goal:   parseFloat(document.getElementById('sCarbs').value)   || 225,
     fat_goal:     parseFloat(document.getElementById('sFat').value)     || 65,
     water_goal:   parseFloat(document.getElementById('sWater').value)   || 2000,
   });
   showToast('✅ 設定已儲存');
 }
 
-function applyPreset(cal, p, c, f) {
-  document.getElementById('sCalorie').value = cal;
-  document.getElementById('sProtein').value = p;
-  document.getElementById('sCarbs').value   = c;
-  document.getElementById('sFat').value     = f;
-  showToast('✅ 已套用，記得儲存！');
-}
-
 // ── Goals ──────────────────────────────────────────────────────────────────────
 
 function renderGoals() {
   const g = DB.getGoals();
-  if (g.height)        document.getElementById('gHeight').value       = g.height;
+  const s = DB.getSettings();
+
   if (g.start_weight)  document.getElementById('gStartWeight').value  = g.start_weight;
   if (g.target_weight) document.getElementById('gTargetWeight').value = g.target_weight;
   if (g.target_date)   document.getElementById('gTargetDate').value   = g.target_date;
 
+  const weights         = DB.getWeights();
+  const latestWeight    = weights.length > 0 ? weights[0].weight : (s.weight || null);
+  const profileComplete = !!(s.age && s.height && latestWeight);
+
+  const noticeEl = document.getElementById('goalProfileNotice');
+  if (noticeEl) noticeEl.style.display = profileComplete ? 'none' : 'block';
+
   if (g.start_weight && g.target_weight) {
-    const weights   = DB.getWeights();
-    const currentWt = weights.length > 0 ? weights[0].weight : g.start_weight;
+    const currentWt = latestWeight || g.start_weight;
     _renderGoalProgress(g, currentWt);
-    if (g.height) _renderGoalBMI(g, currentWt);
-    _renderGoalEstimate(g, currentWt);
+
+    let bmr = null, tdee = null;
+    if (profileComplete) {
+      bmr  = calcBMR(s.gender || 'male', s.age, s.height, latestWeight);
+      tdee = calcTDEE(bmr, s.activity_level || 1.55);
+    }
+
+    const height = s.height || g.height || null;
+    if (height) _renderGoalBMI(g, currentWt, height);
+
+    _renderGoalEstimate(g, currentWt, tdee, profileComplete, bmr, s);
   }
 }
 
 function saveGoals() {
-  const height       = parseFloat(document.getElementById('gHeight').value);
   const startWeight  = parseFloat(document.getElementById('gStartWeight').value);
   const targetWeight = parseFloat(document.getElementById('gTargetWeight').value);
   const targetDate   = document.getElementById('gTargetDate').value;
   if (!startWeight || !targetWeight) { showToast('請填寫起始體重和目標體重'); return; }
   if (startWeight === targetWeight)  { showToast('起始體重和目標體重不能相同'); return; }
-  DB.saveGoals({ height: height || null, start_weight: startWeight, target_weight: targetWeight, target_date: targetDate || null });
+  DB.saveGoals({ start_weight: startWeight, target_weight: targetWeight, target_date: targetDate || null });
   showToast('✅ 目標已儲存');
   renderGoals();
 }
@@ -788,25 +991,18 @@ function _renderGoalProgress(g, currentWt) {
   `;
 }
 
-function _renderGoalBMI(g, currentWt) {
-  const h   = g.height / 100;
+function _renderGoalBMI(g, currentWt, height) {
+  const h   = height / 100;
   const cur = (currentWt / (h * h)).toFixed(1);
   const tgt = (g.target_weight / (h * h)).toFixed(1);
 
-  const bmiInfo = bmi => {
-    if (bmi < 18.5) return ['體重過輕', '#3B82F6', '#DBEAFE'];
-    if (bmi < 24)   return ['健康體重', '#22C55E', '#DCFCE7'];
-    if (bmi < 27)   return ['體重過重', '#F97316', '#FFF7ED'];
-    return               ['肥胖',     '#EF4444', '#FEF2F2'];
-  };
-
-  const [cL, cC, cBg] = bmiInfo(parseFloat(cur));
-  const [tL, tC, tBg] = bmiInfo(parseFloat(tgt));
+  const [cL, cC, cBg, cTip] = getBMIInfo(parseFloat(cur));
+  const [tL, tC, tBg, tTip] = getBMIInfo(parseFloat(tgt));
 
   const card = document.getElementById('goalBMICard');
   card.style.display = 'block';
   document.getElementById('goalBMIContent').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div style="background:${cBg};border-radius:12px;padding:16px;text-align:center">
         <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px">目前 BMI</div>
         <div style="font-size:2.2rem;font-weight:800;color:${cC};line-height:1">${cur}</div>
@@ -818,11 +1014,15 @@ function _renderGoalBMI(g, currentWt) {
         <div style="font-size:0.78rem;font-weight:700;color:${tC};margin-top:4px">${tL}</div>
       </div>
     </div>
-    <div style="font-size:0.75rem;color:var(--muted);text-align:center">BMI 健康範圍：18.5 – 24.0</div>
+    <div style="background:#F9FAFB;border-radius:10px;padding:12px;font-size:0.78rem;color:var(--text-2);line-height:1.8">
+      <strong style="color:${cC}">目前：</strong>${cTip}<br>
+      <strong style="color:${tC}">目標：</strong>${tTip}<br>
+      <span style="font-size:0.7rem;color:var(--muted)">BMI 健康範圍 18.5–24.0（衛福部國健署標準）</span>
+    </div>
   `;
 }
 
-function _renderGoalEstimate(g, currentWt) {
+function _renderGoalEstimate(g, currentWt, tdee, profileComplete, bmr, s) {
   const isLosing  = g.target_weight < g.start_weight;
   const remaining = Math.abs(currentWt - g.target_weight);
   const done      = isLosing ? currentWt <= g.target_weight : currentWt >= g.target_weight;
@@ -830,17 +1030,34 @@ function _renderGoalEstimate(g, currentWt) {
   const card = document.getElementById('goalEstimateCard');
   card.style.display = 'block';
 
-  const settings = DB.getSettings();
-  const tdee     = settings.calorie_goal;
-
-  // Average calories over last 7 days (skip days with 0)
   const recentDates = dateRange(7);
   const recentSums  = recentDates.map(d => getSummary(d).calories).filter(c => c > 0);
   const avgCal      = recentSums.length > 0 ? recentSums.reduce((a, b) => a + b, 0) / recentSums.length : 0;
 
   let html = '';
 
-  // Countdown to target date
+  if (profileComplete && tdee && bmr) {
+    const macros = calcMacros(s.goal_mode || 'loss', tdee, currentWt, s.gender || 'male');
+    html += `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:#F9FAFB;border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:2px">基礎代謝 BMR</div>
+          <div style="font-size:1.5rem;font-weight:800">${bmr}</div>
+          <div style="font-size:0.68rem;color:var(--muted)">kcal / 天</div>
+        </div>
+        <div style="background:var(--green-light);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:2px">每日消耗 TDEE</div>
+          <div style="font-size:1.5rem;font-weight:800;color:var(--green)">${tdee}</div>
+          <div style="font-size:0.68rem;color:var(--muted)">kcal / 天</div>
+        </div>
+      </div>
+      <div style="background:var(--green-light);border-radius:10px;padding:12px;font-size:0.82rem;margin-bottom:14px;line-height:1.8">
+        建議每日攝取：<strong style="color:var(--green);font-size:1rem">${macros.calories} kcal</strong><br>
+        <span style="font-size:0.73rem;color:var(--muted)">蛋白 ${macros.protein}g · 碳水 ${macros.carbs}g · 脂肪 ${macros.fat}g · 水 ${macros.water}ml</span>
+      </div>
+    `;
+  }
+
   if (g.target_date) {
     const today    = new Date();
     const target   = new Date(g.target_date);
@@ -852,7 +1069,7 @@ function _renderGoalEstimate(g, currentWt) {
         <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">天</div>
       </div>
     `;
-    if (!done && daysLeft > 0 && remaining > 0) {
+    if (!done && daysLeft > 0 && remaining > 0 && tdee) {
       const kgPerDay  = remaining / daysLeft;
       const calPerDay = kgPerDay * 7700;
       const needCal   = isLosing ? Math.round(tdee - calPerDay) : Math.round(tdee + calPerDay);
@@ -865,15 +1082,17 @@ function _renderGoalEstimate(g, currentWt) {
     }
   }
 
-  // Estimate based on current eating habits
   if (done) {
     html += `<div style="text-align:center;padding:14px;background:var(--green-light);border-radius:12px;color:var(--green);font-weight:700">🎉 已達成目標！繼續保持！</div>`;
   } else if (avgCal > 0) {
-    const dailyDiff = isLosing ? (tdee - avgCal) : (avgCal - tdee);
-    html += `<div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">依過去 ${recentSums.length} 天飲食習慣推算</div>`;
+    const refTDEE   = tdee || (s && s.calorie_goal) || 2000;
+    const dailyDiff = isLosing ? (refTDEE - avgCal) : (avgCal - refTDEE);
+    const basis     = profileComplete ? `真實 TDEE ${refTDEE} kcal` : `目標攝取量 ${refTDEE} kcal`;
+    html += `<div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">依過去 ${recentSums.length} 天飲食紀錄推算（基準：${basis}）</div>`;
+
     if (dailyDiff > 50) {
-      const daysToGoal = Math.round(remaining * 7700 / dailyDiff);
-      const goalDate   = new Date();
+      const daysToGoal  = Math.round(remaining * 7700 / dailyDiff);
+      const goalDate    = new Date();
       goalDate.setDate(goalDate.getDate() + daysToGoal);
       const goalDateStr = goalDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
       html += `
@@ -887,7 +1106,7 @@ function _renderGoalEstimate(g, currentWt) {
     } else if (dailyDiff <= 0) {
       html += `
         <div style="background:#FEF2F2;border-radius:12px;padding:14px;font-size:0.84rem;line-height:1.9;color:#EF4444">
-          ⚠️ 目前攝取量 (${Math.round(avgCal)} kcal) ${isLosing ? '≥ 目標卡路里，無法製造缺口' : '低於目標，無法增重'}<br>
+          ⚠️ 目前攝取量（${Math.round(avgCal)} kcal）${isLosing ? '≥ 基準值，無法產生熱量缺口' : '低於基準值，無法增重'}<br>
           <span style="font-size:0.78rem">請${isLosing ? '減少' : '增加'}每日攝取量</span>
         </div>
       `;
@@ -911,7 +1130,6 @@ function _renderGoalEstimate(g, currentWt) {
 document.addEventListener('DOMContentLoaded', () => {
   navigate('dashboard');
 
-  // Food search with debounce
   let timer;
   const si = document.getElementById('foodSearch');
   if (si) {
@@ -921,12 +1139,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Meal chips
   document.querySelectorAll('.chip[data-meal]').forEach(chip => {
     chip.addEventListener('click', () => setActiveMeal(chip.dataset.meal));
   });
 
-  // Close search results on outside click
   document.addEventListener('click', e => {
     const s = document.getElementById('foodSearch');
     const r = document.getElementById('searchResults');
@@ -935,17 +1151,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Period tabs for trends
   document.querySelectorAll('.period-tab').forEach(tab => {
     tab.addEventListener('click', () => renderTrends(parseInt(tab.dataset.days)));
   });
 
-  // BMI inputs
   ['heightInput','bmiWeight'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', calcBMI);
   });
 
-  // Modal backdrop
   ['foodModal','manualModal'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', function(e) {
       if (e.target === this) {
