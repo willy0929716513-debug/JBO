@@ -8,3 +8,8 @@ __pycache__/
 .eggs/
 dist/
 build/
+
+# Runtime database
+instance/
+*.db
+*.sqlite
