@@ -1430,9 +1430,9 @@ async function analyzePhoto() {
         { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
         { text:
           '請分析這張食物照片，識別所有可見食物並估算熱量與三大營養素。\n' +
-          '請只回傳 JSON，格式如下（不要其他文字）：\n' +
-          '{"foods":[{"name":"食物名稱（繁體中文）","amount":100,"unit":"g","calories":150,"protein":5.0,"carbs":20.0,"fat":3.0}]}\n' +
-          '請使用台灣常見食物的真實營養數據，amount 為目視估算份量。'
+          '重要：只能回傳純 JSON，不可加任何說明文字，不可用 markdown 或 ```json 包裹。\n' +
+          '格式範例：{"foods":[{"name":"滷肉飯","amount":200,"unit":"g","calories":320,"protein":12.0,"carbs":45.0,"fat":10.0}]}\n' +
+          '請用繁體中文食物名稱，amount 為目視估算份量（公克），使用台灣常見食物的真實營養數據。'
         }
       ]
     }],
@@ -1456,9 +1456,12 @@ async function analyzePhoto() {
 
     const data    = await resp.json();
     const text    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const jsonStr = text.match(/\{[\s\S]*\}/)?.[0];
+    const jsonStr = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)?.[1]
+                 || text.match(/\{[\s\S]*\}/)?.[0];
     if (!jsonStr) throw new Error('無法解析 AI 回應，請重試');
-    const parsed  = JSON.parse(jsonStr);
+    let parsed;
+    try { parsed = JSON.parse(jsonStr); }
+    catch { throw new Error('AI 回應格式錯誤，請重試'); }
     scanResults   = (parsed.foods || []).filter(f => f.name && f.calories > 0);
     if (!scanResults.length) throw new Error('未偵測到食物，請換張照片');
     renderScanResults();
