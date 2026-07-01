@@ -838,7 +838,7 @@ function navigate(page) {
   if (el) el.classList.add('active');
 
   if (page !== 'trends') {
-    ['tCalChart','tWaterChart','tMacroChart','tWeightChart'].forEach(k => {
+    ['tCalChart','tWaterChart','tMacroChart','tWeightChart','tWeeklyChart'].forEach(k => {
       if (charts[k]) { charts[k].destroy(); delete charts[k]; }
     });
   }
@@ -904,7 +904,17 @@ function renderDashboard() {
   if (wtxt) wtxt.textContent = `${Math.round(sum.water)} / ${settings.water_goal} ml`;
 
   const mealsEl = document.getElementById('dash-meals');
-  if (mealsEl) mealsEl.innerHTML = renderMealsHTML(meals, false);
+  if (mealsEl) {
+    const totalItems = Object.values(meals).reduce((s, a) => s + a.length, 0);
+    const emptyBanner = totalItems === 0
+      ? `<div style="text-align:center;padding:20px 0 12px">
+           <div style="font-size:2rem;margin-bottom:6px">🌱</div>
+           <div style="font-weight:700;font-size:0.9rem;color:var(--text);margin-bottom:4px">開始記錄今天的飲食吧！</div>
+           <div style="font-size:0.78rem;color:var(--muted)">點「新增飲食」或前往飲食頁面開始追蹤</div>
+         </div>`
+      : '';
+    mealsEl.innerHTML = emptyBanner + renderMealsHTML(meals, false);
+  }
 
   const wt    = DB.getWeights().find(w => w.date === today);
   const wtCard = document.getElementById('dash-weight');
@@ -940,7 +950,7 @@ function renderMealsHTML(meals, showActions) {
             <div class="food-dot" style="background:${m.color}"></div>
             <div class="food-info">
               <div class="food-name-text">${esc(f.food_name)}</div>
-              <div class="food-meta">${esc(f.amount)}${esc(f.unit)} · P ${Math.round(f.protein)}g · C ${Math.round(f.carbs)}g · F ${Math.round(f.fat)}g</div>
+              <div class="food-meta">${esc(f.amount)}${esc(f.unit)} · P ${Math.round(f.protein)}g${f.calories>0?'('+Math.round(f.protein*4/f.calories*100)+'%)':''} · C ${Math.round(f.carbs)}g${f.calories>0?'('+Math.round(f.carbs*4/f.calories*100)+'%)':''} · F ${Math.round(f.fat)}g${f.calories>0?'('+Math.round(f.fat*9/f.calories*100)+'%)':''}</div>
             </div>
             <div class="food-cal">${Math.round(f.calories)}</div>
             ${showActions ? `<button class="del-btn" onclick="deleteFoodItem('${esc(f.id)}')"><i class="bi bi-trash3"></i></button>` : ''}
@@ -989,6 +999,17 @@ function setActiveMeal(mt) {
   if (si) si.focus();
 }
 
+function boldMatch(text, q) {
+  if (!q) return esc(text);
+  const idx = text.indexOf(q);
+  if (idx >= 0) {
+    return esc(text.slice(0, idx)) +
+      '<strong style="color:var(--green)">' + esc(text.slice(idx, idx + q.length)) + '</strong>' +
+      esc(text.slice(idx + q.length));
+  }
+  return esc(text);
+}
+
 function doSearch(q) {
   q = q.trim();
   const box   = document.getElementById('searchResults');
@@ -1007,7 +1028,6 @@ function doSearch(q) {
 
   if (!searchCache.length) { box.classList.remove('show'); return; }
 
-  // Position fixed relative to the input element (avoids overflow:hidden clipping)
   const rect = input.getBoundingClientRect();
   box.style.top   = (rect.bottom + 6) + 'px';
   box.style.left  = rect.left + 'px';
@@ -1016,7 +1036,7 @@ function doSearch(q) {
   box.innerHTML = searchCache.map((f, i) => `
     <div class="result-item" onclick="selectFoodByIdx(${i})">
       <div>
-        <div class="result-name">${esc(f.name)}</div>
+        <div class="result-name">${boldMatch(f.name, q)}</div>
         <div class="result-info">蛋白 ${f.protein}g · 碳水 ${f.carbs}g · 脂肪 ${f.fat}g <span style="font-size:0.7rem">/100g</span></div>
       </div>
       <div class="result-cal">${f.calories} kcal</div>
@@ -1050,7 +1070,8 @@ function closeModal() {
 
 function confirmAddFood() {
   if (!selectedFood) return;
-  const amt = parseFloat(document.getElementById('modalAmt').value) || 100;
+  const amt = parseFloat(document.getElementById('modalAmt').value);
+  if (!amt || amt <= 0) { showToast('請輸入有效份量（大於 0）'); return; }
   const r   = amt / 100;
   DB.addFood({
     date: todayStr(), meal_type: activeMeal,
@@ -1319,6 +1340,7 @@ function addWater(ml) {
 
 function addCustomWater() {
   const ml = parseInt(document.getElementById('customWaterAmt').value);
+  if (!ml || ml <= 0 || isNaN(ml)) { showToast('請輸入有效水量'); return; }
   addWater(ml);
   document.getElementById('customWaterAmt').value = '';
 }
@@ -1360,7 +1382,49 @@ function renderExercise() {
 
   renderExerciseQuick();
   renderExerciseList(exes);
+  renderExerciseWeeklySummary();
   updateExCalPreview();
+}
+
+function renderExerciseWeeklySummary() {
+  const el = document.getElementById('ex-weekly-summary');
+  if (!el) return;
+  const weekDates  = getWeekDates();
+  const today      = todayStr();
+  const pastDates  = weekDates.filter(d => d <= today);
+  const allExes    = DB.getExercises().filter(e => pastDates.includes(e.date) && !e.is_rest_day);
+  const restDays   = DB.getExercises().filter(e => pastDates.includes(e.date) && e.is_rest_day);
+  const totalCal   = allExes.reduce((s, e) => s + e.calories_burned, 0);
+  const totalMin   = allExes.reduce((s, e) => s + e.duration, 0);
+  const activeDays = new Set(allExes.map(e => e.date)).size;
+  const WHO_TARGET = 150;
+  const whoPct     = Math.min((totalMin / WHO_TARGET) * 100, 100);
+  el.innerHTML = `
+    <div style="font-size:0.8rem;font-weight:700;color:var(--text);margin-bottom:8px">📅 本週運動總覽</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="text-align:center;background:var(--orange-light);border-radius:10px;padding:10px">
+        <div style="font-size:1.2rem;font-weight:800;color:var(--orange)">${Math.round(totalCal)}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">消耗 kcal</div>
+      </div>
+      <div style="text-align:center;background:#FFF7ED;border-radius:10px;padding:10px">
+        <div style="font-size:1.2rem;font-weight:800;color:var(--orange)">${totalMin}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">總分鐘</div>
+      </div>
+      <div style="text-align:center;background:${activeDays >= 3 ? 'var(--green-light)' : '#FFF7ED'};border-radius:10px;padding:10px">
+        <div style="font-size:1.2rem;font-weight:800;color:${activeDays >= 3 ? 'var(--green)' : 'var(--orange)'}">${activeDays}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">運動天${restDays.length ? ` (+${restDays.length}休)` : ''}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:4px">
+      <div style="display:flex;justify-content:space-between;font-size:0.72rem;margin-bottom:4px">
+        <span style="color:var(--muted)">WHO 建議每週 150 分鐘</span>
+        <span style="font-weight:700;color:${whoPct >= 100 ? 'var(--green)' : 'var(--orange)'}">${totalMin} / 150 分</span>
+      </div>
+      <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+        <div style="height:100%;background:${whoPct >= 100 ? 'var(--green)' : 'var(--orange)'};border-radius:4px;width:${whoPct}%;transition:width 0.5s"></div>
+      </div>
+      ${whoPct >= 100 ? '<div style="font-size:0.72rem;color:var(--green);margin-top:4px;text-align:center">🎉 本週已達成 WHO 建議標準！</div>' : ''}
+    </div>`;
 }
 
 function renderExerciseQuick() {
@@ -1493,8 +1557,19 @@ function renderExerciseList(exes) {
     listEl.innerHTML = '<div class="empty-state"><i class="bi bi-bicycle" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:6px"></i>今日尚無運動記錄</div>';
     return;
   }
-  const totalCal = exes.reduce((s, e) => s + e.calories_burned, 0);
-  listEl.innerHTML = [...exes].reverse().map(e => `
+  const totalCal = exes.filter(e => !e.is_rest_day).reduce((s, e) => s + e.calories_burned, 0);
+  listEl.innerHTML = [...exes].reverse().map(e => {
+    if (e.is_rest_day) return `
+      <div class="exercise-item" id="ei-${esc(e.id)}" style="background:#F9FAFB">
+        <div style="font-size:1.6rem;flex-shrink:0">😴</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:0.88rem;color:var(--muted)">休息日</div>
+          <div style="font-size:0.72rem;color:var(--muted)">主動恢復 · 肌肉修復</div>
+        </div>
+        <div style="font-size:0.8rem;color:var(--muted);flex-shrink:0">休息中</div>
+        <button class="del-btn" onclick="deleteExerciseItem('${esc(e.id)}')"><i class="bi bi-trash3"></i></button>
+      </div>`;
+    return `
     <div class="exercise-item" id="ei-${esc(e.id)}">
       <div style="font-size:1.6rem;flex-shrink:0">${e.icon || '💪'}</div>
       <div style="flex:1;min-width:0">
@@ -1503,7 +1578,8 @@ function renderExerciseList(exes) {
       </div>
       <div style="font-weight:800;color:var(--orange);font-size:0.95rem;flex-shrink:0">-${Math.round(e.calories_burned)} kcal</div>
       <button class="del-btn" onclick="deleteExerciseItem('${esc(e.id)}')"><i class="bi bi-trash3"></i></button>
-    </div>`).join('') +
+    </div>`;
+  }).join('') +
     `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:0.85rem">
       <span style="color:var(--muted)">今日共消耗</span>
       <span style="font-weight:800;color:var(--orange)">-${Math.round(totalCal)} kcal</span>
@@ -1535,16 +1611,24 @@ function renderWeight() {
     if (!weights.length) {
       listEl.innerHTML = '<div class="empty-state"><i class="bi bi-speedometer2" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:6px"></i>還沒有體重記錄</div>';
     } else {
-      listEl.innerHTML = weights.slice(0, 30).map(w => `
+      const list30 = weights.slice(0, 30);
+      listEl.innerHTML = list30.map((w, i) => {
+        const prev  = list30[i + 1];
+        const diff  = prev ? +(w.weight - prev.weight).toFixed(1) : null;
+        const deltaHtml = diff !== null
+          ? `<span style="font-size:0.7rem;font-weight:700;margin-left:4px;color:${diff < 0 ? 'var(--green)' : diff > 0 ? '#EF4444' : 'var(--muted)'}">${diff < 0 ? '↓' : diff > 0 ? '↑' : '→'} ${Math.abs(diff).toFixed(1)}</span>`
+          : '';
+        return `
         <div class="weight-item" id="wt-${esc(w.id)}">
           <i class="bi bi-calendar3" style="color:var(--muted);font-size:0.9rem"></i>
           <div>
             <div style="font-size:0.8rem;font-weight:600">${w.date}</div>
             ${w.notes ? `<div style="font-size:0.72rem;color:var(--muted)">${esc(w.notes)}</div>` : ''}
           </div>
-          <div class="weight-item-val">${w.weight} kg</div>
+          <div class="weight-item-val">${w.weight} kg${deltaHtml}</div>
           <button class="del-btn" onclick="deleteWeightItem('${esc(w.id)}')"><i class="bi bi-trash3"></i></button>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
   }
 
@@ -1560,8 +1644,16 @@ function submitWeight() {
   const w = parseFloat(document.getElementById('weightInput').value);
   if (!w || w < 20 || w > 300) { showToast('請輸入有效體重（20-300 kg）'); return; }
   const notes = document.getElementById('weightNotes')?.value || '';
+  const prev  = DB.getWeights().find(p => p.date < todayStr());
   DB.upsertWeight(todayStr(), w, notes);
-  showToast('✅ 體重已記錄');
+  if (prev) {
+    const diff = +(w - prev.weight).toFixed(1);
+    if (diff === 0)       showToast(`✅ 體重已記錄（與上次相同 ${w} kg）`);
+    else if (diff < 0)    showToast(`✅ 體重已記錄 ↓ ${Math.abs(diff)} kg`);
+    else                  showToast(`✅ 體重已記錄 ↑ ${diff} kg`);
+  } else {
+    showToast('✅ 體重已記錄');
+  }
   renderWeight();
 }
 
@@ -1593,9 +1685,210 @@ function renderWeightHistChart(labels, data) {
   charts.wHistChart = mkLineChart(ctx, labels, data, '#EC4899');
 }
 
+// ── Weekly Analysis ───────────────────────────────────────────────────────────
+
+function getWeekDates() {
+  const today = new Date();
+  const dow   = today.getUTCDay(); // 0=Sun … 6=Sat
+  const diff  = (dow === 0) ? 6 : dow - 1; // days since Monday
+  const mon   = new Date(today);
+  mon.setUTCDate(today.getUTCDate() - diff);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(mon);
+    d.setUTCDate(mon.getUTCDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+}
+
+function renderWeeklyAnalysis() {
+  const container = document.getElementById('weeklyStatsContent');
+  if (!container) return;
+
+  const weekDates = getWeekDates();
+  const today     = todayStr();
+  const sums      = weekDates.map(d => ({ date: d, ...getSummary(d) }));
+
+  // TDEE: Mifflin-St Jeor if full profile, else calorie_goal
+  const s = DB.getSettings();
+  let tdee = s.calorie_goal || 2000;
+  const w  = DB.getWeights().sort((a, b) => b.date.localeCompare(a.date));
+  const latestWeight = w.length ? w[0].weight : s.weight;
+  if (s.age && s.height && latestWeight) {
+    const bmr = calcBMR(s.gender || 'male', s.age, s.height, latestWeight);
+    tdee = calcTDEE(bmr, s.activity_level || 1.55);
+  }
+
+  // Per-day net calories (food - exercise_burned) for days up to today
+  const pastDays = sums.filter(d => d.date <= today);
+  const daysWithData = pastDays.filter(d => d.calories > 0 || d.exercise_burned > 0);
+
+  let totalFoodCal   = 0;
+  let totalBurnedCal = 0;
+  let totalDeficit   = 0;
+
+  daysWithData.forEach(d => {
+    const netCal = d.calories - (d.exercise_burned || 0);
+    totalFoodCal   += d.calories;
+    totalBurnedCal += d.exercise_burned || 0;
+    totalDeficit   += (tdee - netCal);
+  });
+
+  const recordedDays   = daysWithData.length;
+  const remainingDays  = weekDates.filter(d => d > today).length;
+  // fat change so far (positive = loss, negative = gain)
+  const fatChangeSoFar = totalDeficit / 7700;
+  const avgNetCal      = recordedDays > 0 ? (totalFoodCal - totalBurnedCal) / recordedDays : tdee;
+  // project remaining days at current average rate
+  const projectedAdditionalDeficit = (tdee - avgNetCal) * remainingDays;
+  const projectedWeeklyFatChange   = (totalDeficit + projectedAdditionalDeficit) / 7700;
+
+  // Build chart
+  if (charts.tWeeklyChart) { charts.tWeeklyChart.destroy(); delete charts.tWeeklyChart; }
+  const c = mkWeeklyChart(weekDates, sums, tdee, today);
+  if (c) charts.tWeeklyChart = c;
+
+  const DAY_NAMES = ['一', '二', '三', '四', '五', '六', '日'];
+  // find best day: highest positive deficit among recorded days
+  let bestDeficit = -Infinity, bestDayIdx = -1;
+  sums.forEach((sum, i) => {
+    if (weekDates[i] > today) return;
+    const hasData = sum.calories > 0 || (sum.exercise_burned || 0) > 0;
+    if (!hasData) return;
+    const netCal = sum.calories - (sum.exercise_burned || 0);
+    const deficit = tdee - netCal;
+    if (deficit > bestDeficit) { bestDeficit = deficit; bestDayIdx = i; }
+  });
+
+  const rowsHtml = weekDates.map((d, i) => {
+    const sum    = sums[i];
+    const netCal = sum.calories - (sum.exercise_burned || 0);
+    const isToday  = d === today;
+    const isFuture = d > today;
+    const hasData  = sum.calories > 0 || (sum.exercise_burned || 0) > 0;
+    const deficit  = hasData ? (tdee - netCal) : null;
+    const isBest   = i === bestDayIdx && bestDeficit > 0;
+
+    let defLabel = '—';
+    let defColor = 'var(--muted)';
+    if (deficit !== null) {
+      if (deficit > 0) { defLabel = `−${Math.round(deficit)}`; defColor = 'var(--green)'; }
+      else             { defLabel = `+${Math.round(-deficit)}`; defColor = '#EF4444'; }
+    }
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);${isToday ? 'font-weight:700' : ''}">
+      <span style="width:20px;text-align:center;font-size:0.8rem;color:${isToday ? 'var(--primary)' : 'var(--muted)'}">${DAY_NAMES[i]}</span>
+      <span style="flex:1;font-size:0.82rem;color:${isFuture ? 'var(--muted)' : 'var(--text)'}">${isFuture ? '尚未記錄' : (hasData ? `攝取 ${Math.round(sum.calories)} kcal${(sum.exercise_burned||0)>0?' · 運動 −'+Math.round(sum.exercise_burned)+' kcal':''}` : '無紀錄')}</span>
+      ${isBest ? '<span style="font-size:0.62rem;background:var(--green);color:white;border-radius:6px;padding:1px 5px;flex-shrink:0">🏅最佳</span>' : ''}
+      <span style="font-size:0.82rem;font-weight:600;color:${defColor}">${defLabel} kcal</span>
+    </div>`;
+  }).join('');
+
+  const changeSign  = projectedWeeklyFatChange >= 0 ? '−' : '+';
+  const changeColor = projectedWeeklyFatChange >= 0 ? 'var(--green)' : '#EF4444';
+  const changeAbs   = Math.abs(projectedWeeklyFatChange);
+  const changeLabel = projectedWeeklyFatChange >= 0 ? '預估減重' : '預估增重';
+
+  const tdeeSource = (s.age && s.height && latestWeight)
+    ? `Mifflin-St Jeor BMR × 活動係數 ${s.activity_level || 1.55}`
+    : `目標攝取設定值`;
+
+  container.innerHTML = `
+    <div style="margin-bottom:4px">${rowsHtml}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+      <div style="background:var(--green-light);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">本週累計熱量差</div>
+        <div style="font-size:1.6rem;font-weight:800;color:${totalDeficit>=0?'var(--green)':'#EF4444'}">${totalDeficit>=0?'−':'+'}${Math.round(Math.abs(totalDeficit))}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">kcal（${recordedDays} 天實際）</div>
+      </div>
+      <div style="background:#FEF3C7;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">${changeLabel}（本週預估）</div>
+        <div style="font-size:1.6rem;font-weight:800;color:${changeColor}">${changeSign}${changeAbs.toFixed(2)} kg</div>
+        <div style="font-size:0.7rem;color:var(--muted)">7,700 kcal = 1 kg 體脂</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:0.72rem;color:var(--muted);background:#F9FAFB;border-radius:8px;padding:8px;line-height:1.7">
+      📐 公式依據：Mifflin-St Jeor (1990) 基礎代謝 × 活動係數 = TDEE；每日赤字 = TDEE − 淨攝取（食物 − 運動消耗）；體重變化 = 每週赤字 ÷ 7,700 kcal/kg（Hall et al., The Lancet 2012）<br>
+      TDEE 來源：${tdeeSource}＝<strong>${tdee} kcal/天</strong>
+    </div>`;
+}
+
+function mkWeeklyChart(weekDates, sums, tdee, today) {
+  const ctx = document.getElementById('tWeeklyChart')?.getContext('2d');
+  if (!ctx) return null;
+
+  const DAY_LABELS = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+  const netCals = sums.map((s, i) => {
+    if (weekDates[i] > today && s.calories === 0) return null;
+    if (s.calories === 0 && (s.exercise_burned || 0) === 0) return null;
+    return Math.round(s.calories - (s.exercise_burned || 0));
+  });
+
+  const barColors = netCals.map(v => {
+    if (v === null) return '#E5E7EB';
+    if (v <= tdee * 0.85)    return '#22C55E';
+    if (v <= tdee)            return '#F97316';
+    return '#EF4444';
+  });
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DAY_LABELS,
+      datasets: [
+        {
+          label: '淨攝取 (kcal)',
+          data: netCals,
+          backgroundColor: barColors,
+          borderRadius: 6,
+          order: 2,
+        },
+        {
+          label: `TDEE ${tdee} kcal`,
+          data: Array(7).fill(tdee),
+          type: 'line',
+          borderColor: '#3B82F6',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+          order: 1,
+          tension: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              if (ctx.datasetIndex === 1) return `TDEE: ${tdee} kcal`;
+              const v = ctx.parsed.y;
+              if (v === null) return '無記錄';
+              const diff = tdee - v;
+              const sign = diff > 0 ? '赤字' : '盈餘';
+              return [`淨攝取: ${v} kcal`, `${sign}: ${Math.abs(Math.round(diff))} kcal`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          grid: { color: '#F3F4F6' },
+          ticks: { font: { size: 11 } },
+          min: 0,
+        }
+      }
+    }
+  });
+}
+
 // ── Trends ─────────────────────────────────────────────────────────────────────
 
 function renderTrends(days) {
+  renderWeeklyAnalysis();
   document.querySelectorAll('.period-tab').forEach(t =>
     t.classList.toggle('active', parseInt(t.dataset.days) === days));
 
@@ -2127,6 +2420,98 @@ function _renderGoalEstimate(g, currentWt, tdee, profileComplete, bmr, s) {
   }
 
   document.getElementById('goalEstimateContent').innerHTML = html;
+}
+
+// ── Food: Copy Yesterday ──────────────────────────────────────────────────────
+
+function copyYesterdayMeals() {
+  const today  = todayStr();
+  const yDate  = new Date();
+  yDate.setDate(yDate.getDate() - 1);
+  const yest   = yDate.toISOString().split('T')[0];
+  const yFoods = DB.getFoods().filter(f => f.date === yest);
+  if (!yFoods.length) { showToast('昨天沒有飲食記錄'); return; }
+  const tFoods = DB.getFoods().filter(f => f.date === today);
+  if (tFoods.length && !confirm(`今天已有 ${tFoods.length} 筆記錄，確定要複製昨天的 ${yFoods.length} 項餐點？`)) return;
+  yFoods.forEach(f => {
+    const { id: _id, ...rest } = f;
+    DB.addFood({ ...rest, date: today });
+  });
+  showToast(`✅ 已複製昨天 ${yFoods.length} 項餐點`);
+  renderFoodLog();
+  if (document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
+}
+
+// ── Exercise: Rest Day ────────────────────────────────────────────────────────
+
+function markRestDay() {
+  const today = todayStr();
+  if (DB.getExercises().some(e => e.date === today && e.is_rest_day)) {
+    showToast('今天已標記為休息日');
+    return;
+  }
+  DB.addExercise({ date: today, exercise_name: '休息日', icon: '😴', met: 0, cat: '休息', duration: 0, calories_burned: 0, is_rest_day: true });
+  showToast('😴 已標記為休息日');
+  renderExercise();
+}
+
+// ── Data Export / Import ──────────────────────────────────────────────────────
+
+function exportData() {
+  const data = {
+    version: '2.0',
+    exported: new Date().toISOString(),
+    settings:  DB.getSettings(),
+    goals:     DB.getGoals(),
+    foods:     DB.getFoods(),
+    water:     DB.getWater(),
+    weights:   DB.getWeights(),
+    exercises: DB.getExercises(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `nutrimate-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ 資料已匯出');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.settings && !data.foods) throw new Error('格式不符');
+      const exported = data.exported ? new Date(data.exported).toLocaleString('zh-TW') : '未知時間';
+      if (!confirm(`匯入將覆蓋現有資料。\n備份時間：${exported}\n確定繼續？`)) return;
+      if (data.settings)  DB.saveSettings(data.settings);
+      if (data.goals)     DB.saveGoals(data.goals);
+      if (data.foods)     localStorage.setItem('nm_foods',     JSON.stringify(data.foods));
+      if (data.water)     localStorage.setItem('nm_water',     JSON.stringify(data.water));
+      if (data.weights)   localStorage.setItem('nm_weights',   JSON.stringify(data.weights));
+      if (data.exercises) localStorage.setItem('nm_exercises', JSON.stringify(data.exercises));
+      showToast('✅ 匯入成功！正在重新整理…');
+      setTimeout(() => location.reload(), 1200);
+    } catch (err) {
+      showToast('❌ 匯入失敗：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ── Settings: Auto Water Goal ─────────────────────────────────────────────────
+
+function autoCalcWater() {
+  const w = parseFloat(document.getElementById('sWeight').value);
+  if (!w || w < 20) { showToast('請先輸入體重'); return; }
+  const goal = Math.round(w * 35 / 100) * 100;
+  document.getElementById('sWater').value = goal;
+  showToast(`💧 飲水目標設為 ${goal} ml（${w}kg × 35ml）`);
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
