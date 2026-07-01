@@ -473,6 +473,174 @@ const FOOD_DB = {
   '蕎麥':        { calories: 343, protein: 13.3, carbs: 71.5, fat: 3.4  },
   '大麥':        { calories: 354, protein: 12.5, carbs: 73.5, fat: 2.3  },
   '藜麥':        { calories: 368, protein: 14.1, carbs: 64.2, fat: 6.1  },
+  // ══ 便利商店 ══
+  '御飯糰(鮪魚)':      { calories: 175, protein: 7.0,  carbs: 30.0, fat: 3.0  },
+  '御飯糰(鮭魚)':      { calories: 185, protein: 8.0,  carbs: 30.0, fat: 4.0  },
+  '御飯糰(梅子)':      { calories: 155, protein: 4.0,  carbs: 33.0, fat: 0.5  },
+  '御飯糰(雞肉)':      { calories: 195, protein: 9.0,  carbs: 30.0, fat: 4.5  },
+  '御飯糰(起司蛋)':    { calories: 200, protein: 8.5,  carbs: 31.0, fat: 5.0  },
+  '便利商店便當(雞腿)':{ calories: 280, protein: 15.0, carbs: 38.0, fat: 8.0  },
+  '便利商店便當(排骨)':{ calories: 300, protein: 14.0, carbs: 40.0, fat: 10.0 },
+  '關東煮(綜合)':      { calories: 80,  protein: 5.0,  carbs: 8.0,  fat: 2.0  },
+  '三明治(雞蛋起司)':  { calories: 215, protein: 9.5,  carbs: 27.0, fat: 7.5  },
+  '三明治(火腿起司)':  { calories: 235, protein: 11.0, carbs: 27.0, fat: 9.0  },
+  '鮮食肉包':          { calories: 240, protein: 9.0,  carbs: 36.0, fat: 6.5  },
+  '鮮食豆沙包':        { calories: 270, protein: 7.0,  carbs: 48.0, fat: 6.0  },
+  '鮮食鮮奶饅頭':      { calories: 250, protein: 8.0,  carbs: 47.0, fat: 3.5  },
+  '便利商店涼麵':      { calories: 175, protein: 5.0,  carbs: 30.0, fat: 4.5  },
+  '輕食蔬果沙拉':      { calories: 60,  protein: 2.0,  carbs: 8.0,  fat: 2.0  },
+  '鮮食壽司盒':        { calories: 160, protein: 6.0,  carbs: 30.0, fat: 2.0  },
+  '地瓜(便利商店)':    { calories: 125, protein: 1.5,  carbs: 29.0, fat: 0.1  },
+  '沙拉雞胸肉':        { calories: 110, protein: 23.0, carbs: 1.0,  fat: 1.5  },
+  '燕麥奶':            { calories: 63,  protein: 1.5,  carbs: 12.0, fat: 1.2  },
+  '關東煮(蘿蔔)':      { calories: 25,  protein: 0.7,  carbs: 5.5,  fat: 0.1  },
+  '關東煮(油豆腐)':    { calories: 145, protein: 9.5,  carbs: 5.0,  fat: 10.0 },
+  // ══ 日式料理 ══
+  '握壽司(鮭魚)':      { calories: 160, protein: 8.0,  carbs: 24.0, fat: 4.0  },
+  '握壽司(鮪魚)':      { calories: 155, protein: 10.0, carbs: 23.0, fat: 3.0  },
+  '握壽司(蝦)':        { calories: 145, protein: 8.0,  carbs: 23.0, fat: 2.0  },
+  '握壽司(海膽)':      { calories: 170, protein: 9.0,  carbs: 23.0, fat: 4.5  },
+  '手捲(綜合)':        { calories: 180, protein: 7.0,  carbs: 28.0, fat: 4.5  },
+  '味噌湯':            { calories: 40,  protein: 2.5,  carbs: 4.5,  fat: 1.5  },
+  '豚骨拉麵':          { calories: 430, protein: 18.0, carbs: 58.0, fat: 14.0 },
+  '醬油拉麵':          { calories: 390, protein: 17.0, carbs: 55.0, fat: 11.0 },
+  '味噌拉麵':          { calories: 400, protein: 17.0, carbs: 55.0, fat: 12.0 },
+  '鹽味拉麵':          { calories: 370, protein: 16.0, carbs: 54.0, fat: 10.0 },
+  '炒烏龍':            { calories: 250, protein: 10.0, carbs: 38.0, fat: 6.0  },
+  '天婦羅(綜合)':      { calories: 280, protein: 10.0, carbs: 28.0, fat: 14.0 },
+  '炸豬排(日式)':      { calories: 330, protein: 21.0, carbs: 20.0, fat: 19.0 },
+  '豬排丼':            { calories: 350, protein: 18.0, carbs: 46.0, fat: 10.0 },
+  '親子丼':            { calories: 300, protein: 18.0, carbs: 38.0, fat: 8.5  },
+  '牛丼':              { calories: 320, protein: 16.0, carbs: 38.0, fat: 11.0 },
+  '照燒雞':            { calories: 225, protein: 22.0, carbs: 10.0, fat: 10.0 },
+  '章魚燒':            { calories: 200, protein: 7.0,  carbs: 26.0, fat: 7.5  },
+  '可樂餅':            { calories: 210, protein: 6.0,  carbs: 26.0, fat: 9.0  },
+  '茶碗蒸':            { calories: 65,  protein: 5.5,  carbs: 3.5,  fat: 2.5  },
+  '唐揚炸雞':          { calories: 260, protein: 18.0, carbs: 14.0, fat: 15.0 },
+  '壽喜燒':            { calories: 185, protein: 13.0, carbs: 12.0, fat: 10.0 },
+  '生魚片(綜合)':      { calories: 130, protein: 20.0, carbs: 2.0,  fat: 4.5  },
+  '日式蕎麥麵':        { calories: 130, protein: 5.0,  carbs: 26.0, fat: 1.0  },
+  '日式烏龍麵':        { calories: 105, protein: 3.0,  carbs: 22.0, fat: 0.5  },
+  '味噌鯖魚':          { calories: 185, protein: 19.5, carbs: 5.0,  fat: 8.5  },
+  '日式煎餃':          { calories: 240, protein: 10.0, carbs: 26.0, fat: 10.0 },
+  '日式茶漬飯':        { calories: 175, protein: 8.0,  carbs: 32.0, fat: 2.0  },
+  // ══ 韓式料理 ══
+  '韓式拌飯':          { calories: 350, protein: 15.0, carbs: 55.0, fat: 8.0  },
+  '韓式炸雞':          { calories: 290, protein: 20.0, carbs: 18.0, fat: 16.0 },
+  '辣炒年糕':          { calories: 195, protein: 3.5,  carbs: 41.0, fat: 2.0  },
+  '韓式泡菜鍋':        { calories: 120, protein: 8.0,  carbs: 10.0, fat: 5.0  },
+  '部隊鍋':            { calories: 200, protein: 10.0, carbs: 22.0, fat: 8.0  },
+  '韓式豆腐鍋':        { calories: 90,  protein: 7.0,  carbs: 7.0,  fat: 3.5  },
+  '韓式烤豬五花':      { calories: 300, protein: 14.0, carbs: 0.0,  fat: 27.0 },
+  '韓式烤牛肉':        { calories: 220, protein: 22.0, carbs: 5.0,  fat: 13.0 },
+  '韓式冷麵':          { calories: 165, protein: 5.0,  carbs: 33.0, fat: 1.5  },
+  '辛拉麵':            { calories: 500, protein: 10.0, carbs: 65.0, fat: 22.0 },
+  '韓式煎餅':          { calories: 250, protein: 8.0,  carbs: 32.0, fat: 10.0 },
+  '海苔飯捲':          { calories: 180, protein: 6.0,  carbs: 30.0, fat: 4.0  },
+  '韓式泡菜':          { calories: 30,  protein: 2.0,  carbs: 5.0,  fat: 0.5  },
+  '韓式魚板':          { calories: 85,  protein: 7.0,  carbs: 10.0, fat: 2.0  },
+  '甜辣醬炸雞':        { calories: 310, protein: 19.0, carbs: 22.0, fat: 16.0 },
+  '起司炸雞':          { calories: 320, protein: 19.0, carbs: 18.0, fat: 18.0 },
+  '韓式炸醬麵':        { calories: 420, protein: 13.0, carbs: 65.0, fat: 12.0 },
+  '韓式豆漿麵':        { calories: 380, protein: 14.0, carbs: 58.0, fat: 10.0 },
+  '韓式海帶湯':        { calories: 35,  protein: 3.0,  carbs: 4.0,  fat: 1.0  },
+  '韓式糖餅':          { calories: 305, protein: 5.0,  carbs: 55.0, fat: 8.0  },
+  // ══ 西式料理 ══
+  '義大利麵(肉醬)':    { calories: 320, protein: 14.0, carbs: 42.0, fat: 10.5 },
+  '義大利麵(白醬)':    { calories: 370, protein: 12.0, carbs: 40.0, fat: 17.0 },
+  '義大利麵(青醬)':    { calories: 355, protein: 11.0, carbs: 38.0, fat: 16.5 },
+  '義大利麵(番茄)':    { calories: 290, protein: 10.0, carbs: 43.0, fat: 8.0  },
+  '培根蛋義大利麵':    { calories: 420, protein: 16.0, carbs: 44.0, fat: 20.0 },
+  '蒜香義大利麵':      { calories: 310, protein: 10.0, carbs: 40.0, fat: 13.0 },
+  '披薩(起司)':        { calories: 270, protein: 11.0, carbs: 33.0, fat: 10.0 },
+  '披薩(夏威夷)':      { calories: 260, protein: 10.0, carbs: 33.0, fat: 9.5  },
+  '焗烤飯':            { calories: 340, protein: 13.0, carbs: 48.0, fat: 10.0 },
+  '焗烤麵':            { calories: 360, protein: 13.0, carbs: 47.0, fat: 12.0 },
+  '凱薩沙拉':          { calories: 160, protein: 7.0,  carbs: 10.0, fat: 11.0 },
+  '洋蔥湯':            { calories: 80,  protein: 3.0,  carbs: 12.0, fat: 2.5  },
+  '蘑菇湯':            { calories: 95,  protein: 3.0,  carbs: 10.0, fat: 4.5  },
+  '牛排(菲力)':        { calories: 250, protein: 28.0, carbs: 0.0,  fat: 15.0 },
+  '烤雞腿(西式)':      { calories: 280, protein: 25.0, carbs: 0.0,  fat: 20.0 },
+  '可頌':              { calories: 406, protein: 8.2,  carbs: 45.9, fat: 21.0 },
+  '布里歐':            { calories: 350, protein: 8.0,  carbs: 48.0, fat: 14.0 },
+  '西式漢堡(牛肉)':    { calories: 295, protein: 15.0, carbs: 28.0, fat: 13.0 },
+  '恩佐沙拉':          { calories: 130, protein: 10.0, carbs: 8.0,  fat: 7.0  },
+  '馬鈴薯泥':          { calories: 135, protein: 2.5,  carbs: 26.0, fat: 3.5  },
+  // ══ 健康食品 ══
+  '希臘優格':          { calories: 97,  protein: 9.0,  carbs: 4.0,  fat: 5.0  },
+  '無糖希臘優格':      { calories: 59,  protein: 10.0, carbs: 3.5,  fat: 0.4  },
+  '蛋白棒':            { calories: 380, protein: 30.0, carbs: 38.0, fat: 10.0 },
+  '格蘭諾拉麥片':      { calories: 471, protein: 10.0, carbs: 64.0, fat: 20.0 },
+  '乳清蛋白粉':        { calories: 380, protein: 75.0, carbs: 8.0,  fat: 4.0  },
+  '植物蛋白粉':        { calories: 360, protein: 70.0, carbs: 12.0, fat: 5.0  },
+  '羽衣甘藍':          { calories: 49,  protein: 4.3,  carbs: 9.0,  fat: 0.9  },
+  '低卡代餐':          { calories: 200, protein: 20.0, carbs: 25.0, fat: 3.0  },
+  '能量棒':            { calories: 420, protein: 10.0, carbs: 65.0, fat: 14.0 },
+  '杏仁醬':            { calories: 614, protein: 21.0, carbs: 22.0, fat: 55.0 },
+  '堅果棒':            { calories: 450, protein: 12.0, carbs: 55.0, fat: 22.0 },
+  '燕麥蛋白球':        { calories: 390, protein: 15.0, carbs: 52.0, fat: 14.0 },
+  '纖維餅乾':          { calories: 350, protein: 7.0,  carbs: 60.0, fat: 10.0 },
+  '燕麥奶昔':          { calories: 145, protein: 6.0,  carbs: 22.0, fat: 3.5  },
+  // ══ 更多速食 ══
+  '肯德基炸雞腿':      { calories: 285, protein: 22.0, carbs: 13.0, fat: 16.0 },
+  '肯德基原味雞':      { calories: 265, protein: 25.0, carbs: 9.0,  fat: 15.0 },
+  '摩斯漢堡(米漢堡)': { calories: 360, protein: 12.0, carbs: 60.0, fat: 8.0  },
+  '漢堡王華堡':        { calories: 540, protein: 28.0, carbs: 47.0, fat: 27.0 },
+  '炸雞排(便當)':      { calories: 300, protein: 20.0, carbs: 20.0, fat: 17.0 },
+  '鹽酥雞(夜市)':      { calories: 380, protein: 22.0, carbs: 25.0, fat: 22.0 },
+  '熱狗堡':            { calories: 290, protein: 11.0, carbs: 32.0, fat: 13.0 },
+  '雙層起司堡':        { calories: 480, protein: 24.0, carbs: 38.0, fat: 26.0 },
+  '炸蝦堡':            { calories: 380, protein: 16.0, carbs: 42.0, fat: 16.0 },
+  // ══ 更多早餐店 ══
+  '燒肉飯':            { calories: 510, protein: 25.0, carbs: 65.0, fat: 17.0 },
+  '皮蛋瘦肉粥':        { calories: 130, protein: 7.0,  carbs: 20.0, fat: 3.0  },
+  '地瓜稀飯':          { calories: 100, protein: 1.5,  carbs: 22.0, fat: 0.5  },
+  '蔥油餅':            { calories: 350, protein: 7.0,  carbs: 50.0, fat: 14.0 },
+  '菜脯蛋':            { calories: 155, protein: 8.5,  carbs: 3.0,  fat: 12.0 },
+  '米漿':              { calories: 74,  protein: 1.0,  carbs: 16.0, fat: 0.8  },
+  '豆花':              { calories: 60,  protein: 3.5,  carbs: 9.5,  fat: 1.0  },
+  '粉漿蛋餅':          { calories: 230, protein: 10.0, carbs: 30.0, fat: 8.0  },
+  '鮪魚起司蛋餅':      { calories: 310, protein: 17.0, carbs: 30.0, fat: 13.0 },
+  '培根起司蛋餅':      { calories: 340, protein: 17.5, carbs: 32.0, fat: 15.0 },
+  // ══ 更多火鍋料 ══
+  '甜不辣':            { calories: 130, protein: 9.0,  carbs: 15.0, fat: 3.5  },
+  '黑輪':              { calories: 110, protein: 8.0,  carbs: 12.0, fat: 3.0  },
+  '旗魚丸':            { calories: 85,  protein: 10.0, carbs: 8.0,  fat: 2.0  },
+  '魚蛋':              { calories: 80,  protein: 8.5,  carbs: 7.5,  fat: 2.5  },
+  '豆皮捲':            { calories: 215, protein: 14.0, carbs: 5.0,  fat: 16.0 },
+  '雞肉丸':            { calories: 145, protein: 13.0, carbs: 8.0,  fat: 7.0  },
+  '蝦仁丸':            { calories: 95,  protein: 11.0, carbs: 7.0,  fat: 2.5  },
+  '火鍋米血':          { calories: 165, protein: 6.5,  carbs: 32.0, fat: 1.5  },
+  '魚皮':              { calories: 120, protein: 18.0, carbs: 2.0,  fat: 5.0  },
+  '鴨腸':              { calories: 115, protein: 12.0, carbs: 0.5,  fat: 7.0  },
+  // ══ 更多牛肉 ══
+  '牛肋條':            { calories: 320, protein: 18.0, carbs: 0.0,  fat: 28.0 },
+  '牛腩':              { calories: 305, protein: 17.0, carbs: 0.0,  fat: 26.0 },
+  '牛小排':            { calories: 350, protein: 17.0, carbs: 0.0,  fat: 31.0 },
+  '牛肉丸':            { calories: 195, protein: 14.0, carbs: 8.0,  fat: 11.0 },
+  '骰子牛':            { calories: 280, protein: 21.0, carbs: 0.0,  fat: 22.0 },
+  '牛肉片(火鍋)':      { calories: 180, protein: 20.0, carbs: 0.0,  fat: 11.0 },
+  // ══ 更多豬肉 ══
+  '豬絞肉':            { calories: 220, protein: 16.0, carbs: 0.0,  fat: 18.0 },
+  '豬頸肉':            { calories: 285, protein: 17.0, carbs: 0.0,  fat: 24.0 },
+  '豬肋排':            { calories: 295, protein: 17.0, carbs: 0.0,  fat: 25.0 },
+  '豬舌':              { calories: 195, protein: 19.0, carbs: 0.0,  fat: 13.0 },
+  '豬耳朵':            { calories: 180, protein: 20.0, carbs: 0.0,  fat: 11.0 },
+  '豬腳筋':            { calories: 215, protein: 24.0, carbs: 0.0,  fat: 13.0 },
+  // ══ 更多雞肉 ══
+  '去骨雞腿排':        { calories: 185, protein: 17.0, carbs: 0.0,  fat: 13.0 },
+  '烤雞翅':            { calories: 265, protein: 25.0, carbs: 3.0,  fat: 17.0 },
+  '雞胸肉片':          { calories: 155, protein: 30.0, carbs: 0.0,  fat: 3.5  },
+  '水煮雞胸':          { calories: 150, protein: 31.0, carbs: 0.0,  fat: 2.5  },
+  '香草烤雞腿':        { calories: 240, protein: 21.0, carbs: 0.0,  fat: 17.0 },
+  '雞米花':            { calories: 280, protein: 19.0, carbs: 15.0, fat: 17.0 },
+  // ══ 更多油脂 ══
+  '葵花油':            { calories: 884, protein: 0.0,  carbs: 0.0,  fat: 100.0},
+  '花生油':            { calories: 884, protein: 0.0,  carbs: 0.0,  fat: 100.0},
+  '芝麻油':            { calories: 884, protein: 0.0,  carbs: 0.0,  fat: 100.0},
+  '豬油':              { calories: 882, protein: 0.0,  carbs: 0.0,  fat: 99.5 },
+  '無鹽奶油':          { calories: 717, protein: 0.9,  carbs: 0.1,  fat: 81.0 },
+  '苦茶油':            { calories: 884, protein: 0.0,  carbs: 0.0,  fat: 100.0},
 };
 
 
@@ -1026,7 +1194,10 @@ function doSearch(q) {
     .map(([name, info]) => ({ name, ...info }))
     .slice(0, 15);
 
-  if (!searchCache.length) { box.classList.remove('show'); return; }
+  if (!searchCache.length) {
+    fetchOnlineFoods(q, box, input);
+    return;
+  }
 
   const rect = input.getBoundingClientRect();
   box.style.top   = (rect.bottom + 6) + 'px';
@@ -1042,6 +1213,47 @@ function doSearch(q) {
       <div class="result-cal">${f.calories} kcal</div>
     </div>`).join('');
   box.classList.add('show');
+}
+
+async function fetchOnlineFoods(q, box, input) {
+  const rect = input.getBoundingClientRect();
+  box.style.top   = (rect.bottom + 6) + 'px';
+  box.style.left  = rect.left + 'px';
+  box.style.width = rect.width + 'px';
+  box.innerHTML = `<div class="result-item" style="justify-content:center;color:var(--muted);font-size:0.85rem">🌐 線上搜尋中…</div>`;
+  box.classList.add('show');
+  try {
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?action=process&search_terms=${encodeURIComponent(q)}&json=1&page_size=10&fields=product_name,nutriments`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const products = (data.products || []).filter(p =>
+      p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'] > 0
+    ).slice(0, 8);
+    if (!products.length) {
+      box.innerHTML = `<div class="result-item" style="justify-content:center;color:var(--muted);font-size:0.85rem">找不到「${q}」相關食物</div>`;
+      return;
+    }
+    searchCache = products.map(p => ({
+      name:     p.product_name.length > 35 ? p.product_name.substring(0, 35) + '…' : p.product_name,
+      calories: Math.round(p.nutriments['energy-kcal_100g'] || 0),
+      protein:  Math.round((p.nutriments['proteins_100g']       || 0) * 10) / 10,
+      carbs:    Math.round((p.nutriments['carbohydrates_100g']  || 0) * 10) / 10,
+      fat:      Math.round((p.nutriments['fat_100g']            || 0) * 10) / 10,
+    }));
+    box.innerHTML =
+      `<div style="padding:5px 12px;font-size:0.7rem;color:var(--muted);border-bottom:1px solid var(--border)">🌐 線上搜尋結果（數值僅供參考）</div>` +
+      searchCache.map((f, i) => `
+        <div class="result-item" onclick="selectFoodByIdx(${i})">
+          <div>
+            <div class="result-name">${f.name}</div>
+            <div class="result-info">蛋白 ${f.protein}g · 碳水 ${f.carbs}g · 脂肪 ${f.fat}g <span style="font-size:0.7rem">/100g</span></div>
+          </div>
+          <div class="result-cal">${f.calories} kcal</div>
+        </div>`).join('');
+    box.classList.add('show');
+  } catch {
+    box.innerHTML = `<div class="result-item" style="justify-content:center;color:var(--muted);font-size:0.85rem">線上搜尋失敗，請確認網路</div>`;
+  }
 }
 
 function selectFoodByIdx(i) {
@@ -2175,7 +2387,53 @@ function renderSettings() {
   const apiEl = document.getElementById('sApiKey');
   if (apiEl && s.gemini_api_key) apiEl.value = s.gemini_api_key;
 
+  _renderApiKeyStatus();
   liveCalcTDEE();
+}
+
+function _renderApiKeyStatus() {
+  const el  = document.getElementById('apiKeyStatus');
+  if (!el) return;
+  const key = DB.getSettings().gemini_api_key;
+  if (key && key.startsWith('AIza')) {
+    el.innerHTML = '<span style="font-size:0.72rem;background:#DCFCE7;color:#15803D;border-radius:20px;padding:3px 10px;font-weight:700">✅ 金鑰已儲存</span>';
+  } else {
+    el.innerHTML = '<span style="font-size:0.72rem;background:#FEF2F2;color:#EF4444;border-radius:20px;padding:3px 10px;font-weight:700">⚠️ 尚未設定</span>';
+  }
+}
+
+function saveApiKey() {
+  const key = document.getElementById('sApiKey').value.trim();
+  if (!key) { showToast('請先輸入 API 金鑰'); return; }
+  if (!key.startsWith('AIza')) { showToast('金鑰格式不對，應以 AIza 開頭'); return; }
+  const s = DB.getSettings();
+  DB.saveSettings({ ...s, gemini_api_key: key });
+  _renderApiKeyStatus();
+  showToast('✅ API 金鑰已儲存！');
+}
+
+async function testApiKey() {
+  const key = document.getElementById('sApiKey').value.trim() || DB.getSettings().gemini_api_key;
+  if (!key || !key.startsWith('AIza')) { showToast('請先輸入並儲存金鑰'); return; }
+  showToast('🔄 測試中…');
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 5 } }),
+      }
+    );
+    if (res.ok) {
+      showToast('✅ 金鑰有效！AI 辨識功能可以使用了', 3000);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(`❌ ${err.error?.message || '金鑰無效（' + res.status + '）'}`, 4000);
+    }
+  } catch {
+    showToast('❌ 網路錯誤，請確認網路連線', 3000);
+  }
 }
 
 function saveSettings() {
