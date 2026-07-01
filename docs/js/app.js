@@ -2175,7 +2175,53 @@ function renderSettings() {
   const apiEl = document.getElementById('sApiKey');
   if (apiEl && s.gemini_api_key) apiEl.value = s.gemini_api_key;
 
+  _renderApiKeyStatus();
   liveCalcTDEE();
+}
+
+function _renderApiKeyStatus() {
+  const el  = document.getElementById('apiKeyStatus');
+  if (!el) return;
+  const key = DB.getSettings().gemini_api_key;
+  if (key && key.startsWith('AIza')) {
+    el.innerHTML = '<span style="font-size:0.72rem;background:#DCFCE7;color:#15803D;border-radius:20px;padding:3px 10px;font-weight:700">✅ 金鑰已儲存</span>';
+  } else {
+    el.innerHTML = '<span style="font-size:0.72rem;background:#FEF2F2;color:#EF4444;border-radius:20px;padding:3px 10px;font-weight:700">⚠️ 尚未設定</span>';
+  }
+}
+
+function saveApiKey() {
+  const key = document.getElementById('sApiKey').value.trim();
+  if (!key) { showToast('請先輸入 API 金鑰'); return; }
+  if (!key.startsWith('AIza')) { showToast('金鑰格式不對，應以 AIza 開頭'); return; }
+  const s = DB.getSettings();
+  DB.saveSettings({ ...s, gemini_api_key: key });
+  _renderApiKeyStatus();
+  showToast('✅ API 金鑰已儲存！');
+}
+
+async function testApiKey() {
+  const key = document.getElementById('sApiKey').value.trim() || DB.getSettings().gemini_api_key;
+  if (!key || !key.startsWith('AIza')) { showToast('請先輸入並儲存金鑰'); return; }
+  showToast('🔄 測試中…');
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 5 } }),
+      }
+    );
+    if (res.ok) {
+      showToast('✅ 金鑰有效！AI 辨識功能可以使用了', 3000);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(`❌ ${err.error?.message || '金鑰無效（' + res.status + '）'}`, 4000);
+    }
+  } catch {
+    showToast('❌ 網路錯誤，請確認網路連線', 3000);
+  }
 }
 
 function saveSettings() {
