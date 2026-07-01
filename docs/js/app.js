@@ -571,6 +571,7 @@ const FOOD_DB = {
   '無糖希臘優格':      { calories: 59,  protein: 10.0, carbs: 3.5,  fat: 0.4  },
   '蛋白棒':            { calories: 380, protein: 30.0, carbs: 38.0, fat: 10.0 },
   '格蘭諾拉麥片':      { calories: 471, protein: 10.0, carbs: 64.0, fat: 20.0 },
+  '蛋白粉':            { calories: 380, protein: 75.0, carbs: 8.0,  fat: 4.0  },
   '乳清蛋白粉':        { calories: 380, protein: 75.0, carbs: 8.0,  fat: 4.0  },
   '植物蛋白粉':        { calories: 360, protein: 70.0, carbs: 12.0, fat: 5.0  },
   '羽衣甘藍':          { calories: 49,  protein: 4.3,  carbs: 9.0,  fat: 0.9  },
