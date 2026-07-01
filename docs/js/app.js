@@ -838,7 +838,7 @@ function navigate(page) {
   if (el) el.classList.add('active');
 
   if (page !== 'trends') {
-    ['tCalChart','tWaterChart','tMacroChart','tWeightChart'].forEach(k => {
+    ['tCalChart','tWaterChart','tMacroChart','tWeightChart','tWeeklyChart'].forEach(k => {
       if (charts[k]) { charts[k].destroy(); delete charts[k]; }
     });
   }
@@ -1593,9 +1593,197 @@ function renderWeightHistChart(labels, data) {
   charts.wHistChart = mkLineChart(ctx, labels, data, '#EC4899');
 }
 
+// ── Weekly Analysis ───────────────────────────────────────────────────────────
+
+function getWeekDates() {
+  const today = new Date();
+  const dow   = today.getUTCDay(); // 0=Sun … 6=Sat
+  const diff  = (dow === 0) ? 6 : dow - 1; // days since Monday
+  const mon   = new Date(today);
+  mon.setUTCDate(today.getUTCDate() - diff);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(mon);
+    d.setUTCDate(mon.getUTCDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+}
+
+function renderWeeklyAnalysis() {
+  const container = document.getElementById('weeklyStatsContent');
+  if (!container) return;
+
+  const weekDates = getWeekDates();
+  const today     = todayStr();
+  const sums      = weekDates.map(d => ({ date: d, ...getSummary(d) }));
+
+  // TDEE: Mifflin-St Jeor if full profile, else calorie_goal
+  const s = DB.getSettings();
+  let tdee = s.calorie_goal || 2000;
+  const w  = DB.getWeights().sort((a, b) => b.date.localeCompare(a.date));
+  const latestWeight = w.length ? w[0].weight : s.weight;
+  if (s.age && s.height && latestWeight) {
+    const bmr = calcBMR(s.gender || 'male', s.age, s.height, latestWeight);
+    tdee = calcTDEE(bmr, s.activity_level || 1.55);
+  }
+
+  // Per-day net calories (food - exercise_burned) for days up to today
+  const pastDays = sums.filter(d => d.date <= today);
+  const daysWithData = pastDays.filter(d => d.calories > 0 || d.exercise_burned > 0);
+
+  let totalFoodCal   = 0;
+  let totalBurnedCal = 0;
+  let totalDeficit   = 0;
+
+  daysWithData.forEach(d => {
+    const netCal = d.calories - (d.exercise_burned || 0);
+    totalFoodCal   += d.calories;
+    totalBurnedCal += d.exercise_burned || 0;
+    totalDeficit   += (tdee - netCal);
+  });
+
+  const recordedDays   = daysWithData.length;
+  const remainingDays  = weekDates.filter(d => d > today).length;
+  // fat change so far (positive = loss, negative = gain)
+  const fatChangeSoFar = totalDeficit / 7700;
+  const avgNetCal      = recordedDays > 0 ? (totalFoodCal - totalBurnedCal) / recordedDays : tdee;
+  // project remaining days at current average rate
+  const projectedAdditionalDeficit = (tdee - avgNetCal) * remainingDays;
+  const projectedWeeklyFatChange   = (totalDeficit + projectedAdditionalDeficit) / 7700;
+
+  // Build chart
+  if (charts.tWeeklyChart) { charts.tWeeklyChart.destroy(); delete charts.tWeeklyChart; }
+  const c = mkWeeklyChart(weekDates, sums, tdee, today);
+  if (c) charts.tWeeklyChart = c;
+
+  const DAY_NAMES = ['一', '二', '三', '四', '五', '六', '日'];
+  const rowsHtml = weekDates.map((d, i) => {
+    const sum    = sums[i];
+    const netCal = sum.calories - (sum.exercise_burned || 0);
+    const isToday = d === today;
+    const isFuture = d > today;
+    const hasData  = sum.calories > 0 || (sum.exercise_burned || 0) > 0;
+    const deficit  = hasData ? (tdee - netCal) : null;
+
+    let defLabel = '—';
+    let defColor = 'var(--muted)';
+    if (deficit !== null) {
+      if (deficit > 0) { defLabel = `−${Math.round(deficit)}`; defColor = 'var(--green)'; }
+      else             { defLabel = `+${Math.round(-deficit)}`; defColor = '#EF4444'; }
+    }
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);${isToday ? 'font-weight:700' : ''}">
+      <span style="width:20px;text-align:center;font-size:0.8rem;color:${isToday ? 'var(--primary)' : 'var(--muted)'}">${DAY_NAMES[i]}</span>
+      <span style="flex:1;font-size:0.82rem;color:${isFuture ? 'var(--muted)' : 'var(--text)'}">${isFuture ? '尚未記錄' : (hasData ? `攝取 ${Math.round(sum.calories)} kcal${(sum.exercise_burned||0)>0?' · 運動 −'+Math.round(sum.exercise_burned)+' kcal':''}` : '無紀錄')}</span>
+      <span style="font-size:0.82rem;font-weight:600;color:${defColor}">${defLabel} kcal</span>
+    </div>`;
+  }).join('');
+
+  const changeSign  = projectedWeeklyFatChange >= 0 ? '−' : '+';
+  const changeColor = projectedWeeklyFatChange >= 0 ? 'var(--green)' : '#EF4444';
+  const changeAbs   = Math.abs(projectedWeeklyFatChange);
+  const changeLabel = projectedWeeklyFatChange >= 0 ? '預估減重' : '預估增重';
+
+  const tdeeSource = (s.age && s.height && latestWeight)
+    ? `Mifflin-St Jeor BMR × 活動係數 ${s.activity_level || 1.55}`
+    : `目標攝取設定值`;
+
+  container.innerHTML = `
+    <div style="margin-bottom:4px">${rowsHtml}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+      <div style="background:var(--green-light);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">本週累計熱量差</div>
+        <div style="font-size:1.6rem;font-weight:800;color:${totalDeficit>=0?'var(--green)':'#EF4444'}">${totalDeficit>=0?'−':'+'}${Math.round(Math.abs(totalDeficit))}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">kcal（${recordedDays} 天實際）</div>
+      </div>
+      <div style="background:#FEF3C7;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">${changeLabel}（本週預估）</div>
+        <div style="font-size:1.6rem;font-weight:800;color:${changeColor}">${changeSign}${changeAbs.toFixed(2)} kg</div>
+        <div style="font-size:0.7rem;color:var(--muted)">7,700 kcal = 1 kg 體脂</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:0.72rem;color:var(--muted);background:#F9FAFB;border-radius:8px;padding:8px;line-height:1.7">
+      📐 公式依據：Mifflin-St Jeor (1990) 基礎代謝 × 活動係數 = TDEE；每日赤字 = TDEE − 淨攝取（食物 − 運動消耗）；體重變化 = 每週赤字 ÷ 7,700 kcal/kg（Hall et al., The Lancet 2012）<br>
+      TDEE 來源：${tdeeSource}＝<strong>${tdee} kcal/天</strong>
+    </div>`;
+}
+
+function mkWeeklyChart(weekDates, sums, tdee, today) {
+  const ctx = document.getElementById('tWeeklyChart')?.getContext('2d');
+  if (!ctx) return null;
+
+  const DAY_LABELS = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+  const netCals = sums.map((s, i) => {
+    if (weekDates[i] > today && s.calories === 0) return null;
+    if (s.calories === 0 && (s.exercise_burned || 0) === 0) return null;
+    return Math.round(s.calories - (s.exercise_burned || 0));
+  });
+
+  const barColors = netCals.map(v => {
+    if (v === null) return '#E5E7EB';
+    if (v <= tdee * 0.85)    return '#22C55E';
+    if (v <= tdee)            return '#F97316';
+    return '#EF4444';
+  });
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DAY_LABELS,
+      datasets: [
+        {
+          label: '淨攝取 (kcal)',
+          data: netCals,
+          backgroundColor: barColors,
+          borderRadius: 6,
+          order: 2,
+        },
+        {
+          label: `TDEE ${tdee} kcal`,
+          data: Array(7).fill(tdee),
+          type: 'line',
+          borderColor: '#3B82F6',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+          order: 1,
+          tension: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              if (ctx.datasetIndex === 1) return `TDEE: ${tdee} kcal`;
+              const v = ctx.parsed.y;
+              if (v === null) return '無記錄';
+              const diff = tdee - v;
+              const sign = diff > 0 ? '赤字' : '盈餘';
+              return [`淨攝取: ${v} kcal`, `${sign}: ${Math.abs(Math.round(diff))} kcal`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          grid: { color: '#F3F4F6' },
+          ticks: { font: { size: 11 } },
+          min: 0,
+        }
+      }
+    }
+  });
+}
+
 // ── Trends ─────────────────────────────────────────────────────────────────────
 
 function renderTrends(days) {
+  renderWeeklyAnalysis();
   document.querySelectorAll('.period-tab').forEach(t =>
     t.classList.toggle('active', parseInt(t.dataset.days) === days));
 
