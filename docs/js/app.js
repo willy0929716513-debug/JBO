@@ -1083,7 +1083,7 @@ function navigate(page) {
 
   switch (page) {
     case 'dashboard': renderDashboard(); break;
-    case 'food-log':  renderFoodLog();   break;
+    case 'food-log':  currentFoodDate = todayStr(); renderFoodLog(); break;
     case 'exercise':  renderExercise();  break;
     case 'water':     renderWater();     break;
     case 'weight':    renderWeight();    break;
