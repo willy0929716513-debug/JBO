@@ -1569,12 +1569,15 @@ function renderExerciseList(exes) {
         <div style="font-size:0.8rem;color:var(--muted);flex-shrink:0">休息中</div>
         <button class="del-btn" onclick="deleteExerciseItem('${esc(e.id)}')"><i class="bi bi-trash3"></i></button>
       </div>`;
+    const metLine = e.is_manual
+      ? `${e.duration} 分鐘 · 自訂記錄`
+      : `${e.duration} 分鐘 · MET ${e.met} · ${e.cat || ''}`;
     return `
     <div class="exercise-item" id="ei-${esc(e.id)}">
       <div style="font-size:1.6rem;flex-shrink:0">${e.icon || '💪'}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:0.88rem">${esc(e.exercise_name)}</div>
-        <div style="font-size:0.72rem;color:var(--muted)">${e.duration} 分鐘 · MET ${e.met} · ${e.cat || ''}</div>
+        <div style="font-size:0.72rem;color:var(--muted)">${metLine}</div>
       </div>
       <div style="font-weight:800;color:var(--orange);font-size:0.95rem;flex-shrink:0">-${Math.round(e.calories_burned)} kcal</div>
       <button class="del-btn" onclick="deleteExerciseItem('${esc(e.id)}')"><i class="bi bi-trash3"></i></button>
@@ -1859,7 +1862,10 @@ function mkWeeklyChart(weekDates, sums, tdee, today) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 11 }, boxWidth: 12, padding: 14 },
+        },
         tooltip: {
           callbacks: {
             label(ctx) {
@@ -1873,6 +1879,7 @@ function mkWeeklyChart(weekDates, sums, tdee, today) {
           }
         }
       },
+      layout: { padding: { bottom: 4 } },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 11 } } },
         y: {
@@ -2422,6 +2429,45 @@ function _renderGoalEstimate(g, currentWt, tdee, profileComplete, bmr, s) {
   document.getElementById('goalEstimateContent').innerHTML = html;
 }
 
+// ── Manual Exercise Entry ─────────────────────────────────────────────────────
+
+function openManualExercise() {
+  document.getElementById('meExName').value     = '';
+  document.getElementById('meExDuration').value = '';
+  document.getElementById('meExCal').value      = '';
+  document.getElementById('manualExModal').classList.remove('hidden');
+  document.getElementById('meExName').focus();
+}
+
+function closeManualExercise() {
+  document.getElementById('manualExModal').classList.add('hidden');
+}
+
+function submitManualExercise() {
+  const name = document.getElementById('meExName').value.trim();
+  const dur  = parseInt(document.getElementById('meExDuration').value);
+  const cal  = parseFloat(document.getElementById('meExCal').value);
+  if (!name)           { showToast('請輸入運動名稱'); return; }
+  if (!dur || dur <= 0){ showToast('請輸入有效時長'); return; }
+  if (!cal || cal <= 0){ showToast('請輸入有效消耗熱量'); return; }
+
+  DB.addExercise({
+    date:            todayStr(),
+    exercise_name:   name,
+    icon:            '✏️',
+    met:             null,
+    cat:             '自訂',
+    duration:        dur,
+    calories_burned: cal,
+    is_manual:       true,
+  });
+
+  closeManualExercise();
+  showToast(`✅ ${name} ${dur}分 · 消耗 ${Math.round(cal)} kcal`);
+  renderExercise();
+  if (document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
+}
+
 // ── Food: Copy Yesterday ──────────────────────────────────────────────────────
 
 function copyYesterdayMeals() {
@@ -2548,11 +2594,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(id)?.addEventListener('input', calcBMI);
   });
 
-  ['foodModal','manualModal','photoModal'].forEach(id => {
+  ['foodModal','manualModal','photoModal','manualExModal'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', function(e) {
       if (e.target === this) {
-        if (id === 'foodModal') closeModal();
-        else if (id === 'manualModal') closeManualModal();
+        if (id === 'foodModal')      closeModal();
+        else if (id === 'manualModal')   closeManualModal();
+        else if (id === 'manualExModal') closeManualExercise();
         else closePhotoScan();
       }
     });
