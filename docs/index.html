@@ -142,9 +142,12 @@
           <input id="foodSearch" class="search-input" type="text" placeholder="輸入食物名稱，如：雞胸肉、白飯…" autocomplete="off">
           <div id="searchResults" class="search-results"></div>
         </div>
-        <div style="margin-top:10px;text-align:center">
-          <button class="btn-outline" style="font-size:0.82rem;padding:8px 16px" onclick="openManualEntry()">
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="btn-outline" style="flex:1;font-size:0.82rem;padding:8px 14px" onclick="openManualEntry()">
             <i class="bi bi-pencil"></i> 手動輸入
+          </button>
+          <button class="btn-primary" style="flex:1;font-size:0.82rem;padding:8px 14px;background:linear-gradient(135deg,#22C55E,#06B6D4);justify-content:center" onclick="openPhotoScan()">
+            <i class="bi bi-camera-fill"></i> AI 拍照辨識
           </button>
         </div>
       </div>
@@ -565,6 +568,27 @@
       </div>
     </div>
 
+    <!-- AI 照片識別設定 -->
+    <div class="card fade-in">
+      <div class="card-body">
+        <div class="card-title">🤖 AI 拍照辨識設定</div>
+        <div class="form-group">
+          <label class="form-label">Gemini API 金鑰（免費）</label>
+          <div style="position:relative">
+            <input id="sApiKey" class="form-input" type="password" placeholder="AIzaSy…" style="padding-right:48px">
+            <button type="button" onclick="const el=document.getElementById('sApiKey');el.type=el.type==='password'?'text':'password'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div style="font-size:0.72rem;color:var(--muted);line-height:1.8">
+          取得金鑰：前往 <strong>aistudio.google.com</strong> → Get API key → Create API key<br>
+          金鑰名稱填 <strong>NutriMate</strong>，完全免費不需信用卡<br>
+          金鑰儲存於本機瀏覽器，不會上傳任何伺服器
+        </div>
+      </div>
+    </div>
+
     <button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:14px" onclick="saveSettings()">
       <i class="bi bi-check-circle"></i> 儲存設定
     </button>
@@ -655,6 +679,53 @@
     <div style="display:flex;gap:10px">
       <button class="btn-outline" style="flex:1" onclick="closeManualModal()">取消</button>
       <button class="btn-primary" style="flex:1;justify-content:center" onclick="submitManualFood()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Scan Modal -->
+<div id="photoModal" class="modal-overlay hidden">
+  <div class="modal-sheet" style="max-height:88vh;overflow-y:auto;padding-bottom:32px">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title" style="margin-bottom:0">📷 AI 食物辨識</div>
+      <button onclick="closePhotoScan()" style="background:none;border:none;font-size:1.4rem;color:var(--muted);cursor:pointer;line-height:1">✕</button>
+    </div>
+
+    <!-- Drop zone -->
+    <div id="scanDrop" class="scan-drop" onclick="triggerPhotoInput()">
+      <div class="scan-icon"><i class="bi bi-camera-fill"></i></div>
+      <div style="font-size:1rem;font-weight:700;margin-bottom:6px;color:var(--text)">拍照或選擇圖片</div>
+      <div class="scan-hint">點擊開啟相機或圖庫<br>AI 自動辨識食物與熱量</div>
+    </div>
+
+    <input type="file" id="photoFileInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(event)">
+
+    <!-- Preview -->
+    <div id="scanPreviewWrap" style="display:none;margin-bottom:12px">
+      <div class="scan-preview">
+        <img id="scanPreviewImg" src="" alt="" style="border-radius:14px">
+        <div style="position:absolute;bottom:10px;right:10px">
+          <button onclick="triggerPhotoInput()" style="background:rgba(0,0,0,0.55);border:none;border-radius:8px;padding:6px 12px;color:white;font-size:0.78rem;cursor:pointer;backdrop-filter:blur(4px)">
+            <i class="bi bi-arrow-repeat"></i> 重拍
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analyze button -->
+    <button id="scanAnalyzeBtn" class="btn-primary" style="width:100%;justify-content:center;display:none;margin-bottom:14px;background:linear-gradient(135deg,#22C55E,#06B6D4);gap:8px" onclick="analyzePhoto()">
+      <i class="bi bi-stars"></i> AI 識別食物
+    </button>
+
+    <!-- Results -->
+    <div id="scanResultsWrap" style="display:none">
+      <div id="scanResultsContent"></div>
+    </div>
+
+    <div style="font-size:0.7rem;color:var(--muted);text-align:center;margin-top:14px;line-height:1.8">
+      需要 Gemini API 金鑰（免費）才可使用此功能<br>
+      <span onclick="closePhotoScan();navigate('settings')" style="color:var(--green);cursor:pointer;font-weight:600">前往設定填寫金鑰 →</span>
     </div>
   </div>
 </div>
