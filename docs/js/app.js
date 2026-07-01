@@ -7,7 +7,7 @@ const DEFAULT_SETTINGS = {
   activity_level: 1.55, goal_mode: 'loss',
   calorie_goal: 2000, protein_goal: 150,
   carbs_goal: 225, fat_goal: 65, water_goal: 2000,
-  claude_api_key: null,
+  gemini_api_key: null,
 };
 
 const MEAL_META = [
@@ -534,9 +534,9 @@ async function handlePhotoSelect(e) {
 
 async function analyzePhoto() {
   const s      = DB.getSettings();
-  const apiKey = s.claude_api_key;
-  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-    showToast('請先在設定頁面填入 Claude API 金鑰');
+  const apiKey = s.gemini_api_key;
+  if (!apiKey || !apiKey.startsWith('AIza')) {
+    showToast('請先在設定頁面填入 Gemini API 金鑰');
     closePhotoScan();
     navigate('settings');
     return;
@@ -544,38 +544,34 @@ async function analyzePhoto() {
   if (!scanImageBase64) return;
 
   const btn = document.getElementById('scanAnalyzeBtn');
-  btn.disabled   = true;
-  btn.innerHTML  = '<div style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px"></div>AI 分析中…';
-  document.getElementById('scanResultsWrap').style.display    = 'block';
-  document.getElementById('scanResultsContent').innerHTML     =
+  btn.disabled  = true;
+  btn.innerHTML = '<div style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px"></div>AI 分析中…';
+  document.getElementById('scanResultsWrap').style.display  = 'block';
+  document.getElementById('scanResultsContent').innerHTML   =
     '<div class="spinner"></div><div style="text-align:center;font-size:0.82rem;color:var(--muted);margin-top:10px">AI 正在辨識食物…</div>';
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: scanMediaType, data: scanImageBase64 } },
-            { type: 'text', text:
-              '請分析這張食物照片，識別所有可見食物並估算熱量與三大營養素。\n' +
-              '請只回傳 JSON，格式如下（不要其他文字）：\n' +
-              '{"foods":[{"name":"食物名稱（繁體中文）","amount":100,"unit":"g","calories":150,"protein":5.0,"carbs":20.0,"fat":3.0}]}\n' +
-              '請使用台灣常見食物的真實營養數據，amount 為目視估算份量。'
-            }
-          ]
-        }]
-      })
-    });
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
+              { text:
+                '請分析這張食物照片，識別所有可見食物並估算熱量與三大營養素。\n' +
+                '請只回傳 JSON，格式如下（不要其他文字）：\n' +
+                '{"foods":[{"name":"食物名稱（繁體中文）","amount":100,"unit":"g","calories":150,"protein":5.0,"carbs":20.0,"fat":3.0}]}\n' +
+                '請使用台灣常見食物的真實營養數據，amount 為目視估算份量。'
+              }
+            ]
+          }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
+        })
+      }
+    );
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
@@ -583,7 +579,7 @@ async function analyzePhoto() {
     }
 
     const data    = await resp.json();
-    const text    = data.content?.[0]?.text || '';
+    const text    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const jsonStr = text.match(/\{[\s\S]*\}/)?.[0];
     if (!jsonStr) throw new Error('無法解析 AI 回應，請重試');
     const parsed  = JSON.parse(jsonStr);
@@ -1061,7 +1057,7 @@ function renderSettings() {
   document.getElementById('sWater').value   = s.water_goal   || 2000;
 
   const apiEl = document.getElementById('sApiKey');
-  if (apiEl && s.claude_api_key) apiEl.value = s.claude_api_key;
+  if (apiEl && s.gemini_api_key) apiEl.value = s.gemini_api_key;
 
   liveCalcTDEE();
 }
@@ -1083,7 +1079,7 @@ function saveSettings() {
     carbs_goal:   parseFloat(document.getElementById('sCarbs').value)   || 225,
     fat_goal:     parseFloat(document.getElementById('sFat').value)     || 65,
     water_goal:   parseFloat(document.getElementById('sWater').value)   || 2000,
-    claude_api_key: apiKey,
+    gemini_api_key: apiKey,
   });
   showToast('✅ 設定已儲存');
 }

@@ -573,18 +573,18 @@
       <div class="card-body">
         <div class="card-title">🤖 AI 拍照辨識設定</div>
         <div class="form-group">
-          <label class="form-label">Claude API 金鑰</label>
+          <label class="form-label">Gemini API 金鑰（免費）</label>
           <div style="position:relative">
-            <input id="sApiKey" class="form-input" type="password" placeholder="sk-ant-api03-…" style="padding-right:48px">
+            <input id="sApiKey" class="form-input" type="password" placeholder="AIzaSy…" style="padding-right:48px">
             <button type="button" onclick="const el=document.getElementById('sApiKey');el.type=el.type==='password'?'text':'password'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">
               <i class="bi bi-eye"></i>
             </button>
           </div>
         </div>
         <div style="font-size:0.72rem;color:var(--muted);line-height:1.8">
-          取得金鑰：前往 <strong>console.anthropic.com</strong> 免費申請<br>
-          金鑰儲存於本機瀏覽器，不會上傳任何伺服器<br>
-          用於「AI 拍照辨識」功能，自動辨識食物熱量
+          取得金鑰：前往 <strong>aistudio.google.com</strong> → Get API key → Create API key<br>
+          金鑰名稱填 <strong>NutriMate</strong>，完全免費不需信用卡<br>
+          金鑰儲存於本機瀏覽器，不會上傳任何伺服器
         </div>
       </div>
     </div>
@@ -724,7 +724,7 @@
     </div>
 
     <div style="font-size:0.7rem;color:var(--muted);text-align:center;margin-top:14px;line-height:1.8">
-      需要 Claude API 金鑰才可使用此功能<br>
+      需要 Gemini API 金鑰（免費）才可使用此功能<br>
       <span onclick="closePhotoScan();navigate('settings')" style="color:var(--green);cursor:pointer;font-weight:600">前往設定填寫金鑰 →</span>
     </div>
   </div>
