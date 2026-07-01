@@ -1626,7 +1626,7 @@ function renderExercise() {
   if (timeEl) timeEl.textContent = totalMin > 0 ? `共 ${totalMin} 分鐘` : '今日尚未記錄';
 
   renderExerciseQuick();
-  renderExerciseList(exes);
+  renderExerciseList();
   renderExerciseWeeklySummary();
   updateExCalPreview();
 }
@@ -1795,43 +1795,78 @@ function deleteExerciseItem(id) {
   if (document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
 }
 
-function renderExerciseList(exes) {
+function renderExerciseList() {
   const listEl = document.getElementById('ex-list');
   if (!listEl) return;
-  if (!exes.length) {
-    listEl.innerHTML = '<div class="empty-state"><i class="bi bi-bicycle" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:6px"></i>今日尚無運動記錄</div>';
-    return;
-  }
-  const totalCal = exes.filter(e => !e.is_rest_day).reduce((s, e) => s + e.calories_burned, 0);
-  listEl.innerHTML = [...exes].reverse().map(e => {
-    if (e.is_rest_day) return `
-      <div class="exercise-item" id="ei-${esc(e.id)}" style="background:#F9FAFB">
-        <div style="font-size:1.6rem;flex-shrink:0">😴</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:0.88rem;color:var(--muted)">休息日</div>
-          <div style="font-size:0.72rem;color:var(--muted)">主動恢復 · 肌肉修復</div>
-        </div>
-        <div style="font-size:0.8rem;color:var(--muted);flex-shrink:0">休息中</div>
-        <button class="del-btn" onclick="deleteExerciseItem('${esc(e.id)}')"><i class="bi bi-trash3"></i></button>
+  const DAY_NAMES = ['週日','週一','週二','週三','週四','週五','週六'];
+  const today     = todayStr();
+  const weekDates = getWeekDates(); // Mon–Sun
+  const allExes   = DB.getExercises();
+
+  listEl.innerHTML = weekDates.map(date => {
+    const exes     = allExes.filter(e => e.date === date);
+    const isToday  = date === today;
+    const isFuture = date > today;
+    const dayLabel = DAY_NAMES[new Date(date + 'T00:00:00').getDay()];
+    const mmdd     = date.slice(5).replace('-', '/');
+    const totalCal = exes.filter(e => !e.is_rest_day).reduce((s, e) => s + e.calories_burned, 0);
+    const totalMin = exes.filter(e => !e.is_rest_day).reduce((s, e) => s + e.duration, 0);
+    const restDay  = exes.find(e => e.is_rest_day);
+
+    const headerBg = isToday
+      ? 'background:#FFF7ED;border-left:3px solid var(--orange)'
+      : 'border-left:3px solid transparent';
+
+    let bodyHtml = '';
+    if (isFuture) {
+      bodyHtml = `<div style="font-size:0.78rem;color:var(--muted);padding:6px 0">尚未記錄</div>`;
+    } else if (restDay) {
+      bodyHtml = `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+          <span style="font-size:1.3rem">😴</span>
+          <div>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--muted)">休息日</div>
+            <div style="font-size:0.7rem;color:var(--muted)">主動恢復 · 肌肉修復</div>
+          </div>
+          <button class="del-btn" style="margin-left:auto" onclick="deleteExerciseItem('${esc(restDay.id)}')"><i class="bi bi-trash3"></i></button>
+        </div>`;
+    } else if (!exes.length) {
+      bodyHtml = `<div style="font-size:0.78rem;color:var(--muted);padding:6px 0">無記錄</div>`;
+    } else {
+      const rows = exes.map(e => {
+        const metLine = e.is_manual
+          ? `${e.duration} 分 · 自訂`
+          : `${e.duration} 分 · ${e.cat || ''}`;
+        return `
+          <div class="exercise-item" id="ei-${esc(e.id)}" style="padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:1.3rem;flex-shrink:0">${e.icon || '💪'}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:0.85rem">${esc(e.exercise_name)}</div>
+              <div style="font-size:0.7rem;color:var(--muted)">${metLine}</div>
+            </div>
+            <div style="font-weight:800;color:var(--orange);font-size:0.88rem;flex-shrink:0">-${Math.round(e.calories_burned)} kcal</div>
+            <button class="del-btn" onclick="deleteExerciseItem('${esc(e.id)}')"><i class="bi bi-trash3"></i></button>
+          </div>`;
+      }).join('');
+      const summary = `<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--muted);padding-top:6px">
+        <span>${totalMin} 分鐘</span><span style="color:var(--orange);font-weight:700">-${Math.round(totalCal)} kcal</span>
       </div>`;
-    const metLine = e.is_manual
-      ? `${e.duration} 分鐘 · 自訂記錄`
-      : `${e.duration} 分鐘 · MET ${e.met} · ${e.cat || ''}`;
+      bodyHtml = rows + summary;
+    }
+
     return `
-    <div class="exercise-item" id="ei-${esc(e.id)}">
-      <div style="font-size:1.6rem;flex-shrink:0">${e.icon || '💪'}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:0.88rem">${esc(e.exercise_name)}</div>
-        <div style="font-size:0.72rem;color:var(--muted)">${metLine}</div>
-      </div>
-      <div style="font-weight:800;color:var(--orange);font-size:0.95rem;flex-shrink:0">-${Math.round(e.calories_burned)} kcal</div>
-      <button class="del-btn" onclick="deleteExerciseItem('${esc(e.id)}')"><i class="bi bi-trash3"></i></button>
-    </div>`;
-  }).join('') +
-    `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:0.85rem">
-      <span style="color:var(--muted)">今日共消耗</span>
-      <span style="font-weight:800;color:var(--orange)">-${Math.round(totalCal)} kcal</span>
-    </div>`;
+      <div style="margin-bottom:10px;border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;${headerBg}">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-weight:700;font-size:0.88rem;color:${isToday ? 'var(--orange)' : 'var(--text)'}">${dayLabel}</span>
+            <span style="font-size:0.75rem;color:var(--muted)">${mmdd}</span>
+            ${isToday ? '<span style="font-size:0.65rem;background:var(--orange);color:white;border-radius:8px;padding:1px 7px;font-weight:700">今天</span>' : ''}
+          </div>
+          ${!isFuture && !restDay && exes.length ? `<span style="font-size:0.75rem;color:var(--orange);font-weight:700">${exes.length} 項</span>` : ''}
+        </div>
+        <div style="padding:0 12px 8px">${bodyHtml}</div>
+      </div>`;
+  }).join('');
 }
 
 // ── Weight ─────────────────────────────────────────────────────────────────────
