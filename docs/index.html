@@ -159,6 +159,9 @@
             <i class="bi bi-camera-fill"></i> AI 拍照辨識
           </button>
         </div>
+        <button class="btn-outline" style="width:100%;margin-top:8px;font-size:0.82rem;padding:8px 14px;color:var(--muted)" onclick="copyYesterdayMeals()">
+          <i class="bi bi-calendar-check"></i> 複製昨天的餐點
+        </button>
       </div>
     </div>
 
@@ -339,6 +342,13 @@
       </div>
     </div>
 
+    <!-- Weekly summary -->
+    <div class="card fade-in">
+      <div class="card-body" style="padding:12px 16px">
+        <div id="ex-weekly-summary"></div>
+      </div>
+    </div>
+
     <!-- Add exercise -->
     <div class="card fade-in">
       <div class="card-body">
@@ -377,9 +387,14 @@
         <!-- Calorie preview -->
         <div id="exCalPreview" style="display:none;background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:12px 14px;margin-bottom:14px"></div>
 
-        <button class="btn-primary" style="width:100%;justify-content:center;background:linear-gradient(135deg,#F97316,#EF4444)" onclick="logExercise()">
-          <i class="bi bi-fire"></i> 記錄運動
-        </button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-primary" style="flex:1;justify-content:center;background:linear-gradient(135deg,#F97316,#EF4444)" onclick="logExercise()">
+            <i class="bi bi-fire"></i> 記錄運動
+          </button>
+          <button class="btn-outline" style="padding:12px 14px;color:var(--muted);font-size:0.82rem" onclick="markRestDay()" title="標記今日為休息日">
+            <i class="bi bi-moon-stars"></i> 休息日
+          </button>
+        </div>
       </div>
     </div>
 
@@ -665,7 +680,10 @@
             </div>
             <div class="form-group">
               <label class="form-label"><span class="macro-dot" style="background:#3B82F6"></span>飲水 (ml)</label>
-              <input id="sWater" class="form-input" type="number">
+              <div style="display:flex;gap:6px">
+                <input id="sWater" class="form-input" type="number" style="flex:1">
+                <button type="button" onclick="autoCalcWater()" style="white-space:nowrap;background:var(--blue-light);border:1.5px solid #BFDBFE;border-radius:10px;padding:0 10px;font-size:0.72rem;font-weight:700;color:var(--blue);cursor:pointer">體重×35</button>
+              </div>
             </div>
           </div>
         </div>
@@ -696,6 +714,23 @@
     <button class="btn-primary" style="width:100%;justify-content:center;margin-bottom:14px" onclick="saveSettings()">
       <i class="bi bi-check-circle"></i> 儲存設定
     </button>
+
+    <!-- 資料備份 -->
+    <div class="card fade-in">
+      <div class="card-body">
+        <div class="card-title">💾 資料備份</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button class="btn-outline" style="justify-content:center;font-size:0.82rem;padding:10px" onclick="exportData()">
+            <i class="bi bi-download"></i> 匯出資料
+          </button>
+          <button class="btn-outline" style="justify-content:center;font-size:0.82rem;padding:10px" onclick="document.getElementById('importFile').click()">
+            <i class="bi bi-upload"></i> 匯入資料
+          </button>
+        </div>
+        <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:8px;line-height:1.7">匯出：將所有飲食、運動、體重記錄存成 JSON 備份檔<br>匯入：從備份檔還原資料（會覆蓋現有記錄）</div>
+      </div>
+    </div>
 
     <div style="text-align:center;padding:16px 0;color:var(--muted);font-size:0.75rem">
       <div style="font-size:1.5rem;margin-bottom:6px">🥗</div>
