@@ -923,6 +923,27 @@ const DB = {
 
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 
+let currentFoodDate = todayStr();
+
+function foodDateShift(days) {
+  const d = new Date(currentFoodDate + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const next = d.toISOString().split('T')[0];
+  if (next > todayStr()) return;
+  currentFoodDate = next;
+  renderFoodLog();
+}
+
+function foodDateLabel(dateStr) {
+  const today = todayStr();
+  if (dateStr === today) return '今天';
+  const yest = new Date(today + 'T00:00:00');
+  yest.setDate(yest.getDate() - 1);
+  if (dateStr === yest.toISOString().split('T')[0]) return '昨天';
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
 function dateRange(days) {
   const dates = [];
   for (let i = days - 1; i >= 0; i--) {
@@ -1062,7 +1083,7 @@ function navigate(page) {
 
   switch (page) {
     case 'dashboard': renderDashboard(); break;
-    case 'food-log':  renderFoodLog();   break;
+    case 'food-log':  currentFoodDate = todayStr(); renderFoodLog(); break;
     case 'exercise':  renderExercise();  break;
     case 'water':     renderWater();     break;
     case 'weight':    renderWeight();    break;
@@ -1192,15 +1213,17 @@ let selectedFood = null;
 let searchCache  = [];
 
 function renderFoodLog() {
-  const today = todayStr();
   const dateEl = document.getElementById('fl-date');
-  if (dateEl) dateEl.textContent = today;
+  if (dateEl) dateEl.textContent = foodDateLabel(currentFoodDate);
 
-  const meals   = getMeals(today);
+  const nextBtn = document.getElementById('fl-next-btn');
+  if (nextBtn) nextBtn.style.opacity = currentFoodDate >= todayStr() ? '0.25' : '1';
+
+  const meals   = getMeals(currentFoodDate);
   const flMeals = document.getElementById('fl-meals');
   if (flMeals) flMeals.innerHTML = renderMealsHTML(meals, true);
 
-  const sum    = getSummary(today);
+  const sum    = getSummary(currentFoodDate);
   const totalEl = document.getElementById('fl-total');
   if (totalEl) totalEl.textContent = `${Math.round(sum.calories)} kcal`;
 }
@@ -1361,7 +1384,7 @@ function confirmAddFood() {
   if (!amt || amt <= 0) { showToast('請輸入有效份量（大於 0）'); return; }
   const r   = amt / 100;
   DB.addFood({
-    date: todayStr(), meal_type: activeMeal,
+    date: currentFoodDate, meal_type: activeMeal,
     food_name: selectedFood.name, amount: amt, unit: 'g',
     calories: selectedFood.calories * r,
     protein:  selectedFood.protein  * r,
@@ -1644,7 +1667,7 @@ function addScanResults() {
     const chk = document.getElementById(`sfc-${i}`);
     if (chk && chk.checked && f.name) {
       DB.addFood({
-        date: todayStr(), meal_type: scanMealType,
+        date: currentFoodDate, meal_type: scanMealType,
         food_name: f.name,
         amount: Math.round(f.amount || 100), unit: f.unit || 'g',
         calories: Math.round(+f.calories || 0),
@@ -1667,7 +1690,7 @@ function submitManualFood() {
   const cal  = parseFloat(document.getElementById('mCal').value);
   if (!name || !cal) { showToast('請填寫食物名稱和卡路里'); return; }
   DB.addFood({
-    date: todayStr(), meal_type: activeMeal, food_name: name,
+    date: currentFoodDate, meal_type: activeMeal, food_name: name,
     amount: parseFloat(document.getElementById('mAmt').value) || 1, unit: '份',
     calories: cal,
     protein:  parseFloat(document.getElementById('mProtein').value) || 0,

@@ -126,9 +126,13 @@
 
   <!-- Food Log -->
   <div id="page-food-log" class="page">
-    <div style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="greeting">飲食記錄 <span style="color:var(--green)">🍽️</span></div>
-      <div class="subgreeting" id="fl-date"></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px">
+      <button onclick="foodDateShift(-1)" style="background:none;border:none;font-size:1.6rem;color:var(--muted);cursor:pointer;padding:4px 10px;line-height:1;border-radius:8px" ontouchstart="">‹</button>
+      <div id="fl-date" style="font-size:1rem;font-weight:700;color:var(--text);min-width:80px;text-align:center"></div>
+      <button id="fl-next-btn" onclick="foodDateShift(1)" style="background:none;border:none;font-size:1.6rem;color:var(--muted);cursor:pointer;padding:4px 10px;line-height:1;border-radius:8px" ontouchstart="">›</button>
     </div>
 
     <div class="card fade-in">
