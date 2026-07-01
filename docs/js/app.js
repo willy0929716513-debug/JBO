@@ -1490,14 +1490,30 @@ async function analyzePhoto() {
       parts: [
         { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
         { text:
-          '請分析這張食物照片，識別所有可見食物並估算熱量與三大營養素。\n' +
-          '重要：只能回傳純 JSON，不可加任何說明文字，不可用 markdown 或 ```json 包裹。\n' +
-          '格式範例：{"foods":[{"name":"滷肉飯","amount":200,"unit":"g","calories":320,"protein":12.0,"carbs":45.0,"fat":10.0}]}\n' +
-          '請用繁體中文食物名稱，amount 為目視估算份量（公克），使用台灣常見食物的真實營養數據。'
+          'You are a professional nutritionist and food recognition expert. Analyze this food photo carefully.\n\n' +
+          'TASK: Identify every food item and drink visible in the image, then estimate calories and macronutrients.\n\n' +
+          'RECOGNITION RULES:\n' +
+          '- Identify ALL visible food items separately (e.g., rice, meat, vegetables are separate items)\n' +
+          '- Recognize any cuisine: Asian (Chinese, Japanese, Korean, Thai, Vietnamese), Western (American, Italian, Mexican), fast food, snacks, beverages, fruits, desserts, etc.\n' +
+          '- For packaged/processed foods, estimate based on visible portion\n' +
+          '- For mixed dishes (fried rice, noodles, salad), list as one item with combined nutrition\n' +
+          '- If a food is unclear, make your best educated guess based on visual cues (color, texture, shape, context)\n' +
+          '- Do NOT skip any food item, even small sides or sauces\n\n' +
+          'PORTION ESTIMATION:\n' +
+          '- Use common reference sizes: a bowl of rice ≈ 200g, a burger ≈ 200g, a cup of drink ≈ 250ml\n' +
+          '- Consider plate/bowl size, food thickness, and density\n' +
+          '- For beverages: estimate in ml, convert calories per 100ml\n\n' +
+          'NUTRITION DATA:\n' +
+          '- Use accurate nutritional data from standard food databases (USDA, etc.)\n' +
+          '- calories = total for the estimated portion (not per 100g)\n' +
+          '- protein, carbs, fat = grams for the estimated portion\n\n' +
+          'OUTPUT FORMAT — respond with ONLY this JSON, no markdown, no explanation:\n' +
+          '{"foods":[{"name":"食物名稱(繁體中文)","amount":200,"unit":"g","calories":320,"protein":12.0,"carbs":45.0,"fat":10.0}]}\n\n' +
+          'Use Traditional Chinese (繁體中文) for all food names. Be specific: write "雞腿排" not "雞肉", "白飯" not "飯".'
         }
       ]
     }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
+    generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
   });
 
   let resp, lastErr;
