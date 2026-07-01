@@ -358,11 +358,14 @@
         <div id="exQuickGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px"></div>
 
         <!-- Search -->
-        <div class="search-wrap" style="margin-bottom:12px">
+        <div class="search-wrap" style="margin-bottom:8px">
           <i class="bi bi-search search-icon"></i>
           <input id="exSearch" class="search-input" type="text" placeholder="搜尋更多運動…" autocomplete="off" oninput="doExSearch(this.value)">
           <div id="exSearchResults" class="search-results"></div>
         </div>
+        <button class="btn-outline" style="width:100%;font-size:0.82rem;padding:8px 14px;margin-bottom:12px;color:var(--muted)" onclick="openManualExercise()">
+          <i class="bi bi-pencil"></i> 自訂運動（手動輸入名稱與消耗）
+        </button>
 
         <!-- Selected display -->
         <div id="exSelectedWrap" style="display:none;background:var(--orange-light);border:1.5px solid #FED7AA;border-radius:12px;padding:12px 14px;margin-bottom:14px">
@@ -818,6 +821,37 @@
     <div style="display:flex;gap:10px">
       <button class="btn-outline" style="flex:1" onclick="closeManualModal()">取消</button>
       <button class="btn-primary" style="flex:1;justify-content:center" onclick="submitManualFood()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manual Exercise Modal -->
+<div id="manualExModal" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ 自訂運動記錄</div>
+    <div class="form-group">
+      <label class="form-label">運動名稱 *</label>
+      <input id="meExName" class="form-input" type="text" placeholder="例：打籃球、爬山、騎車…">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">運動時長 (分鐘) *</label>
+        <input id="meExDuration" class="form-input" type="number" min="1" max="600" placeholder="30">
+      </div>
+      <div class="form-group">
+        <label class="form-label">消耗熱量 (kcal) *</label>
+        <input id="meExCal" class="form-input" type="number" min="1" placeholder="200">
+      </div>
+    </div>
+    <div style="background:#FFF7ED;border-radius:10px;padding:10px;font-size:0.75rem;color:var(--muted);margin-bottom:14px;line-height:1.7">
+      💡 不確定消耗量？可參考：步行 30 分≈150kcal、慢跑 30 分≈300kcal、游泳 30 分≈250kcal
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-outline" style="flex:1" onclick="closeManualExercise()">取消</button>
+      <button class="btn-primary" style="flex:1;justify-content:center;background:linear-gradient(135deg,#F97316,#EF4444)" onclick="submitManualExercise()">
+        <i class="bi bi-fire"></i> 記錄
+      </button>
     </div>
   </div>
 </div>
