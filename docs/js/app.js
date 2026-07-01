@@ -1859,7 +1859,10 @@ function mkWeeklyChart(weekDates, sums, tdee, today) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 11 }, boxWidth: 12, padding: 14 },
+        },
         tooltip: {
           callbacks: {
             label(ctx) {
@@ -1873,6 +1876,7 @@ function mkWeeklyChart(weekDates, sums, tdee, today) {
           }
         }
       },
+      layout: { padding: { bottom: 4 } },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 11 } } },
         y: {
