@@ -571,6 +571,7 @@ const FOOD_DB = {
   '無糖希臘優格':      { calories: 59,  protein: 10.0, carbs: 3.5,  fat: 0.4  },
   '蛋白棒':            { calories: 380, protein: 30.0, carbs: 38.0, fat: 10.0 },
   '格蘭諾拉麥片':      { calories: 471, protein: 10.0, carbs: 64.0, fat: 20.0 },
+  '蛋白粉':            { calories: 380, protein: 75.0, carbs: 8.0,  fat: 4.0  },
   '乳清蛋白粉':        { calories: 380, protein: 75.0, carbs: 8.0,  fat: 4.0  },
   '植物蛋白粉':        { calories: 360, protein: 70.0, carbs: 12.0, fat: 5.0  },
   '羽衣甘藍':          { calories: 49,  protein: 4.3,  carbs: 9.0,  fat: 0.9  },
@@ -1178,21 +1179,50 @@ function boldMatch(text, q) {
   return esc(text);
 }
 
+const NUTRITION_KEYWORDS = {
+  '低卡':   info => info.calories < 100,
+  '低熱量': info => info.calories < 100,
+  '高蛋白': info => info.protein >= 20,
+  '低脂':   info => info.fat <= 3,
+  '低碳水': info => info.carbs <= 10,
+  '減醣':   info => info.carbs <= 20,
+  '生酮':   info => info.carbs <= 5 && info.fat >= 10,
+  '素食':   info => info.protein < 15 && info.fat < 10 && info.calories < 200,
+};
+
+function foodScore(name, q) {
+  if (name === q)           return 100;
+  if (name.startsWith(q))  return 85;
+  if (name.includes(q))    return 70;
+  // score by how many unique query characters appear in the food name
+  const chars  = [...new Set(q.split(''))];
+  const matched = chars.filter(ch => name.includes(ch)).length;
+  if (matched === 0) return 0;
+  return Math.round((matched / chars.length) * 40);
+}
+
 function doSearch(q) {
   q = q.trim();
   const box   = document.getElementById('searchResults');
   const input = document.getElementById('foodSearch');
   if (!q) { box.classList.remove('show'); return; }
 
-  searchCache = Object.entries(FOOD_DB)
-    .filter(([name]) => name.includes(q) || q.split('').every(ch => name.includes(ch)))
-    .sort((a, b) => {
-      const aExact = a[0].includes(q) ? 0 : 1;
-      const bExact = b[0].includes(q) ? 0 : 1;
-      return aExact - bExact || a[0].length - b[0].length;
-    })
-    .map(([name, info]) => ({ name, ...info }))
-    .slice(0, 15);
+  const nutFilter = NUTRITION_KEYWORDS[q];
+  const entries   = Object.entries(FOOD_DB);
+
+  if (nutFilter) {
+    searchCache = entries
+      .filter(([, info]) => nutFilter(info))
+      .sort((a, b) => a[1].calories - b[1].calories)
+      .map(([name, info]) => ({ name, ...info }))
+      .slice(0, 15);
+  } else {
+    searchCache = entries
+      .map(([name, info]) => ({ name, score: foodScore(name, q), ...info }))
+      .filter(f => f.score > 0)
+      .sort((a, b) => b.score - a.score || a.name.length - b.name.length)
+      .slice(0, 15);
+  }
 
   if (!searchCache.length) {
     fetchOnlineFoods(q, box, input);
