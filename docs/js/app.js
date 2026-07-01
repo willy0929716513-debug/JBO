@@ -15,6 +15,7 @@ const MEAL_META = [
   { id: 'lunch',     label: '午餐', icon: '☀️',  color: '#22C55E' },
   { id: 'dinner',    label: '晚餐', icon: '🌙',  color: '#3B82F6' },
   { id: 'snack',     label: '點心', icon: '🧃',  color: '#8B5CF6' },
+  { id: 'fruit',     label: '水果', icon: '🍎', color: '#EC4899' },
 ];
 
 const FOOD_DB = {
@@ -948,7 +949,7 @@ function getSummary(date) {
 }
 
 function getMeals(date) {
-  const meals = { breakfast: [], lunch: [], dinner: [], snack: [] };
+  const meals = { breakfast: [], lunch: [], dinner: [], snack: [], fruit: [] };
   DB.getFoods().filter(f => f.date === date).forEach(f => {
     if (meals[f.meal_type]) meals[f.meal_type].push(f);
   });
