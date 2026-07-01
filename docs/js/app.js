@@ -476,6 +476,61 @@ const FOOD_DB = {
 };
 
 
+// ── Exercise DB (MET values from Compendium of Physical Activities 2011) ──────
+
+const EXERCISE_DB = {
+  // 有氧
+  '健走':              { met: 3.5,  icon: '🚶', cat: '有氧' },
+  '快走':              { met: 4.3,  icon: '🚶', cat: '有氧' },
+  '慢跑':              { met: 7.0,  icon: '🏃', cat: '有氧' },
+  '跑步(中速)':        { met: 9.8,  icon: '🏃', cat: '有氧' },
+  '跑步(快速)':        { met: 12.8, icon: '🏃', cat: '有氧' },
+  '騎腳踏車(輕鬆)':    { met: 4.0,  icon: '🚴', cat: '有氧' },
+  '騎腳踏車(中速)':    { met: 8.0,  icon: '🚴', cat: '有氧' },
+  '騎腳踏車(激烈)':    { met: 12.0, icon: '🚴', cat: '有氧' },
+  '游泳(輕鬆)':        { met: 5.8,  icon: '🏊', cat: '有氧' },
+  '游泳(激烈)':        { met: 9.8,  icon: '🏊', cat: '有氧' },
+  '跳繩':              { met: 11.8, icon: '⚡', cat: '有氧' },
+  'HIIT高強度間歇':    { met: 12.0, icon: '⚡', cat: '有氧' },
+  '有氧舞蹈':          { met: 7.3,  icon: '💃', cat: '有氧' },
+  '爬樓梯':            { met: 8.0,  icon: '🪜', cat: '有氧' },
+  '爬山/健行':         { met: 7.8,  icon: '⛰️', cat: '有氧' },
+  '橢圓機':            { met: 5.0,  icon: '🏃', cat: '有氧' },
+  '划船機':            { met: 7.0,  icon: '🚣', cat: '有氧' },
+  // 重訓
+  '重量訓練(輕度)':    { met: 3.5,  icon: '🏋️', cat: '重訓' },
+  '重量訓練(中度)':    { met: 5.0,  icon: '🏋️', cat: '重訓' },
+  '重量訓練(高強度)':  { met: 6.0,  icon: '🏋️', cat: '重訓' },
+  '深蹲訓練':          { met: 5.0,  icon: '💪', cat: '重訓' },
+  '伏地挺身':          { met: 3.8,  icon: '💪', cat: '重訓' },
+  '仰臥起坐':          { met: 3.0,  icon: '💪', cat: '重訓' },
+  '核心訓練':          { met: 3.8,  icon: '💪', cat: '重訓' },
+  '拉單槓/引體向上':   { met: 4.0,  icon: '💪', cat: '重訓' },
+  '交叉訓練':          { met: 9.0,  icon: '🏋️', cat: '重訓' },
+  // 球類
+  '籃球':              { met: 8.0,  icon: '🏀', cat: '球類' },
+  '排球':              { met: 4.0,  icon: '🏐', cat: '球類' },
+  '桌球':              { met: 4.0,  icon: '🏓', cat: '球類' },
+  '羽球':              { met: 7.0,  icon: '🏸', cat: '球類' },
+  '網球':              { met: 7.3,  icon: '🎾', cat: '球類' },
+  '足球':              { met: 7.0,  icon: '⚽', cat: '球類' },
+  '棒球/壘球':         { met: 5.0,  icon: '⚾', cat: '球類' },
+  '高爾夫':            { met: 4.8,  icon: '⛳', cat: '球類' },
+  // 瑜珈/伸展
+  '瑜珈':              { met: 2.5,  icon: '🧘', cat: '瑜珈' },
+  '皮拉提斯':          { met: 3.0,  icon: '🧘', cat: '瑜珈' },
+  '伸展/緩和運動':     { met: 2.3,  icon: '🤸', cat: '瑜珈' },
+  '冥想':              { met: 1.3,  icon: '🧘', cat: '瑜珈' },
+  // 生活活動
+  '做家事':            { met: 3.5,  icon: '🧹', cat: '生活' },
+  '搬重物':            { met: 5.0,  icon: '📦', cat: '生活' },
+  '跳舞':              { met: 5.5,  icon: '💃', cat: '生活' },
+  '遛狗(快步)':        { met: 3.5,  icon: '🐕', cat: '生活' },
+  '園藝':              { met: 3.5,  icon: '🌱', cat: '生活' },
+};
+
+const EXERCISE_QUICK = ['慢跑','快走','騎腳踏車(中速)','游泳(輕鬆)','重量訓練(中度)','HIIT高強度間歇','跳繩','瑜珈'];
+
 // ── Storage ───────────────────────────────────────────────────────────────────
 
 const DB = {
@@ -519,6 +574,17 @@ const DB = {
     DB.saveWeights(all.sort((a, b) => b.date.localeCompare(a.date)));
   },
   deleteWeight(id) { DB.saveWeights(DB.getWeights().filter(w => w.id !== id)); },
+
+  getExercises:  () => DB._get('nm_exercises', '[]'),
+  saveExercises: d  => localStorage.setItem('nm_exercises', JSON.stringify(d)),
+  addExercise(entry) {
+    entry.id = DB.newId();
+    const all = DB.getExercises();
+    all.push(entry);
+    DB.saveExercises(all);
+    return entry;
+  },
+  deleteExercise(id) { DB.saveExercises(DB.getExercises().filter(e => e.id !== id)); },
 };
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
@@ -538,12 +604,15 @@ function dateRange(days) {
 function getSummary(date) {
   const foods = DB.getFoods().filter(f => f.date === date);
   const water = DB.getWater().filter(w => w.date === date);
+  const exes  = DB.getExercises().filter(e => e.date === date);
   return {
-    calories: foods.reduce((s, f) => s + f.calories, 0),
-    protein:  foods.reduce((s, f) => s + f.protein, 0),
-    carbs:    foods.reduce((s, f) => s + f.carbs, 0),
-    fat:      foods.reduce((s, f) => s + f.fat, 0),
-    water:    water.reduce((s, w) => s + w.amount, 0),
+    calories:         foods.reduce((s, f) => s + f.calories, 0),
+    protein:          foods.reduce((s, f) => s + f.protein, 0),
+    carbs:            foods.reduce((s, f) => s + f.carbs, 0),
+    fat:              foods.reduce((s, f) => s + f.fat, 0),
+    water:            water.reduce((s, w) => s + w.amount, 0),
+    exercise_burned:  exes.reduce((s, e) => s + e.calories_burned, 0),
+    exercise_minutes: exes.reduce((s, e) => s + e.duration, 0),
   };
 }
 
@@ -662,6 +731,7 @@ function navigate(page) {
   switch (page) {
     case 'dashboard': renderDashboard(); break;
     case 'food-log':  renderFoodLog();   break;
+    case 'exercise':  renderExercise();  break;
     case 'water':     renderWater();     break;
     case 'weight':    renderWeight();    break;
     case 'trends':    renderTrends(7);   break;
@@ -681,11 +751,24 @@ function renderDashboard() {
   const dateEl = document.getElementById('dash-date');
   if (dateEl) dateEl.textContent = today;
 
+  const exBurned = sum.exercise_burned || 0;
+  const netCal   = sum.calories - exBurned;
   document.getElementById('ring-cal').textContent = Math.round(sum.calories);
-  const remain = Math.max(settings.calorie_goal - sum.calories, 0);
+  const remain = Math.max(settings.calorie_goal - netCal, 0);
   document.getElementById('ring-remain').textContent =
-    sum.calories > settings.calorie_goal ? '🎉 已超過目標' : `還差 ${Math.round(remain)} 大卡`;
-  drawRing('calRing', sum.calories, settings.calorie_goal);
+    netCal > settings.calorie_goal ? '🎉 已超過目標' : `還差 ${Math.round(remain)} 大卡`;
+  drawRing('calRing', netCal, settings.calorie_goal);
+
+  const exRow = document.getElementById('dash-exercise-row');
+  const exTxt = document.getElementById('dash-exercise-text');
+  if (exRow && exTxt) {
+    if (exBurned > 0) {
+      exRow.style.display = 'block';
+      exTxt.textContent   = `-${Math.round(exBurned)} kcal · 淨攝取 ${Math.round(netCal)} kcal`;
+    } else {
+      exRow.style.display = 'none';
+    }
+  }
 
   setBar('barProtein', sum.protein, settings.protein_goal, '#8B5CF6');
   setBar('barCarbs',   sum.carbs,   settings.carbs_goal,   '#06B6D4');
@@ -1128,6 +1211,187 @@ function deleteWaterItem(id) {
   renderWater();
 }
 
+// ── Exercise ───────────────────────────────────────────────────────────────────
+
+let selectedExercise = null;
+let exSearchCache    = [];
+
+function getExerciseWeight() {
+  const s = DB.getSettings();
+  const w = DB.getWeights();
+  return (w.length > 0 ? w[0].weight : null) || s.weight || 65;
+}
+
+function calcExerciseCal(met, durationMin) {
+  return Math.round(met * getExerciseWeight() * (durationMin / 60));
+}
+
+function renderExercise() {
+  const today = todayStr();
+  const dateEl = document.getElementById('ex-date');
+  if (dateEl) dateEl.textContent = today;
+
+  const exes     = DB.getExercises().filter(e => e.date === today);
+  const totalCal = exes.reduce((s, e) => s + e.calories_burned, 0);
+  const totalMin = exes.reduce((s, e) => s + e.duration, 0);
+
+  const calEl  = document.getElementById('ex-total-cal');
+  const timeEl = document.getElementById('ex-total-time');
+  if (calEl)  calEl.textContent  = Math.round(totalCal);
+  if (timeEl) timeEl.textContent = totalMin > 0 ? `共 ${totalMin} 分鐘` : '今日尚未記錄';
+
+  renderExerciseQuick();
+  renderExerciseList(exes);
+  updateExCalPreview();
+}
+
+function renderExerciseQuick() {
+  const wrap = document.getElementById('exQuickGrid');
+  if (!wrap) return;
+  wrap.innerHTML = EXERCISE_QUICK.map(name => {
+    const ex = EXERCISE_DB[name];
+    if (!ex) return '';
+    const active = selectedExercise?.name === name ? 'active' : '';
+    return `
+      <button class="ex-quick-btn ${active}" onclick="selectExercise('${esc(name)}')">
+        <div style="font-size:1.4rem;line-height:1.2">${ex.icon}</div>
+        <div style="font-size:0.66rem;line-height:1.3;margin-top:3px;color:inherit">${name}</div>
+      </button>`;
+  }).join('');
+}
+
+function selectExercise(name) {
+  const ex = EXERCISE_DB[name];
+  if (!ex) return;
+  selectedExercise = { name, ...ex };
+
+  renderExerciseQuick();
+
+  const selWrap = document.getElementById('exSelectedWrap');
+  const selName = document.getElementById('exSelectedName');
+  const selInfo = document.getElementById('exSelectedInfo');
+  if (selWrap) selWrap.style.display = 'block';
+  if (selName) selName.textContent   = `${ex.icon} ${name}`;
+  if (selInfo) {
+    const kg = getExerciseWeight();
+    selInfo.textContent = `MET ${ex.met} · ${ex.cat} · 體重 ${kg}kg · 約 ${calcExerciseCal(ex.met, 30)} kcal / 30分`;
+  }
+
+  document.getElementById('exSearchResults')?.classList.remove('show');
+  const exSrch = document.getElementById('exSearch');
+  if (exSrch) exSrch.value = '';
+
+  updateExCalPreview();
+}
+
+function doExSearch(q) {
+  q = q.trim();
+  const box = document.getElementById('exSearchResults');
+  const inp = document.getElementById('exSearch');
+  if (!q || !box || !inp) { box?.classList.remove('show'); return; }
+
+  exSearchCache = Object.entries(EXERCISE_DB)
+    .filter(([name]) => name.includes(q) || q.split('').every(ch => name.includes(ch)))
+    .sort((a, b) => a[0].length - b[0].length)
+    .map(([name, info]) => ({ name, ...info }))
+    .slice(0, 10);
+
+  if (!exSearchCache.length) { box.classList.remove('show'); return; }
+
+  const rect = inp.getBoundingClientRect();
+  box.style.top   = (rect.bottom + 6) + 'px';
+  box.style.left  = rect.left + 'px';
+  box.style.width = rect.width + 'px';
+
+  box.innerHTML = exSearchCache.map(ex => `
+    <div class="result-item" onclick="selectExercise('${esc(ex.name)}')">
+      <div>
+        <div class="result-name">${ex.icon} ${esc(ex.name)}</div>
+        <div class="result-info">MET ${ex.met} · ${ex.cat}</div>
+      </div>
+      <div class="result-cal">~${calcExerciseCal(ex.met, 30)} kcal/30分</div>
+    </div>`).join('');
+  box.classList.add('show');
+}
+
+function setExDuration(min) {
+  const inp = document.getElementById('exDuration');
+  if (inp) inp.value = min;
+  document.querySelectorAll('.ex-dur-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.min) === min));
+  updateExCalPreview();
+}
+
+function updateExCalPreview() {
+  const preEl = document.getElementById('exCalPreview');
+  if (!preEl || !selectedExercise) { if (preEl) preEl.style.display = 'none'; return; }
+  const dur = parseInt(document.getElementById('exDuration')?.value) || 30;
+  const cal = calcExerciseCal(selectedExercise.met, dur);
+  const kg  = getExerciseWeight();
+  preEl.style.display = 'block';
+  preEl.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:0.78rem;color:var(--text-2);font-weight:600">預估消耗熱量</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">${kg}kg × MET ${selectedExercise.met} × ${dur}分 ÷ 60</div>
+      </div>
+      <div style="font-size:2rem;font-weight:800;color:var(--orange)">${cal} <span style="font-size:0.72rem">kcal</span></div>
+    </div>`;
+}
+
+function logExercise() {
+  if (!selectedExercise) { showToast('請先選擇運動類型'); return; }
+  const dur = parseInt(document.getElementById('exDuration')?.value) || 30;
+  if (dur <= 0 || dur > 600) { showToast('請輸入有效時長（1–600 分鐘）'); return; }
+  const cal = calcExerciseCal(selectedExercise.met, dur);
+
+  DB.addExercise({
+    date: todayStr(),
+    exercise_name: selectedExercise.name,
+    icon: selectedExercise.icon,
+    met: selectedExercise.met,
+    cat: selectedExercise.cat,
+    duration: dur,
+    calories_burned: cal,
+  });
+
+  showToast(`✅ ${selectedExercise.icon} ${selectedExercise.name} ${dur}分 · 消耗 ${cal} kcal`);
+  selectedExercise = null;
+  renderExercise();
+  if (document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
+}
+
+function deleteExerciseItem(id) {
+  DB.deleteExercise(id);
+  showToast('已刪除');
+  renderExercise();
+  if (document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
+}
+
+function renderExerciseList(exes) {
+  const listEl = document.getElementById('ex-list');
+  if (!listEl) return;
+  if (!exes.length) {
+    listEl.innerHTML = '<div class="empty-state"><i class="bi bi-bicycle" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:6px"></i>今日尚無運動記錄</div>';
+    return;
+  }
+  const totalCal = exes.reduce((s, e) => s + e.calories_burned, 0);
+  listEl.innerHTML = [...exes].reverse().map(e => `
+    <div class="exercise-item" id="ei-${esc(e.id)}">
+      <div style="font-size:1.6rem;flex-shrink:0">${e.icon || '💪'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:0.88rem">${esc(e.exercise_name)}</div>
+        <div style="font-size:0.72rem;color:var(--muted)">${e.duration} 分鐘 · MET ${e.met} · ${e.cat || ''}</div>
+      </div>
+      <div style="font-weight:800;color:var(--orange);font-size:0.95rem;flex-shrink:0">-${Math.round(e.calories_burned)} kcal</div>
+      <button class="del-btn" onclick="deleteExerciseItem('${esc(e.id)}')"><i class="bi bi-trash3"></i></button>
+    </div>`).join('') +
+    `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:0.85rem">
+      <span style="color:var(--muted)">今日共消耗</span>
+      <span style="font-weight:800;color:var(--orange)">-${Math.round(totalCal)} kcal</span>
+    </div>`;
+}
+
 // ── Weight ─────────────────────────────────────────────────────────────────────
 
 function renderWeight() {
@@ -1226,7 +1490,7 @@ function renderTrends(days) {
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const pairs = [
-    ['tCalChart',    () => mkLineChart(document.getElementById('tCalChart')?.getContext('2d'),   labels, sums.map(s => Math.round(s.calories)), '#F97316')],
+    ['tCalChart',    () => mkCalExChart(labels, sums)],
     ['tWaterChart',  () => mkBarChart(document.getElementById('tWaterChart')?.getContext('2d'),   labels, sums.map(s => Math.round(s.water)),    '#3B82F6')],
     ['tMacroChart',  () => mkMacroChart(labels, sums)],
     ['tWeightChart', () => wLogs.length > 0 ? mkLineChart(document.getElementById('tWeightChart')?.getContext('2d'), wLogs.map(w=>w.date.slice(5)), wLogs.map(w=>w.weight), '#EC4899') : null],
@@ -1253,6 +1517,31 @@ function mkLineChart(ctx, labels, data, color) {
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 11 } } },
         y: { grid: { color: '#F3F4F6' }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function mkCalExChart(labels, sums) {
+  const ctx = document.getElementById('tCalChart')?.getContext('2d');
+  if (!ctx) return null;
+  const hasBurn = sums.some(s => (s.exercise_burned || 0) > 0);
+  if (!hasBurn) return mkLineChart(ctx, labels, sums.map(s => Math.round(s.calories)), '#F97316');
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '攝取', data: sums.map(s => Math.round(s.calories)),        backgroundColor: '#F9731633', borderColor: '#F97316', borderWidth: 2, borderRadius: 4, stack: 'a' },
+        { label: '運動消耗', data: sums.map(s => -Math.round(s.exercise_burned || 0)), backgroundColor: '#22C55E33', borderColor: '#22C55E', borderWidth: 2, borderRadius: 4, stack: 'a' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } }, stacked: true },
+        y: { grid: { color: '#F3F4F6' }, ticks: { font: { size: 11 } }, stacked: true }
       }
     }
   });

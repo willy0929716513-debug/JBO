@@ -71,6 +71,10 @@
             <div style="height:6px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden">
               <div id="waterProgressBar" style="height:100%;background:#3B82F6;border-radius:3px;transition:width 0.5s;width:0%"></div>
             </div>
+            <div id="dash-exercise-row" style="display:none;margin-top:8px;font-size:0.78rem;color:var(--muted)">
+              <i class="bi bi-fire" style="color:var(--orange)"></i>
+              運動消耗 <span id="dash-exercise-text" style="color:var(--orange);font-weight:700"></span>
+            </div>
           </div>
         </div>
       </div>
@@ -78,20 +82,25 @@
 
     <div id="dashTDEEBanner" style="display:none;margin-bottom:14px"></div>
 
-    <div style="display:flex;gap:10px;margin-bottom:14px">
-      <div style="flex:1;cursor:pointer" onclick="navigate('food-log')">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="cursor:pointer" onclick="navigate('food-log')">
         <div style="background:var(--green);color:white;border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:0.85rem">
           <i class="bi bi-plus-circle" style="display:block;font-size:1.4rem;margin-bottom:4px"></i>新增飲食
         </div>
       </div>
-      <div style="flex:1;cursor:pointer" onclick="navigate('water')">
+      <div style="cursor:pointer" onclick="navigate('exercise')">
+        <div style="background:var(--orange-light);border:2px solid #FED7AA;color:var(--orange);border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:0.85rem">
+          <i class="bi bi-fire" style="display:block;font-size:1.4rem;margin-bottom:4px"></i>記錄運動
+        </div>
+      </div>
+      <div style="cursor:pointer" onclick="navigate('water')">
         <div style="background:var(--blue-light);border:2px solid #BFDBFE;color:var(--blue);border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:0.85rem">
           <i class="bi bi-droplet-fill" style="display:block;font-size:1.4rem;margin-bottom:4px"></i>記錄喝水
         </div>
       </div>
-      <div style="flex:1;cursor:pointer" onclick="navigate('weight')">
+      <div style="cursor:pointer" onclick="navigate('goals')">
         <div style="background:var(--pink-light);border:2px solid #FBCFE8;color:var(--pink);border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:0.85rem">
-          <i class="bi bi-speedometer2" style="display:block;font-size:1.4rem;margin-bottom:4px"></i>記錄體重
+          <i class="bi bi-bullseye" style="display:block;font-size:1.4rem;margin-bottom:4px"></i>健康目標
         </div>
       </div>
     </div>
@@ -308,6 +317,90 @@
           • 運動後記得補充流失的水分<br>
           • 喝水可幫助維持正常代謝<br>
           • 咖啡、茶也計入每日水分攝取
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exercise -->
+  <div id="page-exercise" class="page">
+    <div style="margin-bottom:16px">
+      <div class="greeting">運動記錄 <span style="color:var(--orange)">💪</span></div>
+      <div class="subgreeting" id="ex-date"></div>
+    </div>
+
+    <!-- Today burn summary -->
+    <div class="card fade-in" style="background:linear-gradient(135deg,#FFF7ED,#FEFCE8);border:none">
+      <div class="card-body" style="text-align:center;padding:20px 16px">
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px">今日運動消耗</div>
+        <div id="ex-total-cal" style="font-size:3rem;font-weight:800;color:var(--orange);line-height:1">0</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-top:2px">大卡</div>
+        <div id="ex-total-time" style="font-size:0.8rem;color:var(--muted);margin-top:6px">今日尚未記錄</div>
+      </div>
+    </div>
+
+    <!-- Add exercise -->
+    <div class="card fade-in">
+      <div class="card-body">
+        <div class="card-title">新增運動</div>
+
+        <!-- Quick select grid -->
+        <div id="exQuickGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px"></div>
+
+        <!-- Search -->
+        <div class="search-wrap" style="margin-bottom:12px">
+          <i class="bi bi-search search-icon"></i>
+          <input id="exSearch" class="search-input" type="text" placeholder="搜尋更多運動…" autocomplete="off" oninput="doExSearch(this.value)">
+          <div id="exSearchResults" class="search-results"></div>
+        </div>
+
+        <!-- Selected display -->
+        <div id="exSelectedWrap" style="display:none;background:var(--orange-light);border:1.5px solid #FED7AA;border-radius:12px;padding:12px 14px;margin-bottom:14px">
+          <div id="exSelectedName" style="font-weight:700;font-size:0.95rem;color:var(--text)"></div>
+          <div id="exSelectedInfo" style="font-size:0.75rem;color:var(--muted);margin-top:3px"></div>
+        </div>
+
+        <!-- Duration presets -->
+        <div style="font-size:0.82rem;font-weight:700;color:var(--text-2);margin-bottom:8px">運動時長</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+          <button class="ex-dur-btn" data-min="15" onclick="setExDuration(15)">15 分</button>
+          <button class="ex-dur-btn active" data-min="30" onclick="setExDuration(30)">30 分</button>
+          <button class="ex-dur-btn" data-min="45" onclick="setExDuration(45)">45 分</button>
+          <button class="ex-dur-btn" data-min="60" onclick="setExDuration(60)">60 分</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <input id="exDuration" class="form-input" type="number" min="1" max="600" value="30"
+                 style="flex:1;text-align:center;font-size:1.1rem;font-weight:700" oninput="updateExCalPreview()">
+          <span style="font-size:0.85rem;color:var(--muted);flex-shrink:0">分鐘</span>
+        </div>
+
+        <!-- Calorie preview -->
+        <div id="exCalPreview" style="display:none;background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:12px 14px;margin-bottom:14px"></div>
+
+        <button class="btn-primary" style="width:100%;justify-content:center;background:linear-gradient(135deg,#F97316,#EF4444)" onclick="logExercise()">
+          <i class="bi bi-fire"></i> 記錄運動
+        </button>
+      </div>
+    </div>
+
+    <!-- Today's log -->
+    <div class="card fade-in">
+      <div class="card-body">
+        <div class="card-title">今日紀錄</div>
+        <div id="ex-list"></div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="card fade-in" style="background:linear-gradient(135deg,#FFF7ED,#FEFCE8);border:none">
+      <div class="card-body">
+        <div style="font-weight:700;font-size:0.9rem;margin-bottom:10px">💡 運動科學小知識</div>
+        <div style="font-size:0.8rem;color:var(--text-2);line-height:1.9">
+          • 消耗公式：<strong>MET × 體重(kg) × 時間(hr)</strong>（國際通用標準）<br>
+          • WHO 建議每週至少 <strong>150 分鐘</strong>中強度有氧運動<br>
+          • <strong>重量訓練</strong>提高基礎代謝率，長期效益更大<br>
+          • 運動後 <strong>30 分鐘內</strong>補充蛋白質幫助肌肉修復<br>
+          • MET 值越高代表每分鐘消耗熱量越多
         </div>
       </div>
     </div>
@@ -611,9 +704,9 @@
   <a class="nav-item" data-page="food-log" onclick="navigate('food-log')">
     <i class="bi bi-journal-plus"></i><span>飲食</span>
   </a>
-  <a class="scan-nav-btn" onclick="navigate('goals')">
-    <div class="scan-circle"><i class="bi bi-bullseye"></i></div>
-    <span style="font-size:0.62rem;color:var(--muted);font-weight:500">目標</span>
+  <a class="scan-nav-btn" onclick="navigate('exercise')">
+    <div class="scan-circle" style="background:linear-gradient(135deg,#F97316,#EF4444);box-shadow:0 4px 15px rgba(249,115,22,0.45)"><i class="bi bi-fire"></i></div>
+    <span style="font-size:0.62rem;color:var(--orange);font-weight:600">運動</span>
   </a>
   <a class="nav-item" data-page="water" onclick="navigate('water')">
     <i class="bi bi-droplet-fill"></i><span>喝水</span>
