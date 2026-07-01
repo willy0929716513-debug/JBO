@@ -1378,7 +1378,7 @@ async function handlePhotoSelect(e) {
 async function analyzePhoto() {
   const s      = DB.getSettings();
   const apiKey = s.gemini_api_key;
-  if (!apiKey || !apiKey.startsWith('AIza')) {
+  if (!apiKey || apiKey.length < 20) {
     showToast('請先在設定頁面填入 Gemini API 金鑰');
     closePhotoScan();
     navigate('settings');
@@ -2395,7 +2395,7 @@ function _renderApiKeyStatus() {
   const el  = document.getElementById('apiKeyStatus');
   if (!el) return;
   const key = DB.getSettings().gemini_api_key;
-  if (key && key.startsWith('AIza')) {
+  if (key && key.length >= 20) {
     el.innerHTML = '<span style="font-size:0.72rem;background:#DCFCE7;color:#15803D;border-radius:20px;padding:3px 10px;font-weight:700">✅ 金鑰已儲存</span>';
   } else {
     el.innerHTML = '<span style="font-size:0.72rem;background:#FEF2F2;color:#EF4444;border-radius:20px;padding:3px 10px;font-weight:700">⚠️ 尚未設定</span>';
@@ -2404,8 +2404,7 @@ function _renderApiKeyStatus() {
 
 function saveApiKey() {
   const key = document.getElementById('sApiKey').value.trim();
-  if (!key) { showToast('請先輸入 API 金鑰'); return; }
-  if (!key.startsWith('AIza')) { showToast('金鑰格式不對，應以 AIza 開頭'); return; }
+  if (!key || key.length < 20) { showToast('請先輸入有效的 API 金鑰'); return; }
   const s = DB.getSettings();
   DB.saveSettings({ ...s, gemini_api_key: key });
   _renderApiKeyStatus();
@@ -2414,7 +2413,7 @@ function saveApiKey() {
 
 async function testApiKey() {
   const key = document.getElementById('sApiKey').value.trim() || DB.getSettings().gemini_api_key;
-  if (!key || !key.startsWith('AIza')) { showToast('請先輸入並儲存金鑰'); return; }
+  if (!key || key.length < 20) { showToast('請先輸入並儲存金鑰'); return; }
   showToast('🔄 測試中…');
   try {
     const res = await fetch(
