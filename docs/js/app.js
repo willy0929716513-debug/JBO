@@ -15,6 +15,7 @@ const MEAL_META = [
   { id: 'lunch',     label: '午餐', icon: '☀️',  color: '#22C55E' },
   { id: 'dinner',    label: '晚餐', icon: '🌙',  color: '#3B82F6' },
   { id: 'snack',     label: '點心', icon: '🧃',  color: '#8B5CF6' },
+  { id: 'fruit',     label: '水果', icon: '🍎', color: '#EC4899' },
 ];
 
 const FOOD_DB = {
@@ -282,6 +283,50 @@ const FOOD_DB = {
   '哈密瓜':      { calories: 34,  protein: 0.8,  carbs: 8.2,  fat: 0.2  },
   '香瓜':        { calories: 34,  protein: 0.8,  carbs: 8.2,  fat: 0.2  },
   '棗子':        { calories: 79,  protein: 1.2,  carbs: 20.2, fat: 0.2  },
+  // 柑橘類
+  '柚子':        { calories: 38,  protein: 0.8,  carbs: 8.6,  fat: 0.1  },
+  '文旦':        { calories: 38,  protein: 0.7,  carbs: 9.0,  fat: 0.1  },
+  '椪柑':        { calories: 42,  protein: 0.8,  carbs: 10.5, fat: 0.1  },
+  '茂谷柑':      { calories: 45,  protein: 0.8,  carbs: 11.5, fat: 0.2  },
+  '砂糖橘':      { calories: 40,  protein: 0.8,  carbs: 9.8,  fat: 0.1  },
+  '柑橘':        { calories: 44,  protein: 0.9,  carbs: 11.2, fat: 0.1  },
+  '金桔':        { calories: 71,  protein: 1.9,  carbs: 15.9, fat: 0.9  },
+  '檸檬':        { calories: 29,  protein: 1.1,  carbs: 9.3,  fat: 0.3  },
+  '萊姆':        { calories: 30,  protein: 0.7,  carbs: 10.5, fat: 0.2  },
+  // 熱帶水果
+  '榴槤':        { calories: 147, protein: 1.5,  carbs: 27.1, fat: 5.3  },
+  '山竹':        { calories: 73,  protein: 0.4,  carbs: 17.9, fat: 0.6  },
+  '紅毛丹':      { calories: 82,  protein: 0.7,  carbs: 20.6, fat: 0.2  },
+  '人心果':      { calories: 83,  protein: 0.4,  carbs: 20.0, fat: 1.1  },
+  '芭蕉':        { calories: 122, protein: 1.3,  carbs: 31.9, fat: 0.4  },
+  // 溫帶水果
+  '青蘋果':      { calories: 52,  protein: 0.3,  carbs: 13.8, fat: 0.2  },
+  '富士蘋果':    { calories: 54,  protein: 0.3,  carbs: 14.4, fat: 0.2  },
+  '西洋梨':      { calories: 57,  protein: 0.4,  carbs: 15.2, fat: 0.1  },
+  '黃金奇異果':  { calories: 64,  protein: 1.0,  carbs: 15.8, fat: 0.3  },
+  '巨峰葡萄':    { calories: 65,  protein: 0.5,  carbs: 16.7, fat: 0.2  },
+  '麝香葡萄':    { calories: 67,  protein: 0.6,  carbs: 17.2, fat: 0.2  },
+  '油桃':        { calories: 44,  protein: 1.1,  carbs: 10.6, fat: 0.3  },
+  '杏':          { calories: 48,  protein: 1.4,  carbs: 11.1, fat: 0.4  },
+  '梅子':        { calories: 30,  protein: 0.9,  carbs: 7.2,  fat: 0.2  },
+  '石榴':        { calories: 83,  protein: 1.7,  carbs: 18.7, fat: 1.2  },
+  '枇杷':        { calories: 47,  protein: 0.4,  carbs: 12.1, fat: 0.2  },
+  '無花果':      { calories: 74,  protein: 0.8,  carbs: 19.2, fat: 0.3  },
+  // 莓果類
+  '蔓越莓':      { calories: 46,  protein: 0.4,  carbs: 12.2, fat: 0.1  },
+  '桑椹':        { calories: 43,  protein: 1.4,  carbs: 9.8,  fat: 0.4  },
+  '紅龍果':      { calories: 55,  protein: 1.2,  carbs: 12.2, fat: 0.6  },
+  // 乾燥水果
+  '葡萄乾':      { calories: 299, protein: 3.1,  carbs: 79.2, fat: 0.5  },
+  '蔓越莓乾':    { calories: 308, protein: 0.2,  carbs: 82.5, fat: 1.4  },
+  '杏桃乾':      { calories: 241, protein: 3.4,  carbs: 62.6, fat: 0.5  },
+  '無花果乾':    { calories: 249, protein: 3.3,  carbs: 63.9, fat: 0.9  },
+  '芒果乾':      { calories: 319, protein: 2.4,  carbs: 78.6, fat: 1.2  },
+  '鳳梨乾':      { calories: 321, protein: 0.9,  carbs: 83.4, fat: 0.3  },
+  '紅棗乾':      { calories: 264, protein: 3.7,  carbs: 64.0, fat: 1.1  },
+  '黑棗乾':      { calories: 280, protein: 2.5,  carbs: 70.6, fat: 0.7  },
+  '龍眼乾':      { calories: 273, protein: 4.9,  carbs: 70.7, fat: 0.4  },
+  '香蕉乾':      { calories: 346, protein: 3.9,  carbs: 88.3, fat: 0.7  },
   // ══ 乳製品 ══
   '全脂牛奶':    { calories: 61,  protein: 3.2,  carbs: 4.8,  fat: 3.3  },
   '牛奶':        { calories: 61,  protein: 3.2,  carbs: 4.8,  fat: 3.3  },
@@ -904,7 +949,7 @@ function getSummary(date) {
 }
 
 function getMeals(date) {
-  const meals = { breakfast: [], lunch: [], dinner: [], snack: [] };
+  const meals = { breakfast: [], lunch: [], dinner: [], snack: [], fruit: [] };
   DB.getFoods().filter(f => f.date === date).forEach(f => {
     if (meals[f.meal_type]) meals[f.meal_type].push(f);
   });
@@ -1344,17 +1389,33 @@ function closeManualModal() { document.getElementById('manualModal').classList.a
 // ── AI Photo Scan ──────────────────────────────────────────────────────────────
 
 let scanResults     = [];
+let scanOriginals   = [];
 let scanImageBase64 = null;
 let scanMediaType   = 'image/jpeg';
+let scanMealType    = 'lunch';
 
 function openPhotoScan() {
+  scanMealType = activeMeal;
   document.getElementById('photoModal').classList.remove('hidden');
   scanResults     = [];
+  scanOriginals   = [];
   scanImageBase64 = null;
   document.getElementById('scanDrop').style.display         = 'block';
   document.getElementById('scanPreviewWrap').style.display  = 'none';
   document.getElementById('scanAnalyzeBtn').style.display   = 'none';
   document.getElementById('scanResultsWrap').style.display  = 'none';
+  _updateScanMealBtns();
+}
+
+function setScanMeal(meal) {
+  scanMealType = meal;
+  _updateScanMealBtns();
+}
+
+function _updateScanMealBtns() {
+  document.querySelectorAll('.scan-meal-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.meal === scanMealType);
+  });
 }
 
 function closePhotoScan() {
@@ -1430,9 +1491,9 @@ async function analyzePhoto() {
         { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
         { text:
           '請分析這張食物照片，識別所有可見食物並估算熱量與三大營養素。\n' +
-          '請只回傳 JSON，格式如下（不要其他文字）：\n' +
-          '{"foods":[{"name":"食物名稱（繁體中文）","amount":100,"unit":"g","calories":150,"protein":5.0,"carbs":20.0,"fat":3.0}]}\n' +
-          '請使用台灣常見食物的真實營養數據，amount 為目視估算份量。'
+          '重要：只能回傳純 JSON，不可加任何說明文字，不可用 markdown 或 ```json 包裹。\n' +
+          '格式範例：{"foods":[{"name":"滷肉飯","amount":200,"unit":"g","calories":320,"protein":12.0,"carbs":45.0,"fat":10.0}]}\n' +
+          '請用繁體中文食物名稱，amount 為目視估算份量（公克），使用台灣常見食物的真實營養數據。'
         }
       ]
     }],
@@ -1456,11 +1517,15 @@ async function analyzePhoto() {
 
     const data    = await resp.json();
     const text    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const jsonStr = text.match(/\{[\s\S]*\}/)?.[0];
+    const jsonStr = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)?.[1]
+                 || text.match(/\{[\s\S]*\}/)?.[0];
     if (!jsonStr) throw new Error('無法解析 AI 回應，請重試');
-    const parsed  = JSON.parse(jsonStr);
+    let parsed;
+    try { parsed = JSON.parse(jsonStr); }
+    catch { throw new Error('AI 回應格式錯誤，請重試'); }
     scanResults   = (parsed.foods || []).filter(f => f.name && f.calories > 0);
     if (!scanResults.length) throw new Error('未偵測到食物，請換張照片');
+    scanOriginals = scanResults.map(f => ({ ...f }));
     renderScanResults();
   } catch (err) {
     document.getElementById('scanResultsContent').innerHTML = `
@@ -1475,46 +1540,108 @@ async function analyzePhoto() {
 }
 
 function renderScanResults() {
-  const total = scanResults.reduce((s, f) => s + (f.calories || 0), 0);
+  const mealLabel = MEAL_META.find(m => m.id === scanMealType)?.label || '';
   document.getElementById('scanResultsContent').innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
       <div class="ai-badge"><i class="bi bi-stars"></i> AI 辨識結果</div>
-      <div style="font-size:0.8rem;color:var(--muted)">共 <strong style="color:var(--orange)">${Math.round(total)}</strong> kcal</div>
+      <div style="font-size:0.72rem;color:var(--muted)">可點擊名稱或份量修改</div>
     </div>
     ${scanResults.map((f, i) => `
-      <div class="scan-food-card">
-        <input type="checkbox" id="sfc-${i}" checked style="width:17px;height:17px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
+      <div class="scan-food-card" id="sfc-card-${i}">
+        <input type="checkbox" id="sfc-${i}" checked
+          style="width:17px;height:17px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:3px"
+          onchange="updateScanTotal()">
         <div style="flex:1;min-width:0">
-          <div class="scan-food-name">${esc(f.name)}</div>
-          <div class="scan-food-meta">約 ${f.amount}${f.unit||'g'} · 蛋白 ${(+f.protein||0).toFixed(1)}g · 碳水 ${(+f.carbs||0).toFixed(1)}g · 脂肪 ${(+f.fat||0).toFixed(1)}g</div>
+          <input class="scan-name-input" value="${esc(f.name)}"
+            oninput="scanResults[${i}].name=this.value">
+          <div class="scan-amt-row">
+            <input class="scan-amt-input" type="number" min="1" value="${Math.round(f.amount||100)}"
+              oninput="updateScanAmount(${i},this.value)">
+            <span style="font-size:0.72rem;color:var(--muted)">${f.unit||'g'}</span>
+            <span class="scan-food-macros" id="sfc-macros-${i}">蛋白 ${(+f.protein||0).toFixed(1)}g · 碳 ${(+f.carbs||0).toFixed(1)}g · 脂 ${(+f.fat||0).toFixed(1)}g</span>
+          </div>
         </div>
-        <div class="scan-food-cal">${Math.round(f.calories)} kcal</div>
+        <div class="scan-food-cal" id="sfc-cal-${i}">${Math.round(f.calories)}<br><span style="font-size:0.68rem;font-weight:500">kcal</span></div>
       </div>`).join('')}
-    <button class="btn-primary" style="width:100%;justify-content:center;margin-top:12px" onclick="addScanResults()">
-      <i class="bi bi-plus-circle"></i> 加入今日紀錄
+    <div class="scan-total-row">
+      <div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-bottom:2px">已勾選合計</div>
+        <div style="font-size:0.75rem;color:var(--muted)">
+          蛋白 <strong id="st-p">-</strong>g ·
+          碳水 <strong id="st-c">-</strong>g ·
+          脂肪 <strong id="st-f">-</strong>g
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.68rem;color:var(--muted)">總熱量</div>
+        <div style="font-size:1.3rem;font-weight:800;color:var(--orange);line-height:1.2">
+          <span id="st-cal">-</span>
+          <span style="font-size:0.7rem;font-weight:500"> kcal</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary" style="width:100%;justify-content:center;margin-top:10px" onclick="addScanResults()">
+      <i class="bi bi-plus-circle"></i> 加入${mealLabel}紀錄
     </button>`;
+  updateScanTotal();
+}
+
+function updateScanAmount(i, val) {
+  const amt  = Math.max(1, parseFloat(val) || 1);
+  const orig = scanOriginals[i];
+  if (!orig) return;
+  const ratio = amt / (orig.amount || 100);
+  scanResults[i].amount   = amt;
+  scanResults[i].calories = orig.calories * ratio;
+  scanResults[i].protein  = orig.protein  * ratio;
+  scanResults[i].carbs    = orig.carbs    * ratio;
+  scanResults[i].fat      = orig.fat      * ratio;
+  const calEl    = document.getElementById(`sfc-cal-${i}`);
+  const macroEl  = document.getElementById(`sfc-macros-${i}`);
+  if (calEl) calEl.innerHTML = `${Math.round(scanResults[i].calories)}<br><span style="font-size:0.68rem;font-weight:500">kcal</span>`;
+  if (macroEl) macroEl.textContent =
+    `蛋白 ${scanResults[i].protein.toFixed(1)}g · 碳 ${scanResults[i].carbs.toFixed(1)}g · 脂 ${scanResults[i].fat.toFixed(1)}g`;
+  updateScanTotal();
+}
+
+function updateScanTotal() {
+  let cal = 0, p = 0, c = 0, f = 0;
+  scanResults.forEach((food, i) => {
+    const chk = document.getElementById(`sfc-${i}`);
+    if (chk && chk.checked) {
+      cal += food.calories || 0;
+      p   += food.protein  || 0;
+      c   += food.carbs    || 0;
+      f   += food.fat      || 0;
+    }
+  });
+  const el = id => document.getElementById(id);
+  if (el('st-cal')) el('st-cal').textContent = Math.round(cal);
+  if (el('st-p'))   el('st-p').textContent   = p.toFixed(1);
+  if (el('st-c'))   el('st-c').textContent   = c.toFixed(1);
+  if (el('st-f'))   el('st-f').textContent   = f.toFixed(1);
 }
 
 function addScanResults() {
   let added = 0;
   scanResults.forEach((f, i) => {
     const chk = document.getElementById(`sfc-${i}`);
-    if (chk && chk.checked) {
+    if (chk && chk.checked && f.name) {
       DB.addFood({
-        date: todayStr(), meal_type: activeMeal,
+        date: todayStr(), meal_type: scanMealType,
         food_name: f.name,
-        amount: f.amount || 100, unit: f.unit || 'g',
-        calories: +f.calories || 0,
-        protein:  +f.protein  || 0,
-        carbs:    +f.carbs    || 0,
-        fat:      +f.fat      || 0,
+        amount: Math.round(f.amount || 100), unit: f.unit || 'g',
+        calories: Math.round(+f.calories || 0),
+        protein:  parseFloat((+f.protein  || 0).toFixed(1)),
+        carbs:    parseFloat((+f.carbs    || 0).toFixed(1)),
+        fat:      parseFloat((+f.fat      || 0).toFixed(1)),
       });
       added++;
     }
   });
   if (added === 0) { showToast('請至少勾選一項食物'); return; }
   closePhotoScan();
-  showToast(`✅ 已加入 ${added} 項食物到${MEAL_META.find(m => m.id === activeMeal)?.label || ''}！`);
+  showToast(`✅ 已加入 ${added} 項食物到${MEAL_META.find(m => m.id === scanMealType)?.label || ''}！`);
   renderFoodLog();
   if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
 }
@@ -2923,6 +3050,26 @@ document.addEventListener('DOMContentLoaded', () => {
   ['heightInput','bmiWeight'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', calcBMI);
   });
+
+  // Drag & drop for photo scan
+  const scanDropEl = document.getElementById('scanDrop');
+  if (scanDropEl) {
+    scanDropEl.addEventListener('dragover', e => {
+      e.preventDefault();
+      scanDropEl.classList.add('drag-over');
+    });
+    scanDropEl.addEventListener('dragleave', e => {
+      if (!scanDropEl.contains(e.relatedTarget)) scanDropEl.classList.remove('drag-over');
+    });
+    scanDropEl.addEventListener('drop', e => {
+      e.preventDefault();
+      scanDropEl.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        handlePhotoSelect({ target: { files: [file] } });
+      }
+    });
+  }
 
   ['foodModal','manualModal','photoModal','manualExModal'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', function(e) {

@@ -139,6 +139,7 @@
           <div class="chip" data-meal="lunch">☀️ 午餐</div>
           <div class="chip" data-meal="dinner">🌙 晚餐</div>
           <div class="chip" data-meal="snack">🧃 點心</div>
+          <div class="chip" data-meal="fruit">🍎 水果</div>
         </div>
       </div>
     </div>
@@ -876,6 +877,15 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="modal-title" style="margin-bottom:0">📷 AI 食物辨識</div>
       <button onclick="closePhotoScan()" style="background:none;border:none;font-size:1.4rem;color:var(--muted);cursor:pointer;line-height:1">✕</button>
+    </div>
+
+    <!-- Meal selector -->
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="scan-meal-btn" data-meal="breakfast" onclick="setScanMeal('breakfast')">🌅 早餐</button>
+      <button class="scan-meal-btn" data-meal="lunch" onclick="setScanMeal('lunch')">☀️ 午餐</button>
+      <button class="scan-meal-btn" data-meal="dinner" onclick="setScanMeal('dinner')">🌙 晚餐</button>
+      <button class="scan-meal-btn" data-meal="snack" onclick="setScanMeal('snack')">🧃 點心</button>
+      <button class="scan-meal-btn" data-meal="fruit" onclick="setScanMeal('fruit')">🍎 水果</button>
     </div>
 
     <!-- Drop zone -->
