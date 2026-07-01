@@ -1393,33 +1393,36 @@ async function analyzePhoto() {
   document.getElementById('scanResultsContent').innerHTML   =
     '<div class="spinner"></div><div style="text-align:center;font-size:0.82rem;color:var(--muted);margin-top:10px">AI 正在辨識食物…</div>';
 
-  try {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
-              { text:
-                '請分析這張食物照片，識別所有可見食物並估算熱量與三大營養素。\n' +
-                '請只回傳 JSON，格式如下（不要其他文字）：\n' +
-                '{"foods":[{"name":"食物名稱（繁體中文）","amount":100,"unit":"g","calories":150,"protein":5.0,"carbs":20.0,"fat":3.0}]}\n' +
-                '請使用台灣常見食物的真實營養數據，amount 為目視估算份量。'
-              }
-            ]
-          }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
-        })
-      }
-    );
+  const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const geminiBody = JSON.stringify({
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
+        { text:
+          '請分析這張食物照片，識別所有可見食物並估算熱量與三大營養素。\n' +
+          '請只回傳 JSON，格式如下（不要其他文字）：\n' +
+          '{"foods":[{"name":"食物名稱（繁體中文）","amount":100,"unit":"g","calories":150,"protein":5.0,"carbs":20.0,"fat":3.0}]}\n' +
+          '請使用台灣常見食物的真實營養數據，amount 為目視估算份量。'
+        }
+      ]
+    }],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
+  });
 
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API 錯誤 ${resp.status}`);
-    }
+  let resp, lastErr;
+  for (const model of GEMINI_MODELS) {
+    resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      { method: 'POST', headers: { 'content-type': 'application/json' }, body: geminiBody }
+    );
+    if (resp.ok) break;
+    const e = await resp.json().catch(() => ({}));
+    lastErr = e.error?.message || `API 錯誤 ${resp.status}`;
+    if (resp.status === 401 || resp.status === 403) break;
+  }
+
+  try {
+    if (!resp.ok) throw new Error(lastErr || `API 錯誤 ${resp.status}`);
 
     const data    = await resp.json();
     const text    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -2415,20 +2418,24 @@ async function testApiKey() {
   const key = document.getElementById('sApiKey').value.trim() || DB.getSettings().gemini_api_key;
   if (!key || key.length < 20) { showToast('請先輸入並儲存金鑰'); return; }
   showToast('🔄 測試中…');
+  const TEST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const testBody = JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 5 } });
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 5 } }),
-      }
-    );
-    if (res.ok) {
+    let ok = false, lastMsg = '';
+    for (const model of TEST_MODELS) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        { method: 'POST', headers: { 'content-type': 'application/json' }, body: testBody }
+      );
+      if (res.ok) { ok = true; break; }
+      const err = await res.json().catch(() => ({}));
+      lastMsg = err.error?.message || `錯誤 ${res.status}`;
+      if (res.status === 401 || res.status === 403) break;
+    }
+    if (ok) {
       showToast('✅ 金鑰有效！AI 辨識功能可以使用了', 3000);
     } else {
-      const err = await res.json().catch(() => ({}));
-      showToast(`❌ ${err.error?.message || '金鑰無效（' + res.status + '）'}`, 4000);
+      showToast(`❌ ${lastMsg || '金鑰無效'}`, 4000);
     }
   } catch {
     showToast('❌ 網路錯誤，請確認網路連線', 3000);
@@ -2454,6 +2461,7 @@ function saveSettings() {
     water_goal:   parseFloat(document.getElementById('sWater').value)   || 2000,
     gemini_api_key: apiKey,
   });
+  _renderApiKeyStatus();
   showToast('✅ 設定已儲存');
 }
 
