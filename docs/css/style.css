@@ -471,16 +471,46 @@ body {
     margin-bottom: 10px;
 }
 
+.scan-meal-btn {
+    flex: 1; padding: 7px 0;
+    border: 1.5px solid #E5E7EB; border-radius: 20px;
+    background: white; font-size: 0.74rem; color: var(--muted);
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.scan-meal-btn.active {
+    background: var(--green); color: white;
+    border-color: var(--green); font-weight: 600;
+}
+
 .scan-food-card {
     background: #F9FAFB;
     border-radius: 12px;
-    padding: 14px;
-    margin-bottom: 10px;
-    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex; align-items: flex-start; gap: 10px;
+}
+.scan-food-card input[type="checkbox"] { margin-top: 3px; }
+.scan-name-input {
+    border: none; background: none; font-size: 0.9rem; font-weight: 700;
+    color: var(--text); width: 100%; padding: 0; font-family: inherit;
+    line-height: 1.3;
+}
+.scan-name-input:focus { outline: none; border-bottom: 1.5px solid var(--green); }
+.scan-amt-row { display: flex; align-items: center; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+.scan-amt-input {
+    width: 56px; border: 1px solid #E5E7EB; border-radius: 6px;
+    padding: 2px 5px; font-size: 0.75rem; text-align: center;
+    font-family: inherit; color: var(--text);
+}
+.scan-food-macros { font-size: 0.72rem; color: var(--muted); }
+.scan-food-cal { font-size: 0.95rem; font-weight: 800; color: var(--orange); white-space: nowrap; text-align: right; flex-shrink: 0; }
+.scan-total-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #F0FDF4; border-radius: 12px;
+    padding: 10px 14px; margin-top: 4px;
 }
 .scan-food-name { font-size: 0.9rem; font-weight: 700; }
 .scan-food-meta { font-size: 0.75rem; color: var(--muted); }
-.scan-food-cal { font-size: 1rem; font-weight: 800; color: var(--orange); margin-left: auto; white-space: nowrap; }
 
 /* ── Weight ────────────────────────────────────────────────── */
 .weight-big {

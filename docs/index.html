@@ -878,6 +878,14 @@
       <button onclick="closePhotoScan()" style="background:none;border:none;font-size:1.4rem;color:var(--muted);cursor:pointer;line-height:1">✕</button>
     </div>
 
+    <!-- Meal selector -->
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="scan-meal-btn" data-meal="breakfast" onclick="setScanMeal('breakfast')">🌅 早餐</button>
+      <button class="scan-meal-btn" data-meal="lunch" onclick="setScanMeal('lunch')">☀️ 午餐</button>
+      <button class="scan-meal-btn" data-meal="dinner" onclick="setScanMeal('dinner')">🌙 晚餐</button>
+      <button class="scan-meal-btn" data-meal="snack" onclick="setScanMeal('snack')">🧃 點心</button>
+    </div>
+
     <!-- Drop zone -->
     <div id="scanDrop" class="scan-drop" onclick="triggerPhotoInput()">
       <div class="scan-icon"><i class="bi bi-camera-fill"></i></div>

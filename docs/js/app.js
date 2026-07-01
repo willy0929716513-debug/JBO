@@ -1344,17 +1344,33 @@ function closeManualModal() { document.getElementById('manualModal').classList.a
 // ── AI Photo Scan ──────────────────────────────────────────────────────────────
 
 let scanResults     = [];
+let scanOriginals   = [];
 let scanImageBase64 = null;
 let scanMediaType   = 'image/jpeg';
+let scanMealType    = 'lunch';
 
 function openPhotoScan() {
+  scanMealType = activeMeal;
   document.getElementById('photoModal').classList.remove('hidden');
   scanResults     = [];
+  scanOriginals   = [];
   scanImageBase64 = null;
   document.getElementById('scanDrop').style.display         = 'block';
   document.getElementById('scanPreviewWrap').style.display  = 'none';
   document.getElementById('scanAnalyzeBtn').style.display   = 'none';
   document.getElementById('scanResultsWrap').style.display  = 'none';
+  _updateScanMealBtns();
+}
+
+function setScanMeal(meal) {
+  scanMealType = meal;
+  _updateScanMealBtns();
+}
+
+function _updateScanMealBtns() {
+  document.querySelectorAll('.scan-meal-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.meal === scanMealType);
+  });
 }
 
 function closePhotoScan() {
@@ -1464,6 +1480,7 @@ async function analyzePhoto() {
     catch { throw new Error('AI 回應格式錯誤，請重試'); }
     scanResults   = (parsed.foods || []).filter(f => f.name && f.calories > 0);
     if (!scanResults.length) throw new Error('未偵測到食物，請換張照片');
+    scanOriginals = scanResults.map(f => ({ ...f }));
     renderScanResults();
   } catch (err) {
     document.getElementById('scanResultsContent').innerHTML = `
@@ -1478,46 +1495,108 @@ async function analyzePhoto() {
 }
 
 function renderScanResults() {
-  const total = scanResults.reduce((s, f) => s + (f.calories || 0), 0);
+  const mealLabel = MEAL_META.find(m => m.id === scanMealType)?.label || '';
   document.getElementById('scanResultsContent').innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
       <div class="ai-badge"><i class="bi bi-stars"></i> AI 辨識結果</div>
-      <div style="font-size:0.8rem;color:var(--muted)">共 <strong style="color:var(--orange)">${Math.round(total)}</strong> kcal</div>
+      <div style="font-size:0.72rem;color:var(--muted)">可點擊名稱或份量修改</div>
     </div>
     ${scanResults.map((f, i) => `
-      <div class="scan-food-card">
-        <input type="checkbox" id="sfc-${i}" checked style="width:17px;height:17px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
+      <div class="scan-food-card" id="sfc-card-${i}">
+        <input type="checkbox" id="sfc-${i}" checked
+          style="width:17px;height:17px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:3px"
+          onchange="updateScanTotal()">
         <div style="flex:1;min-width:0">
-          <div class="scan-food-name">${esc(f.name)}</div>
-          <div class="scan-food-meta">約 ${f.amount}${f.unit||'g'} · 蛋白 ${(+f.protein||0).toFixed(1)}g · 碳水 ${(+f.carbs||0).toFixed(1)}g · 脂肪 ${(+f.fat||0).toFixed(1)}g</div>
+          <input class="scan-name-input" value="${esc(f.name)}"
+            oninput="scanResults[${i}].name=this.value">
+          <div class="scan-amt-row">
+            <input class="scan-amt-input" type="number" min="1" value="${Math.round(f.amount||100)}"
+              oninput="updateScanAmount(${i},this.value)">
+            <span style="font-size:0.72rem;color:var(--muted)">${f.unit||'g'}</span>
+            <span class="scan-food-macros" id="sfc-macros-${i}">蛋白 ${(+f.protein||0).toFixed(1)}g · 碳 ${(+f.carbs||0).toFixed(1)}g · 脂 ${(+f.fat||0).toFixed(1)}g</span>
+          </div>
         </div>
-        <div class="scan-food-cal">${Math.round(f.calories)} kcal</div>
+        <div class="scan-food-cal" id="sfc-cal-${i}">${Math.round(f.calories)}<br><span style="font-size:0.68rem;font-weight:500">kcal</span></div>
       </div>`).join('')}
-    <button class="btn-primary" style="width:100%;justify-content:center;margin-top:12px" onclick="addScanResults()">
-      <i class="bi bi-plus-circle"></i> 加入今日紀錄
+    <div class="scan-total-row">
+      <div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-bottom:2px">已勾選合計</div>
+        <div style="font-size:0.75rem;color:var(--muted)">
+          蛋白 <strong id="st-p">-</strong>g ·
+          碳水 <strong id="st-c">-</strong>g ·
+          脂肪 <strong id="st-f">-</strong>g
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.68rem;color:var(--muted)">總熱量</div>
+        <div style="font-size:1.3rem;font-weight:800;color:var(--orange);line-height:1.2">
+          <span id="st-cal">-</span>
+          <span style="font-size:0.7rem;font-weight:500"> kcal</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary" style="width:100%;justify-content:center;margin-top:10px" onclick="addScanResults()">
+      <i class="bi bi-plus-circle"></i> 加入${mealLabel}紀錄
     </button>`;
+  updateScanTotal();
+}
+
+function updateScanAmount(i, val) {
+  const amt  = Math.max(1, parseFloat(val) || 1);
+  const orig = scanOriginals[i];
+  if (!orig) return;
+  const ratio = amt / (orig.amount || 100);
+  scanResults[i].amount   = amt;
+  scanResults[i].calories = orig.calories * ratio;
+  scanResults[i].protein  = orig.protein  * ratio;
+  scanResults[i].carbs    = orig.carbs    * ratio;
+  scanResults[i].fat      = orig.fat      * ratio;
+  const calEl    = document.getElementById(`sfc-cal-${i}`);
+  const macroEl  = document.getElementById(`sfc-macros-${i}`);
+  if (calEl) calEl.innerHTML = `${Math.round(scanResults[i].calories)}<br><span style="font-size:0.68rem;font-weight:500">kcal</span>`;
+  if (macroEl) macroEl.textContent =
+    `蛋白 ${scanResults[i].protein.toFixed(1)}g · 碳 ${scanResults[i].carbs.toFixed(1)}g · 脂 ${scanResults[i].fat.toFixed(1)}g`;
+  updateScanTotal();
+}
+
+function updateScanTotal() {
+  let cal = 0, p = 0, c = 0, f = 0;
+  scanResults.forEach((food, i) => {
+    const chk = document.getElementById(`sfc-${i}`);
+    if (chk && chk.checked) {
+      cal += food.calories || 0;
+      p   += food.protein  || 0;
+      c   += food.carbs    || 0;
+      f   += food.fat      || 0;
+    }
+  });
+  const el = id => document.getElementById(id);
+  if (el('st-cal')) el('st-cal').textContent = Math.round(cal);
+  if (el('st-p'))   el('st-p').textContent   = p.toFixed(1);
+  if (el('st-c'))   el('st-c').textContent   = c.toFixed(1);
+  if (el('st-f'))   el('st-f').textContent   = f.toFixed(1);
 }
 
 function addScanResults() {
   let added = 0;
   scanResults.forEach((f, i) => {
     const chk = document.getElementById(`sfc-${i}`);
-    if (chk && chk.checked) {
+    if (chk && chk.checked && f.name) {
       DB.addFood({
-        date: todayStr(), meal_type: activeMeal,
+        date: todayStr(), meal_type: scanMealType,
         food_name: f.name,
-        amount: f.amount || 100, unit: f.unit || 'g',
-        calories: +f.calories || 0,
-        protein:  +f.protein  || 0,
-        carbs:    +f.carbs    || 0,
-        fat:      +f.fat      || 0,
+        amount: Math.round(f.amount || 100), unit: f.unit || 'g',
+        calories: Math.round(+f.calories || 0),
+        protein:  parseFloat((+f.protein  || 0).toFixed(1)),
+        carbs:    parseFloat((+f.carbs    || 0).toFixed(1)),
+        fat:      parseFloat((+f.fat      || 0).toFixed(1)),
       });
       added++;
     }
   });
   if (added === 0) { showToast('請至少勾選一項食物'); return; }
   closePhotoScan();
-  showToast(`✅ 已加入 ${added} 項食物到${MEAL_META.find(m => m.id === activeMeal)?.label || ''}！`);
+  showToast(`✅ 已加入 ${added} 項食物到${MEAL_META.find(m => m.id === scanMealType)?.label || ''}！`);
   renderFoodLog();
   if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
 }
@@ -2926,6 +3005,26 @@ document.addEventListener('DOMContentLoaded', () => {
   ['heightInput','bmiWeight'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', calcBMI);
   });
+
+  // Drag & drop for photo scan
+  const scanDropEl = document.getElementById('scanDrop');
+  if (scanDropEl) {
+    scanDropEl.addEventListener('dragover', e => {
+      e.preventDefault();
+      scanDropEl.classList.add('drag-over');
+    });
+    scanDropEl.addEventListener('dragleave', e => {
+      if (!scanDropEl.contains(e.relatedTarget)) scanDropEl.classList.remove('drag-over');
+    });
+    scanDropEl.addEventListener('drop', e => {
+      e.preventDefault();
+      scanDropEl.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        handlePhotoSelect({ target: { files: [file] } });
+      }
+    });
+  }
 
   ['foodModal','manualModal','photoModal','manualExModal'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', function(e) {
