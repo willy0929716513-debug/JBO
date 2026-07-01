@@ -3123,4 +3123,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  // Auto-advance to next day at midnight
+  (function scheduleMidnight() {
+    const now = new Date();
+    const msUntilMidnight = new Date(
+      now.getFullYear(), now.getMonth(), now.getDate() + 1
+    ) - now;
+    setTimeout(() => {
+      currentFoodDate = todayStr();
+      if (document.getElementById('page-food-log')?.classList.contains('active')) {
+        renderFoodLog();
+      }
+      scheduleMidnight();
+    }, msUntilMidnight);
+  })();
 });
