@@ -1753,6 +1753,26 @@ async function handlePhotoSelect(e) {
   reader.readAsDataURL(file);
 }
 
+function matchBraces(text, start) {
+  let depth = 0;
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') { depth--; if (depth === 0) return i; }
+  }
+  return -1;
+}
+
+function extractJSON(text) {
+  // strip markdown code fence first
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  const src = fenceMatch ? fenceMatch[1] : text;
+  const start = src.indexOf('{');
+  if (start === -1) return null;
+  const end = matchBraces(src, start);
+  if (end === -1) return null;
+  return src.slice(start, end + 1);
+}
+
 async function analyzePhoto() {
   const s      = DB.getSettings();
   const apiKey = s.gemini_api_key;
@@ -1820,12 +1840,15 @@ async function analyzePhoto() {
 
     const data    = await resp.json();
     const text    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const jsonStr = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)?.[1]
-                 || text.match(/\{[\s\S]*\}/)?.[0];
+    const jsonStr = extractJSON(text);
     if (!jsonStr) throw new Error('無法解析 AI 回應，請重試');
     let parsed;
     try { parsed = JSON.parse(jsonStr); }
-    catch { throw new Error('AI 回應格式錯誤，請重試'); }
+    catch {
+      const cleaned = jsonStr.replace(/,\s*([}\]])/g, '$1');
+      try { parsed = JSON.parse(cleaned); }
+      catch { throw new Error('AI 回應格式錯誤，請重試'); }
+    }
     scanResults   = (parsed.foods || []).filter(f => f.name && f.calories > 0);
     if (!scanResults.length) throw new Error('未偵測到食物，請換張照片');
     scanOriginals = scanResults.map(f => ({ ...f }));
