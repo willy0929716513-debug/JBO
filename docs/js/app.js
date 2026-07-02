@@ -1798,40 +1798,428 @@ async function analyzePhoto() {
 
   const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   const geminiBody = JSON.stringify({
+    system_instruction: {
+      parts: [{ text:
+        'You are an elite-level nutritionist, registered dietitian, and food analyst with 20+ years of expertise in Asian cuisines — especially Taiwanese home cooking, night market street food, Japanese cuisine, Korean cuisine, Chinese regional dishes, and Western fast food. ' +
+        'You have encyclopedic knowledge of the USDA food database, Taiwan TFDA food composition tables, Japan MEXT nutrient database, and Korea NFRI food database. ' +
+        'You can identify foods from visual cues including color, texture, sauce sheen, steam, container type, and cultural presentation style. ' +
+        'You NEVER refuse or say you cannot identify food. You always provide your best nutritional estimate based on visual evidence and culinary expertise. ' +
+        'You understand that accurate food logging helps people manage their health, so you take every analysis seriously and are as precise as possible.'
+      }]
+    },
     contents: [{
       parts: [
         { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
         { text:
-          'You are a professional nutritionist and food recognition expert.\n\n' +
-          'CRITICAL RULE: ALWAYS decompose complex meals into INDIVIDUAL components. Never group different foods into one entry.\n\n' +
-          'FOR BENTO BOXES / 便當 / LUNCH BOXES / PLATE MEALS:\n' +
-          '- Rice (白飯/糙米飯) → separate entry\n' +
-          '- Each protein (meat/egg/tofu) → separate entry\n' +
-          '- Each vegetable side → separate entry\n' +
-          '- Any soup, sauce, or drink → separate entry\n' +
-          'Example: 三層肉便當 → ["白飯", "三層肉(滷肉)", "炒高麗菜", "玉米"] as 4 separate entries.\n\n' +
-          'FOR NOODLE/RICE DISHES (炒飯, 炒麵, 湯麵):\n' +
-          '- If toppings/mix-ins are clearly identifiable, list noodles/rice + each topping separately\n' +
-          '- If completely mixed and inseparable (e.g. fried rice where you cannot tell components), list as one\n\n' +
-          'RECOGNITION RULES:\n' +
-          '- Recognize any world cuisine: Taiwanese, Chinese, Japanese, Korean, Thai, Vietnamese, Western, fast food, desserts, beverages, etc.\n' +
-          '- Be SPECIFIC: "三層肉(紅燒)" not "肉", "炒高麗菜" not "蔬菜", "白飯" not "飯"\n' +
-          '- If a food is unclear, make your best educated guess from visual cues (color, texture, shape, context)\n' +
-          '- Do NOT skip any item, even small sides, sauces, or garnishes\n\n' +
-          'PORTION ESTIMATION:\n' +
-          '- 便當 white rice: 150-200g | protein main dish: 80-150g | vegetable side: 50-80g\n' +
-          '- Bowl of rice: 200g | burger: 200g | cup of drink: 250ml | slice of bread: 30g\n' +
-          '- Consider container/plate size, food thickness, and typical serving norms\n\n' +
-          'NUTRITION DATA (use standard food composition databases — USDA, Taiwan TFDA):\n' +
-          '- calories = total kcal for the estimated portion\n' +
-          '- protein, carbs, fat = grams for the estimated portion\n\n' +
-          'OUTPUT: respond with ONLY the following JSON (no markdown, no explanation, no extra text):\n' +
-          '{"foods":[{"name":"食物名稱(繁體中文)","amount":200,"unit":"g","calories":320,"protein":12.0,"carbs":45.0,"fat":10.0}]}\n\n' +
-          'All food names must be in Traditional Chinese (繁體中文).'
+          'Carefully analyze this food photo and return complete nutritional information.\n\n' +
+
+          '━━ STEP 1: VISUAL SCAN ━━\n' +
+          'Examine the ENTIRE image:\n' +
+          '• Container: 便當盒/碗/盤/袋/紙杯/塑膠杯/鐵鍋/砂鍋/包裝袋/紙盒\n' +
+          '• ★ LABELS & STICKERS: Read ANY text on cups, bags, boxes, wrappers — brand name, drink name, sugar level sticker, size sticker, nutritional panel\n' +
+          '• Cooking evidence: oil sheen=炒/炸, dark glaze=滷/紅燒/蜜汁, steam=蒸, grill marks=烤, pale/translucent=燙/水煮\n' +
+          '• All food including small sides, sauces, garnishes, toppings, condiments\n\n' +
+
+          '━━ STEP 2: DECOMPOSE INTO INDIVIDUAL ITEMS ━━\n' +
+          'ALWAYS split complex meals. NEVER lump different foods.\n\n' +
+          '便當/Bento → 白飯 + each protein + each veg side + egg + sauce (3–7 entries)\n' +
+          '自助餐/合菜 → each dish separately\n' +
+          '早餐組合 → 蛋餅, 土司, 荷包蛋, 豆漿 all separate\n' +
+          '湯麵 → 麵條 + 湯底 + each topping separately\n' +
+          '火鍋 → each ingredient separately (肉/菜/豆腐/貢丸/麵)\n' +
+          '壽司 → each roll type/nigiri separately\n' +
+          '漢堡套餐 → 漢堡 + 薯條 + 飲料 (3 entries)\n' +
+          '炒飯/炒麵 → ONE entry only if fully mixed and inseparable\n\n' +
+
+          '━━ STEP 3: BEVERAGE LABEL READING (PRIORITY) ━━\n' +
+          'If a DRINK CUP is in the image, look for:\n\n' +
+          '[Sugar level sticker — calorie multiplier]\n' +
+          '  全糖(100%) → use 100% of base calories\n' +
+          '  少糖(70%) / 七分糖 → ×0.82 (sugar -30%, but base syrup system varies)\n' +
+          '  半糖(50%) → ×0.70\n' +
+          '  微糖(25%) / 三分糖 → ×0.55\n' +
+          '  無糖(0%) / 去糖 → ×0.35 (milk/cream still has calories)\n\n' +
+          '[Size sticker]\n' +
+          '  大杯(L/XL): 700ml | 中杯(M): 500ml | 小杯(S): 350ml\n\n' +
+          '[Brand recognition — Taiwan bubble tea chains]\n' +
+          '  五十嵐(50嵐): 招牌珍珠奶茶大全糖≈580kcal | 四季春茶大全糖≈220kcal\n' +
+          '  清心福全: 珍珠奶茶大全糖≈530kcal | 冬瓜珍珠大全糖≈480kcal\n' +
+          '  CoCo都可: 珍珠奶茶大全糖≈580kcal | 芋頭奶茶大全糖≈600kcal\n' +
+          '  茶湯會: 珍珠鮮奶茶大全糖≈620kcal | 烏龍鮮奶大全糖≈420kcal\n' +
+          '  一芳水果茶: 台灣水果茶大全糖≈320kcal | 波霸鮮奶大全糖≈540kcal\n' +
+          '  春水堂: 珍珠奶茶大全糖≈650kcal | 四季春大全糖≈240kcal\n' +
+          '  迷客夏: 嚴選鮮乳茶大全糖≈420kcal | 百香果綠茶大全糖≈340kcal\n' +
+          '  珍煮丹: 黑糖珍珠鮮奶大≈580kcal\n' +
+          '  老虎堂: 黑糖虎紋鮮奶茶大≈600kcal\n' +
+          '  COMEBUY: 珍珠奶茶大全糖≈560kcal\n' +
+          '  貢茶(Gong cha): 珍珠奶蓋茶大全糖≈550kcal\n' +
+          '  鶴茶樓: 波霸奶茶大全糖≈520kcal\n' +
+          '  茶之魔手: 珍珠奶茶大全糖≈500kcal\n' +
+          '  大苑子: 仙草奶凍大全糖≈480kcal\n' +
+          '  翰林茶館: 泡泡奶茶大全糖≈540kcal\n' +
+          '  快可立: 珍珠奶茶大全糖≈480kcal\n' +
+          '  共茶: 烏龍珍珠大全糖≈480kcal\n\n' +
+          '[Common drink calorie anchors — large cup 700ml, full sugar]\n' +
+          '  純珍珠奶茶(紅茶底): 480kcal, p5, c90, f10\n' +
+          '  純珍珠鮮奶茶: 580kcal, p10, c95, f13\n' +
+          '  黑糖珍珠鮮奶: 590kcal, p10, c98, f13\n' +
+          '  芋頭珍珠鮮奶: 610kcal, p10, c102, f14\n' +
+          '  烏龍奶茶(無珍珠): 360kcal, p5, c65, f8\n' +
+          '  綠茶(全糖無珍珠): 220kcal, p0, c55, f0\n' +
+          '  四季春(全糖無珍珠): 220kcal, p0, c55, f0\n' +
+          '  愛玉檸檬(全糖): 280kcal, p1, c70, f0\n' +
+          '  冬瓜茶(全糖700ml): 245kcal, p0, c61, f0\n' +
+          '  水果茶(全糖700ml): 280kcal, p1, c69, f0\n' +
+          '  木瓜牛奶(700ml): 420kcal, p12, c72, f9\n\n' +
+
+          '━━ STEP 4: PRECISE FOOD IDENTIFICATION ━━\n' +
+          'BAD: 肉/蔬菜/飯/麵/雞/魚  GOOD: 三層肉(紅燒)/炒高麗菜/白飯/陽春麵/雞腿排(炸)\n\n' +
+
+          '[COOKING METHODS]\n' +
+          '  炸/酥炸/天婦羅: +50–70% kcal | 氣炸: +15–25% | 炒: +20–30%\n' +
+          '  煎/香煎: +25–35% | 燒烤/炭烤: +5–10% | 乾煎: +15–20%\n' +
+          '  滷/紅燒: +10–20% | 蜜汁/糖醋: +20–30% | 蒸: +0–5%\n' +
+          '  燙/水煮: base | 涼拌: +5–15% | 醃漬: base\n\n' +
+
+          '[台灣料理 Taiwanese]\n' +
+          '主食: 白飯/糙米飯/五穀飯/紫米飯/油飯/筒仔米糕/碗粿/米糕/粥(稀飯)\n' +
+          '      蚵仔麵線/米粉湯/冬粉/肉焿麵/陽春麵/板條/粄條/意麵/油麵\n' +
+          '      烏龍麵/細麵/拉麵/米粉(炒/湯)/冬粉(炒/湯)\n' +
+          '      水餃/鍋貼/蒸餃/湯包/小籠包/鮮肉湯圓\n' +
+          '便當主菜: 雞腿排(炸/烤)/雞胸排/排骨(炸/糖醋)/豬排/魚排\n' +
+          '          三層肉(滷/紅燒)/控肉/焢肉/東坡肉/虱目魚/鮭魚/鯖魚\n' +
+          '          煎魚/清蒸魚/蒸蛋/荷包蛋/滷豆腐/炸豆腐\n' +
+          '便當配菜: 炒高麗菜/炒青江菜/炒空心菜/燙青花菜/炒豆芽菜\n' +
+          '          炒絲瓜/炒茄子/炒四季豆/炒地瓜葉/炒韭菜/炒韭黃\n' +
+          '          炒蒜苗/炒甜椒/炒洋蔥/炒蘑菇/炒杏鮑菇\n' +
+          '          玉米段/燙菠菜/燙秋葵/醃蘿蔔/梅子/酸菜/豆干(滷)\n' +
+          '蛋豆腐: 荷包蛋/滷蛋/溏心蛋/茶葉蛋/炒蛋/蒸蛋/皮蛋/鹹蛋/玉子燒\n' +
+          '        嫩豆腐/板豆腐/百頁豆腐/臭豆腐/炸豆腐/凍豆腐/豆皮\n' +
+          '加工品: 貢丸/魚丸/燕餃/豬血糕/米腸/香腸/黑輪/甜不辣/魚板/蟹肉棒\n' +
+          '        旗魚丸/花枝丸/蟹味棒/蝦餃/魚餃/燕餃/豬耳朵/豬腳\n' +
+          '早餐店: 蛋餅(原味/起司/鮪魚/培根/玉米/總匯)\n' +
+          '        蘿蔔糕(煎)/芋頭糕(煎)/燒餅/油條/燒餅油條/蔥花卷\n' +
+          '        厚片吐司/薄片土司/法式厚片/奶油厚片/花生厚片/草莓厚片\n' +
+          '        鮪魚三明治/火腿三明治/BLT三明治/總匯三明治/蛋沙拉三明治\n' +
+          '        饅頭/饅頭夾蛋/肉包/菜包/奶黃包/紅豆包\n' +
+          '        漢堡(早餐型)/吐司夾蛋/蔥抓餅(加蛋)\n' +
+          '夜市小吃: 鹽酥雞/雞排/炸雞腿/炸雞翅/炸蝦/炸花枝\n' +
+          '          雞蛋糕/章魚燒/蚵仔煎/蔥油餅(加蛋)/肉圓/碗粿\n' +
+          '          大腸包小腸/甜甜圈/臭豆腐(清蒸/油炸)/滷味拼盤\n' +
+          '          糖葫蘆/花生捲冰淇淋/雪花冰/刨冰/愛玉冰/仙草凍\n' +
+          '          滷豬腳/滷大腸/滷豆干/滷海帶/滷蛋/滷鴨翅\n' +
+          '          燒烤串(雞心/雞皮/豬舌/豬排/蝦子/玉米)\n' +
+          '小吃湯品: 貢丸湯/魚丸湯/餛飩湯/酸辣湯/蛤蜊湯/蚵仔湯\n' +
+          '          薑母鴨/羊肉爐/麻油雞/當歸鴨/薑黃雞湯\n' +
+          '          苦瓜排骨湯/玉米排骨湯/蘿蔔排骨湯/四神湯\n' +
+          '台式甜湯: 紅豆湯/綠豆湯/花生湯/芋泥湯/湯圓(甜/鹹)\n' +
+          '          紅豆紫米粥/蓮子湯/桂圓紅棗湯/燒仙草\n' +
+          '海鮮: 清蒸蛤蜊/蒜蒸蛤蜊/炒蛤蜊/烤蛤蜊\n' +
+          '      白灼蝦/蒜泥白蝦/炒蝦仁/炸蝦\n' +
+          '      清蒸魚/紅燒魚/煎魚/烤魚/魚羹\n' +
+          '      花枝/透抽/小卷/烤花枝/炒花枝\n' +
+          '      螃蟹(清蒸/薑蔥炒)/龍蝦\n\n' +
+
+          '[日式料理 Japanese]\n' +
+          '丼飯: 牛丼/親子丼/豬排丼/鰻魚丼/海鮮丼/天丼/鮭魚丼/鮪魚丼/納豆丼\n' +
+          '定食: 炸豬排定食/烤魚定食/唐揚炸雞定食/生魚片定食/燒肉定食\n' +
+          '拉麵: 豚骨拉麵/醬油拉麵/鹽味拉麵/味噌拉麵/沾麵/擔擔麵\n' +
+          '烏龍: 釜玉烏龍/力丸烏龍/咖哩烏龍/炸物烏龍/冷烏龍\n' +
+          '壽司: 鮭魚握/鮪魚握/鰻魚握/玉子燒握/干貝握/海膽軍艦/鮭魚卵軍艦\n' +
+          '      鮪魚細卷/小黃瓜卷/納豆卷/花壽司/裏卷(加州卷)/手捲\n' +
+          '燒肉: 牛五花(燒肉)/牛舌/豬五花(燒肉)/雞腿肉(燒肉)/蔥鹽雞皮\n' +
+          '居酒屋: 唐揚炸雞/枝豆/冷豆腐/炸薯條/串燒(雞腿/雞皮/雞心)\n' +
+          '        玉子燒/茶碗蒸/章魚燒/天婦羅/炸雞翅/烤飯糰\n' +
+          '其他: 味噌湯/海帶芽味噌湯/豚汁/茶碗蒸/和風沙拉/芝麻菠菜\n' +
+          '      日式炸豬排/炸蝦/炸牡蠣/炸帆立貝/日式咖哩飯\n\n' +
+
+          '[韓式料理 Korean]\n' +
+          '主食: 白飯/石鍋拌飯/泡菜炒飯/紫菜包飯/韓式冷麵/炒年糕/炸醬麵\n' +
+          '      鍋巴湯飯/石鍋紫菜湯飯\n' +
+          '鍋類: 泡菜鍋/部隊鍋/嫩豆腐鍋/大醬湯/海帶湯/豆芽湯/辣魚湯(海鮮辣鍋)\n' +
+          '烤肉: 烤五花肉(三겹살)/烤牛肉(불고기)/烤牛小排/烤雞腿肉/烤豬頸肉\n' +
+          '炸雞: 韓式炸雞(原味/甜辣醬/蒜奶油/帕馬森)/炸雞翅/炸雞塊\n' +
+          '小菜(반찬): 泡菜/涼拌黃豆芽/涼拌菠菜/涼拌蘿蔔絲/韓式煎蛋\n' +
+          '            煎泡菜餅(김치전)/煎蔥餅/烤海苔/糖醋豬肉(탕수육)\n\n' +
+
+          '[中式料理 Chinese]\n' +
+          '北方: 北京烤鴨/餃子/鍋貼/小籠包/包子/饅頭/刀削麵/炸醬麵/羊肉泡饃/蔥油餅\n' +
+          '川菜: 麻婆豆腐/宮保雞丁/魚香肉絲/回鍋肉/水煮魚/水煮牛肉\n' +
+          '      夫妻肺片/紅油抄手/辣子雞/口水雞/剁椒魚頭\n' +
+          '粵菜: 白切雞/鹽焗雞/燒鵝/燒鴨/叉燒/蜜汁叉燒/脆皮燒肉\n' +
+          '      清蒸魚/蒸排骨/薑蔥炒蟹/避風塘炒蟹\n' +
+          '港式點心: 蝦餃/燒賣(豬肉/蟹肉)/叉燒包(烤/蒸)/流沙包\n' +
+          '          蛋撻(港式/葡式)/腸粉/蘿蔔糕/芋頭糕/馬蹄糕\n' +
+          '          糯米雞/春卷/咸水角/炸芋頭/馬拉糕/椰汁糕/砵仔糕\n' +
+          '家常菜: 番茄炒蛋/青椒肉絲/糖醋排骨/糖醋裡脊/紅燒獅子頭\n' +
+          '        梅菜扣肉/東坡肉/蒜泥白肉/蔥爆牛肉/乾煸四季豆\n' +
+          '        地三鮮/酸辣湯/西湖牛肉羹/冬瓜排骨湯\n' +
+          '        木須肉/魚香茄子/乾燒蝦仁/蠔油牛肉/薑絲炒大腸\n\n' +
+
+          '[東南亞 Southeast Asian]\n' +
+          '泰式: 泰式打拋豬飯/泰式綠咖喱飯/泰式紅咖喱飯/冬蔭功湯\n' +
+          '      泰式炒河粉(Pad Thai)/芒果糯米飯/泰式奶茶/涼拌青木瓜\n' +
+          '      月亮蝦餅/炸春卷/豬頸肉沙拉\n' +
+          '越式: 越南河粉(牛肉/雞肉)/越式春卷(鮮/炸)/越南法式麵包\n' +
+          '      越式牛肉丸/越南咖啡(滴漏)\n' +
+          '其他: 印度香料飯(Biryani)/印度烤雞(Tandoori)/咖喱角\n' +
+          '      馬來叻沙/印尼炒飯(Nasi Goreng)/海南雞飯/沙嗲串燒\n' +
+          '      泰式煎雞蛋/菠蘿炒飯\n\n' +
+
+          '[西式料理 Western]\n' +
+          '速食麥當勞: 大麥克/雙層牛肉堡/麥辣雞腿堡/麥香雞/麥脆雞/麥克雞塊(6/9/20塊)\n' +
+          '           薯條(小/中/大)/薯餅/麥當勞冰炫風/麥當勞聖代\n' +
+          '速食肯德基: 原味炸雞腿/辣味炸雞腿/脆皮炸雞/香辣雞腿堡\n' +
+          '           爆漿雞腿堡/勁辣雞腿堡/玉米/薯條/蛋塔\n' +
+          '速食其他: 漢堡王皇堡/Subway潛艇堡(6吋/12吋)\n' +
+          '          必勝客披薩(一片)/達美樂披薩(一片)/拿坡里披薩\n' +
+          '          摩斯漢堡/丹丹漢堡/Shake Shack\n' +
+          '餐廳: 菲力牛排/沙朗牛排/肋眼牛排/T骨牛排/牛小排\n' +
+          '      德國豬腳/羊排/烤雞腿/雞翅/培根\n' +
+          '      奶油白醬義大利麵/番茄肉醬義大利麵/青醬義大利麵\n' +
+          '      海鮮義大利麵/燉飯/焗烤\n' +
+          '      凱薩沙拉/尼斯沙拉/科布沙拉/希臘沙拉/尼斯沙拉\n' +
+          '烘焙麵包: 可頌/牛角麵包/貝果/恰巴達/佛卡夏/法國麵包\n' +
+          '          菠蘿麵包/紅豆麵包/奶油麵包/克林姆麵包/肉鬆麵包\n' +
+          '          巧克力麵包/起司麵包/全麥吐司/白吐司(一片)\n' +
+          '甜點: 可頌/瑪德蓮/費南雪/磅蛋糕/戚風蛋糕/海綿蛋糕\n' +
+          '      布朗尼/馬芬/司康/起司蛋糕/提拉米蘇/巧克力熔岩蛋糕\n' +
+          '      泡芙/閃電泡芙/馬卡龍/達克瓦茲/法式可麗餅\n\n' +
+
+          '[超商食品 Convenience Store]\n' +
+          '7-11/全家/萊爾富/OK:\n' +
+          '  三角飯糰: 鮭魚/鮪魚/梅子/雞肉/豬肉/海苔/明太子/起司\n' +
+          '  御飯糰(圓): 一般圓型飯糰各種口味\n' +
+          '  關東煮: 黑輪/貢丸/甜不辣/蛋/板豆腐/嫩豆腐/蘿蔔/玉米/海帶/豬血糕/龍蝦丸\n' +
+          '  加熱食品: 茶葉蛋/燒烤雞翅/炸雞塊/雞排/熱狗/玉米熱狗\n' +
+          '  鮮食: 超商便當/沙拉/三明治/涼麵/飯糰/炒麵\n' +
+          '  泡麵: 統一滿漢大餐/泡麵王/維力炸醬麵/味王原汁牛肉麵\n' +
+          '        日清杯麵/維他麵/出前一丁/農心辛拉麵\n' +
+          '  零食餅乾: 波卡洋芋片/卡迪那/品客/樂事/多力多滋/Oreo\n' +
+          '            乖乖/科學麵/王子麵/奶油獅/牛奶糖/小熊餅乾\n' +
+          '  乳製品: 光泉鮮乳/統一鮮乳/LP33優酪乳/野餐優格/布丁/奶酪\n' +
+          '  瓶裝飲料: 茶裏王/御茶園/黑松沙士/可口可樂/百事可樂\n' +
+          '            FIN/舒跑/寶礦力/寶特瓶水\n\n' +
+
+          '[甜點冰品 Desserts & Ice]\n' +
+          '台式甜點: 麻糬/草仔粿/芋圓/湯圓(甜/鹹)/仙草凍/燒仙草\n' +
+          '          粉圓/珍珠/芋頭西米露/紅豆牛奶\n' +
+          '冰品: 芒果冰/草莓聖代/雪花冰(芒果/草莓/抹茶)/刨冰\n' +
+          '      愛玉冰/粉條冰/豆花/杏仁豆腐/綠豆蒜\n' +
+          '      霜淇淋/義式冰淇淋/冰棒/雪糕(巧克力/草莓)\n' +
+          '      可愛多/夢時代/脆皮冰淇淋\n' +
+          '西式甜點: 提拉米蘇/起司蛋糕/布丁/奶酪/芋泥球/泡芙\n' +
+          '          巧克力熔岩蛋糕/可麗露/費南雪/瑪德蓮\n' +
+          '巧克力/糖果: 巧克力棒(KitKat/Snickers/Twix)/軟糖/硬糖\n\n' +
+
+          '[水果 Fruits]\n' +
+          '台灣水果: 西瓜(1片)/芒果(1顆)/愛文芒果/土芒果/金煌芒果\n' +
+          '          鳳梨(1片)/木瓜(半顆)/香蕉(1根)/蓮霧/楊桃/釋迦/百香果\n' +
+          '          葡萄柚/文旦柚/茂谷柑/橘子/椪柑/桶柑/荔枝/龍眼/蓮霧\n' +
+          '          芭樂(土芭樂/珍珠芭樂)/棗子/桃子/李子/梨子/枇杷\n' +
+          '進口水果: 蘋果(富士/青蘋果)/橙子/葡萄(巨峰/麝香)/草莓\n' +
+          '          藍莓/覆盆子/奇異果/榴槤/山竹/紅毛丹/火龍果\n' +
+          '          哈密瓜/水蜜桃/車厘子(櫻桃)/葡萄乾/蔓越莓乾\n\n' +
+
+          '[堅果種子 Nuts & Seeds]\n' +
+          '  杏仁/腰果/核桃/花生/開心果/夏威夷豆/松子/榛果\n' +
+          '  南瓜子/葵花子/芝麻/奇亞籽/亞麻籽/堅果棒/混合堅果\n\n' +
+
+          '[乳製品 Dairy]\n' +
+          '  鮮奶/低脂牛奶/脫脂牛奶/豆漿/米漿/燕麥奶/杏仁奶\n' +
+          '  希臘優格/無糖優格/含糖優格/起司片/cream cheese/茅屋起司\n' +
+          '  鮮奶油/奶油/無鹽奶油\n\n' +
+
+          '[健身飲食 Health & Fitness]\n' +
+          '  水煮雞胸/舒肥雞胸/烤鮭魚/水煮蛋/白煮蛋\n' +
+          '  希臘優格/無糖燕麥/燕麥粥/全麥吐司/地瓜(蒸)/南瓜(蒸)\n' +
+          '  藜麥飯/花椰菜飯/酪梨/奇亞籽布丁\n' +
+          '  乳清蛋白粉/蛋白棒(Quest/One Bar)/能量棒(KIND)\n' +
+          '  無糖豆漿/無糖燕麥奶/蛋白質飲料/BCAA飲料\n\n' +
+
+          '[酒精飲料 Alcohol]\n' +
+          '  台灣啤酒(罐)/金牌啤酒/海尼根/科羅娜/麒麟一番搾\n' +
+          '  紅酒(杯)/白酒(杯)/香檳(杯)/威士忌(shot)/高梁酒\n' +
+          '  調酒: 長島冰茶/螺絲起子/血腥瑪麗/莫希托\n\n' +
+
+          '━━ STEP 5: PORTION ESTIMATION REFERENCE ━━\n' +
+          '[容器 Container sizes]\n' +
+          '  標準便當盒: 白飯區160g | 主菜格100–130g | 副菜格50–70g each\n' +
+          '  大型便當盒: 白飯200–250g | 主菜150g | 副菜各70g\n' +
+          '  一般碗公: 飯250g / 湯麵含麵180g + 湯400ml\n' +
+          '  小碗: 飯120g / 湯200ml\n' +
+          '  標準盤子28cm: 主菜200g | 大餐廳盤: 300g\n' +
+          '  免洗餐盒: 炒飯/炒麵400g\n' +
+          '  超商三角飯糰: 100g | 超商便當: 白飯160g+配菜\n\n' +
+          '[肉類 Proteins]\n' +
+          '  便當雞腿排: 120g | 餐廳雞腿排: 200g\n' +
+          '  排骨2塊: 100g | 魚排: 110g | 虱目魚一條: 200g\n' +
+          '  三層肉(便當): 100g | 控肉: 150g | 叉燒3片: 60g\n' +
+          '  豬排(餐廳): 200g | 牛排: 200g/300g/500g\n' +
+          '  炸雞排: 160g | 鹽酥雞一份: 150g | 麥脆雞腿: 130g\n' +
+          '  漢堡排: 100g | 熱狗: 50g | 香腸: 40g | 貢丸6顆: 90g\n' +
+          '  蝦仁(便當): 60g | 花枝(便當): 80g | 透抽整隻: 150g\n' +
+          '  蛤蜊一碗: 200g(殼重) / 80g肉\n\n' +
+          '[主食 Starches]\n' +
+          '  便當白飯: 160g | 碗公白飯: 250g | 小碗: 120g\n' +
+          '  拉麵麵條: 180g | 烏龍麵: 200g | 蕎麥麵: 160g\n' +
+          '  義大利麵(熟): 200g | 炒飯一盤: 400g\n' +
+          '  水餃10顆: 200g | 蒸餃8顆: 160g | 小籠包6顆: 120g\n' +
+          '  蛋餅: 120g | 燒餅: 80g | 油條: 60g | 厚片吐司: 60g\n' +
+          '  饅頭: 100g | 肉包: 90g | 地瓜中型: 130g\n' +
+          '  飯糰(超商三角): 100g | 海苔飯捲(一條): 200g\n\n' +
+          '[蔬菜 Vegetables]\n' +
+          '  炒青菜(便當格): 60g | 燙青菜(碗): 100g\n' +
+          '  玉米半根: 80g | 玉米整根: 160g | 花椰菜(便當): 70g\n' +
+          '  生菜沙拉一盤: 150g | 泡菜: 50g | 醃蘿蔔: 20g\n' +
+          '  烤蔬菜一份: 120g | 番茄1顆: 120g | 小番茄10顆: 100g\n\n' +
+          '[蛋 Eggs]\n' +
+          '  荷包蛋1顆: 50g | 炒蛋2顆: 100g | 滷蛋: 60g\n' +
+          '  溏心蛋: 60g | 茶葉蛋: 65g | 皮蛋: 65g\n\n' +
+          '[飲料 Beverages]\n' +
+          '  手搖飲大杯: 700ml | 中杯: 500ml | 小杯: 350ml\n' +
+          '  美式咖啡大: 480ml | 拿鐵中: 480ml | 濃縮: 30ml\n' +
+          '  豆漿袋裝: 350ml | 罐裝飲料: 330ml | 寶特瓶: 600ml\n' +
+          '  啤酒罐: 330ml | 紅酒杯: 150ml | 白酒杯: 150ml\n' +
+          '  鮮奶一盒: 240ml | 優酪乳: 230ml\n\n' +
+          '[水果 Fruit portions]\n' +
+          '  西瓜1片(三角): 300g(含皮) / 淨重200g | 芒果半顆: 150g\n' +
+          '  香蕉1根: 120g | 蘋果中型: 180g | 橘子1顆: 130g\n' +
+          '  葡萄10顆: 80g | 草莓10顆: 100g | 藍莓1杯: 140g\n\n' +
+
+          '━━ STEP 6: NUTRITION CALIBRATION ANCHORS ━━\n' +
+          '[主食]\n' +
+          '  白飯160g: 262kcal, p5, c57, f0.4\n' +
+          '  糙米飯160g: 248kcal, p5.5, c52, f1.6\n' +
+          '  五穀飯160g: 242kcal, p6, c50, f2\n' +
+          '  稀飯(粥)250g: 145kcal, p3, c32, f0.3\n' +
+          '  拉麵麵條180g: 285kcal, p10, c55, f3\n' +
+          '  烏龍麵200g: 210kcal, p7, c43, f1\n' +
+          '  炒飯400g: 620kcal, p18, c88, f22\n' +
+          '  水餃10顆200g: 380kcal, p16, c52, f12\n' +
+          '  小籠包6顆120g: 310kcal, p14, c38, f10\n' +
+          '  蛋餅120g: 255kcal, p10, c30, f10\n' +
+          '  油條60g: 222kcal, p4, c28, f11\n' +
+          '  燒餅80g: 230kcal, p7, c40, f5\n' +
+          '  饅頭100g: 221kcal, p7, c46, f1\n' +
+          '  地瓜130g: 117kcal, p2, c27, f0.1\n' +
+          '  海苔飯捲200g: 340kcal, p8, c68, f4\n\n' +
+          '[肉類]\n' +
+          '  三層肉(滷)100g: 295kcal, p15, c4, f24\n' +
+          '  控肉150g: 480kcal, p22, c8, f40\n' +
+          '  脆皮燒肉100g: 380kcal, p18, c2, f33\n' +
+          '  蜜汁叉燒100g: 268kcal, p21, c15, f12\n' +
+          '  雞腿排(炸)120g: 310kcal, p26, c8, f20\n' +
+          '  雞腿排(烤)120g: 222kcal, p28, c0, f11\n' +
+          '  雞胸肉(水煮)150g: 165kcal, p35, c0, f2\n' +
+          '  舒肥雞胸150g: 158kcal, p34, c0, f2\n' +
+          '  雞排(炸)160g: 400kcal, p28, c18, f24\n' +
+          '  唐揚炸雞100g: 270kcal, p20, c12, f16\n' +
+          '  排骨(炸)100g: 285kcal, p18, c10, f18\n' +
+          '  豬排(炸)200g: 480kcal, p36, c20, f28\n' +
+          '  鮭魚(煎)150g: 280kcal, p30, c0, f17\n' +
+          '  虱目魚肚(煎)150g: 240kcal, p24, c1, f15\n' +
+          '  鯖魚(鹽烤)140g: 298kcal, p26, c0, f21\n' +
+          '  牛五花(烤)100g: 348kcal, p17, c0, f31\n' +
+          '  牛沙朗(煎)200g: 540kcal, p46, c0, f38\n' +
+          '  德國豬腳200g: 490kcal, p38, c4, f35\n\n' +
+          '[蛋豆]\n' +
+          '  荷包蛋50g: 78kcal, p6, c0, f6\n' +
+          '  炒蛋2顆100g: 154kcal, p12, c1, f12\n' +
+          '  滷蛋60g: 85kcal, p8, c2, f5\n' +
+          '  茶葉蛋65g: 90kcal, p8, c2, f5\n' +
+          '  皮蛋65g: 100kcal, p9, c2, f6\n' +
+          '  板豆腐100g: 76kcal, p8, c2, f4\n' +
+          '  嫩豆腐100g: 55kcal, p5, c2, f3\n' +
+          '  百頁豆腐100g: 215kcal, p13, c4, f16\n\n' +
+          '[蔬菜]\n' +
+          '  炒高麗菜60g: 48kcal, p1.5, c4, f3\n' +
+          '  燙青花菜80g: 28kcal, p3, c4, f0.3\n' +
+          '  炒青江菜60g: 42kcal, p1.5, c3, f2.5\n' +
+          '  炒空心菜60g: 45kcal, p1.5, c3, f2.8\n' +
+          '  玉米段80g: 74kcal, p2.5, c16, f0.8\n' +
+          '  番茄1顆120g: 22kcal, p1, c5, f0.2\n' +
+          '  生菜沙拉150g(無醬): 30kcal, p2, c5, f0.3\n\n' +
+          '[早餐]\n' +
+          '  蛋餅(原味)120g: 255kcal, p10, c30, f10\n' +
+          '  蛋餅(起司)135g: 310kcal, p13, c31, f14\n' +
+          '  蘿蔔糕(煎)100g: 160kcal, p3, c28, f4\n' +
+          '  厚片吐司60g: 168kcal, p5, c32, f2\n' +
+          '  奶油厚片60g: 242kcal, p5, c32, f10\n' +
+          '  花生厚片60g: 255kcal, p7, c33, f10\n' +
+          '  肉包90g: 210kcal, p9, c32, f5\n' +
+          '  菠蘿麵包70g: 240kcal, p5, c38, f8\n\n' +
+          '[速食]\n' +
+          '  大麥克: 550kcal, p25, c46, f30\n' +
+          '  麥辣雞腿堡: 530kcal, p28, c44, f27\n' +
+          '  麥脆雞(腿): 430kcal, p28, c24, f24\n' +
+          '  麥當勞薯條大: 490kcal, p7, c65, f23\n' +
+          '  麥克雞塊6塊: 280kcal, p18, c17, f16\n' +
+          '  肯德基炸雞腿: 340kcal, p26, c12, f21\n' +
+          '  拿坡里披薩(一片): 220kcal, p10, c28, f7\n\n' +
+          '[飲料]\n' +
+          '  珍珠奶茶700ml全糖: 480kcal, p5, c90, f10\n' +
+          '  珍珠鮮奶茶700ml全糖: 590kcal, p10, c96, f13\n' +
+          '  黑糖珍珠鮮奶700ml: 590kcal, p10, c98, f13\n' +
+          '  芋頭奶茶700ml全糖: 560kcal, p8, c92, f14\n' +
+          '  四季春茶700ml全糖: 220kcal, p0, c55, f0\n' +
+          '  鮮奶茶500ml全糖: 280kcal, p6, c48, f7\n' +
+          '  美式咖啡無糖480ml: 10kcal, p0.5, c2, f0\n' +
+          '  拿鐵480ml全脂: 200kcal, p10, c20, f8\n' +
+          '  無糖豆漿350ml: 100kcal, p8, c7, f4\n' +
+          '  全糖豆漿350ml: 195kcal, p8, c32, f4\n' +
+          '  可口可樂330ml: 139kcal, p0, c35, f0\n' +
+          '  啤酒330ml: 145kcal, p1, c12, f0\n' +
+          '  紅酒150ml: 120kcal, p0.3, c4, f0\n\n' +
+          '[甜點]\n' +
+          '  芋圓一份8顆: 180kcal, p2, c42, f1\n' +
+          '  仙草凍200g: 30kcal, p1, c7, f0\n' +
+          '  豆花250g: 110kcal, p6, c18, f1\n' +
+          '  紅豆湯250ml: 180kcal, p5, c38, f0.5\n' +
+          '  草莓聖代: 320kcal, p5, c52, f10\n' +
+          '  霜淇淋(小): 160kcal, p3, c25, f5\n' +
+          '  布丁大: 150kcal, p5, c24, f4\n' +
+          '  提拉米蘇一份: 380kcal, p6, c38, f22\n' +
+          '  起司蛋糕一片: 320kcal, p6, c30, f20\n' +
+          '  馬卡龍1顆: 70kcal, p1, c10, f3\n\n' +
+          '[水果]\n' +
+          '  西瓜淨重200g: 60kcal, p1, c15, f0.2\n' +
+          '  芒果150g: 100kcal, p1, c25, f0.3\n' +
+          '  香蕉1根120g: 107kcal, p1.3, c27, f0.4\n' +
+          '  蘋果中180g: 93kcal, p0.5, c25, f0.3\n' +
+          '  葡萄80g: 55kcal, p0.5, c14, f0.1\n' +
+          '  草莓100g: 33kcal, p0.7, c8, f0.3\n' +
+          '  藍莓140g: 80kcal, p1, c20, f0.5\n\n' +
+          '[堅果]\n' +
+          '  杏仁30g: 173kcal, p6, c6, f15\n' +
+          '  腰果30g: 163kcal, p4, c9, f13\n' +
+          '  核桃30g: 196kcal, p5, c4, f19\n' +
+          '  花生30g: 170kcal, p8, c5, f14\n\n' +
+
+          '━━ STEP 7: EDGE CASES ━━\n' +
+          '• Partially eaten: estimate ORIGINAL full portion\n' +
+          '• Packaged food with readable label: use label nutrition data directly\n' +
+          '• 手搖飲 with label: READ brand+drink+sugar sticker → apply sugar multiplier from Step 3\n' +
+          '• Beverages with visible ice: reduce liquid volume by 25%\n' +
+          '• Hot pot broth: 清湯250ml=15kcal | 麻辣湯250ml=80kcal | 日式昆布250ml=10kcal\n' +
+          '• Dipping sauces small cup: 醬油15ml=10kcal | 沙茶醬15ml=45kcal | 甜辣醬15ml=25kcal\n' +
+          '• Salad dressing: 凱薩醬30ml=140kcal | 和風醬30ml=60kcal | 千島醬30ml=135kcal\n' +
+          '• Family-style dishes: estimate total dish amount\n' +
+          '• If truly unidentifiable: use "不明食物" with conservative estimate\n\n' +
+
+          '━━ OUTPUT FORMAT ━━\n' +
+          'Respond with ONLY this JSON — no markdown, no explanation, no text outside the JSON:\n' +
+          '{"foods":[{"name":"食物名稱(繁體中文)","amount":160,"unit":"g","calories":262,"protein":5.0,"carbs":57.0,"fat":0.4}]}\n\n' +
+          'RULES:\n' +
+          '• Names in Traditional Chinese (繁體中文), include cooking method: 雞腿排(炸)/鮭魚(煎)/高麗菜(炒)\n' +
+          '• unit: "g" for solids, "ml" for beverages\n' +
+          '• calories/protein/carbs/fat = totals for estimated portion (NOT per 100g)\n' +
+          '• Calories: round to integer; macros: 1 decimal place\n' +
+          '• Unidentifiable item: "不明食物" with conservative estimate'
         }
       ]
     }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }
+    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
   });
 
   let resp, lastErr;
