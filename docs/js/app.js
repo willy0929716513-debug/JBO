@@ -1215,9 +1215,23 @@ let activeMeal   = 'breakfast';
 let selectedFood = null;
 let searchCache  = [];
 
+function openFoodDatePicker() {
+  const inp = document.getElementById('fl-date-input');
+  if (!inp) return;
+  inp.max   = todayStr();
+  inp.value = currentFoodDate;
+  try { inp.showPicker(); } catch { inp.click(); }
+}
+
+function pickFoodDate(val) {
+  if (!val || val > todayStr()) return;
+  currentFoodDate = val;
+  renderFoodLog();
+}
+
 function renderFoodLog() {
-  const dateEl = document.getElementById('fl-date');
-  if (dateEl) dateEl.textContent = foodDateLabel(currentFoodDate);
+  const labelEl = document.getElementById('fl-date-label');
+  if (labelEl) labelEl.textContent = foodDateLabel(currentFoodDate);
 
   const nextBtn = document.getElementById('fl-next-btn');
   if (nextBtn) nextBtn.style.opacity = currentFoodDate >= todayStr() ? '0.25' : '1';
