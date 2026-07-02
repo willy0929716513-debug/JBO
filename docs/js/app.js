@@ -1798,36 +1798,74 @@ async function analyzePhoto() {
 
   const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   const geminiBody = JSON.stringify({
+    system_instruction: {
+      parts: [{ text:
+        'You are an expert nutritionist and food analyst specializing in Asian cuisines — especially Taiwanese, Japanese, Korean, and Chinese food — with comprehensive knowledge of the USDA food database, Taiwan TFDA food composition tables, and Japan MEXT nutrient database. ' +
+        'Your job is to look at food photos and return precise nutritional estimates as structured JSON. ' +
+        'You NEVER refuse or say you cannot identify food. You always make your best estimate based on visual appearance, context, and culinary knowledge.'
+      }]
+    },
     contents: [{
       parts: [
         { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
         { text:
-          'You are a professional nutritionist and food recognition expert.\n\n' +
-          'CRITICAL RULE: ALWAYS decompose complex meals into INDIVIDUAL components. Never group different foods into one entry.\n\n' +
-          'FOR BENTO BOXES / 便當 / LUNCH BOXES / PLATE MEALS:\n' +
-          '- Rice (白飯/糙米飯) → separate entry\n' +
-          '- Each protein (meat/egg/tofu) → separate entry\n' +
-          '- Each vegetable side → separate entry\n' +
-          '- Any soup, sauce, or drink → separate entry\n' +
-          'Example: 三層肉便當 → ["白飯", "三層肉(滷肉)", "炒高麗菜", "玉米"] as 4 separate entries.\n\n' +
-          'FOR NOODLE/RICE DISHES (炒飯, 炒麵, 湯麵):\n' +
-          '- If toppings/mix-ins are clearly identifiable, list noodles/rice + each topping separately\n' +
-          '- If completely mixed and inseparable (e.g. fried rice where you cannot tell components), list as one\n\n' +
-          'RECOGNITION RULES:\n' +
-          '- Recognize any world cuisine: Taiwanese, Chinese, Japanese, Korean, Thai, Vietnamese, Western, fast food, desserts, beverages, etc.\n' +
-          '- Be SPECIFIC: "三層肉(紅燒)" not "肉", "炒高麗菜" not "蔬菜", "白飯" not "飯"\n' +
-          '- If a food is unclear, make your best educated guess from visual cues (color, texture, shape, context)\n' +
-          '- Do NOT skip any item, even small sides, sauces, or garnishes\n\n' +
-          'PORTION ESTIMATION:\n' +
-          '- 便當 white rice: 150-200g | protein main dish: 80-150g | vegetable side: 50-80g\n' +
-          '- Bowl of rice: 200g | burger: 200g | cup of drink: 250ml | slice of bread: 30g\n' +
-          '- Consider container/plate size, food thickness, and typical serving norms\n\n' +
-          'NUTRITION DATA (use standard food composition databases — USDA, Taiwan TFDA):\n' +
-          '- calories = total kcal for the estimated portion\n' +
-          '- protein, carbs, fat = grams for the estimated portion\n\n' +
-          'OUTPUT: respond with ONLY the following JSON (no markdown, no explanation, no extra text):\n' +
-          '{"foods":[{"name":"食物名稱(繁體中文)","amount":200,"unit":"g","calories":320,"protein":12.0,"carbs":45.0,"fat":10.0}]}\n\n' +
-          'All food names must be in Traditional Chinese (繁體中文).'
+          'Analyze this food photo using the following steps:\n\n' +
+
+          '━━ STEP 1: SCAN ━━\n' +
+          'Look at the entire image. Note the container type (便當盒/碗/盤/袋), number of compartments, and every visible food item including small sides and garnishes.\n\n' +
+
+          '━━ STEP 2: DECOMPOSE (most important step) ━━\n' +
+          'Break EVERY complex meal into individual components. NEVER group different foods together.\n' +
+          '• 便當/Bento box → white rice + each protein + each vegetable side + sauce (3–6 entries typical)\n' +
+          '• 自助餐/Buffet plate → each dish is its own entry\n' +
+          '• 早餐組合 → each item separate: 蛋餅, 土司, 荷包蛋, 豆漿 are all separate\n' +
+          '• 湯麵/Noodle soup → noodles + broth + each topping (叉燒/溏心蛋/蔥/筍) separately\n' +
+          '• 炒飯/炒麵 → list as ONE item only if ingredients are fully mixed and indistinguishable\n' +
+          '• 火鍋 → each ingredient separately\n\n' +
+
+          '━━ STEP 3: IDENTIFY WITH PRECISION ━━\n' +
+          'Use specific names, not generic ones:\n' +
+          '  ✗ Wrong: "肉", "蔬菜", "飯", "麵"\n' +
+          '  ✓ Right: "三層肉(滷)", "炒高麗菜", "白飯", "陽春麵"\n\n' +
+          'Cooking method affects calories significantly — include it in the name:\n' +
+          '  炸/酥炸 → +40–60% fat vs steamed | 滷 → moderate fat | 蒸/燙 → lowest fat | 炒 → medium fat\n\n' +
+          'Common Taiwanese foods reference:\n' +
+          '  主食: 白飯/糙米飯/油飯/炒飯/米粉/冬粉/拉麵/烏龍麵/水餃/鍋貼/蚵仔麵線\n' +
+          '  肉類: 三層肉(五花)/雞腿排/雞胸肉/排骨/豬排/魚排/虱目魚/鮭魚/蝦仁/花枝\n' +
+          '  加工: 貢丸/魚丸/豬血糕/米腸/黑輪\n' +
+          '  蛋豆: 荷包蛋/滷蛋/溏心蛋/炒蛋/嫩豆腐/板豆腐/百頁豆腐\n' +
+          '  蔬菜: 炒高麗菜/炒青江菜/燙菠菜/燙青花菜/玉米/醃蘿蔔/泡菜/炒豆芽/炒茄子\n' +
+          '  早餐: 蛋餅/蘿蔔糕/燒餅油條/厚片吐司/法式吐司/鮪魚三明治/饅頭夾蛋\n' +
+          '  飲料: 珍珠奶茶/鮮奶茶/豆漿/米漿/冬瓜茶/青草茶/美式咖啡/拿鐵\n' +
+          '  小吃: 臭豆腐/蚵仔煎/鹽酥雞/雞排/蔥油餅/肉圓/碗粿\n' +
+          '  日式: 壽司/天婦羅/唐揚炸雞/味噌湯/茶碗蒸/親子丼/拉麵\n' +
+          '  韓式: 石鍋拌飯/韓式炸雞/泡菜鍋/部隊鍋/海苔飯捲\n' +
+          '  西式: 漢堡/薯條/披薩/沙拉/義大利麵/墨西哥捲餅\n\n' +
+
+          '━━ STEP 4: ESTIMATE PORTIONS ━━\n' +
+          '  便當白飯: 160g | 大碗白飯: 250g | 小碗: 120g | 一碗拉麵麵條: 180g\n' +
+          '  雞腿排(便當): 120g | 排骨: 100g | 魚排: 110g | 三層肉(便當): 100g\n' +
+          '  炒青菜(便當): 60g | 燙青菜: 80g | 玉米半根: 80g | 滷蛋: 60g\n' +
+          '  蛋餅: 120g | 厚片吐司: 60g | 漢堡: 200g | 雞排: 160g\n' +
+          '  珍珠奶茶(大): 700ml | 豆漿: 250ml | 美式咖啡: 350ml\n' +
+          '  Consider plate/container size relative to food volume.\n\n' +
+
+          '━━ STEP 5: NUTRITION ANCHORS ━━\n' +
+          'Use these as calibration references:\n' +
+          '  白飯160g: 262kcal, p5g, c57g, f0.4g\n' +
+          '  三層肉(滷)100g: 295kcal, p15g, c4g, f24g\n' +
+          '  雞腿排(炸)120g: 310kcal, p26g, c8g, f20g\n' +
+          '  雞腿排(烤)120g: 220kcal, p28g, c0g, f11g\n' +
+          '  排骨(炸)100g: 280kcal, p18g, c10g, f18g\n' +
+          '  炒高麗菜60g: 48kcal, p1.5g, c4g, f3g\n' +
+          '  荷包蛋50g: 78kcal, p6g, c0g, f6g | 滷蛋60g: 85kcal, p8g, c2g, f5g\n' +
+          '  蛋餅120g: 255kcal, p10g, c30g, f10g\n' +
+          '  珍珠奶茶700ml: 480kcal, p5g, c88g, f10g\n\n' +
+
+          '━━ OUTPUT ━━\n' +
+          'Respond with ONLY this JSON — no markdown, no explanation, no extra text before or after:\n' +
+          '{"foods":[{"name":"食物名稱(繁體中文)","amount":160,"unit":"g","calories":262,"protein":5.0,"carbs":57.0,"fat":0.4}]}\n\n' +
+          'Rules: All names in Traditional Chinese (繁體中文). Include cooking method in name when relevant. Amount must match the estimated actual portion.'
         }
       ]
     }],
