@@ -902,21 +902,32 @@
     </div>
 
     <!-- Drop zone -->
-    <div id="scanDrop" class="scan-drop" onclick="triggerPhotoInput()">
+    <div id="scanDrop" class="scan-drop" style="cursor:default">
       <div class="scan-icon"><i class="bi bi-camera-fill"></i></div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px;color:var(--text)">拍照或選擇圖片</div>
-      <div class="scan-hint">點擊開啟相機或圖庫<br>AI 自動辨識食物與熱量</div>
+      <div style="font-size:1rem;font-weight:700;margin-bottom:12px;color:var(--text)">選擇圖片來源</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button onclick="triggerPhotoCamera()" style="flex:1;max-width:140px;padding:10px 0;border:none;border-radius:12px;background:linear-gradient(135deg,#22C55E,#06B6D4);color:#fff;font-size:0.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <i class="bi bi-camera-fill"></i> 拍照
+        </button>
+        <button onclick="triggerPhotoLibrary()" style="flex:1;max-width:140px;padding:10px 0;border:none;border-radius:12px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:0.88rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <i class="bi bi-image-fill"></i> 圖庫
+        </button>
+      </div>
     </div>
 
-    <input type="file" id="photoFileInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(event)">
+    <input type="file" id="photoCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(event)">
+    <input type="file" id="photoLibInput" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
 
     <!-- Preview -->
     <div id="scanPreviewWrap" style="display:none;margin-bottom:12px">
       <div class="scan-preview">
         <img id="scanPreviewImg" src="" alt="" style="border-radius:14px">
-        <div style="position:absolute;bottom:10px;right:10px">
-          <button onclick="triggerPhotoInput()" style="background:rgba(0,0,0,0.55);border:none;border-radius:8px;padding:6px 12px;color:white;font-size:0.78rem;cursor:pointer;backdrop-filter:blur(4px)">
-            <i class="bi bi-arrow-repeat"></i> 重拍
+        <div style="position:absolute;bottom:10px;right:10px;display:flex;gap:6px">
+          <button onclick="triggerPhotoCamera()" style="background:rgba(0,0,0,0.55);border:none;border-radius:8px;padding:6px 10px;color:white;font-size:0.78rem;cursor:pointer;backdrop-filter:blur(4px)">
+            <i class="bi bi-camera-fill"></i> 重拍
+          </button>
+          <button onclick="triggerPhotoLibrary()" style="background:rgba(0,0,0,0.55);border:none;border-radius:8px;padding:6px 10px;color:white;font-size:0.78rem;cursor:pointer;backdrop-filter:blur(4px)">
+            <i class="bi bi-image-fill"></i> 圖庫
           </button>
         </div>
       </div>

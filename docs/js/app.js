@@ -1707,11 +1707,16 @@ function _updateScanMealBtns() {
 
 function closePhotoScan() {
   document.getElementById('photoModal').classList.add('hidden');
-  document.getElementById('photoFileInput').value = '';
+  document.getElementById('photoCameraInput').value = '';
+  document.getElementById('photoLibInput').value = '';
 }
 
-function triggerPhotoInput() {
-  document.getElementById('photoFileInput').click();
+function triggerPhotoCamera() {
+  document.getElementById('photoCameraInput').click();
+}
+
+function triggerPhotoLibrary() {
+  document.getElementById('photoLibInput').click();
 }
 
 function resizeImage(dataUrl, maxPx) {
