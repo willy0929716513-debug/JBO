@@ -1753,6 +1753,26 @@ async function handlePhotoSelect(e) {
   reader.readAsDataURL(file);
 }
 
+function matchBraces(text, start) {
+  let depth = 0;
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') { depth--; if (depth === 0) return i; }
+  }
+  return -1;
+}
+
+function extractJSON(text) {
+  // strip markdown code fence first
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  const src = fenceMatch ? fenceMatch[1] : text;
+  const start = src.indexOf('{');
+  if (start === -1) return null;
+  const end = matchBraces(src, start);
+  if (end === -1) return null;
+  return src.slice(start, end + 1);
+}
+
 async function analyzePhoto() {
   const s      = DB.getSettings();
   const apiKey = s.gemini_api_key;
@@ -1777,30 +1797,36 @@ async function analyzePhoto() {
       parts: [
         { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
         { text:
-          'You are a professional nutritionist and food recognition expert. Analyze this food photo carefully.\n\n' +
-          'TASK: Identify every food item and drink visible in the image, then estimate calories and macronutrients.\n\n' +
+          'You are a professional nutritionist and food recognition expert.\n\n' +
+          'CRITICAL RULE: ALWAYS decompose complex meals into INDIVIDUAL components. Never group different foods into one entry.\n\n' +
+          'FOR BENTO BOXES / 便當 / LUNCH BOXES / PLATE MEALS:\n' +
+          '- Rice (白飯/糙米飯) → separate entry\n' +
+          '- Each protein (meat/egg/tofu) → separate entry\n' +
+          '- Each vegetable side → separate entry\n' +
+          '- Any soup, sauce, or drink → separate entry\n' +
+          'Example: 三層肉便當 → ["白飯", "三層肉(滷肉)", "炒高麗菜", "玉米"] as 4 separate entries.\n\n' +
+          'FOR NOODLE/RICE DISHES (炒飯, 炒麵, 湯麵):\n' +
+          '- If toppings/mix-ins are clearly identifiable, list noodles/rice + each topping separately\n' +
+          '- If completely mixed and inseparable (e.g. fried rice where you cannot tell components), list as one\n\n' +
           'RECOGNITION RULES:\n' +
-          '- Identify ALL visible food items separately (e.g., rice, meat, vegetables are separate items)\n' +
-          '- Recognize any cuisine: Asian (Chinese, Japanese, Korean, Thai, Vietnamese), Western (American, Italian, Mexican), fast food, snacks, beverages, fruits, desserts, etc.\n' +
-          '- For packaged/processed foods, estimate based on visible portion\n' +
-          '- For mixed dishes (fried rice, noodles, salad), list as one item with combined nutrition\n' +
-          '- If a food is unclear, make your best educated guess based on visual cues (color, texture, shape, context)\n' +
-          '- Do NOT skip any food item, even small sides or sauces\n\n' +
+          '- Recognize any world cuisine: Taiwanese, Chinese, Japanese, Korean, Thai, Vietnamese, Western, fast food, desserts, beverages, etc.\n' +
+          '- Be SPECIFIC: "三層肉(紅燒)" not "肉", "炒高麗菜" not "蔬菜", "白飯" not "飯"\n' +
+          '- If a food is unclear, make your best educated guess from visual cues (color, texture, shape, context)\n' +
+          '- Do NOT skip any item, even small sides, sauces, or garnishes\n\n' +
           'PORTION ESTIMATION:\n' +
-          '- Use common reference sizes: a bowl of rice ≈ 200g, a burger ≈ 200g, a cup of drink ≈ 250ml\n' +
-          '- Consider plate/bowl size, food thickness, and density\n' +
-          '- For beverages: estimate in ml, convert calories per 100ml\n\n' +
-          'NUTRITION DATA:\n' +
-          '- Use accurate nutritional data from standard food databases (USDA, etc.)\n' +
-          '- calories = total for the estimated portion (not per 100g)\n' +
+          '- 便當 white rice: 150-200g | protein main dish: 80-150g | vegetable side: 50-80g\n' +
+          '- Bowl of rice: 200g | burger: 200g | cup of drink: 250ml | slice of bread: 30g\n' +
+          '- Consider container/plate size, food thickness, and typical serving norms\n\n' +
+          'NUTRITION DATA (use standard food composition databases — USDA, Taiwan TFDA):\n' +
+          '- calories = total kcal for the estimated portion\n' +
           '- protein, carbs, fat = grams for the estimated portion\n\n' +
-          'OUTPUT FORMAT — respond with ONLY this JSON, no markdown, no explanation:\n' +
+          'OUTPUT: respond with ONLY the following JSON (no markdown, no explanation, no extra text):\n' +
           '{"foods":[{"name":"食物名稱(繁體中文)","amount":200,"unit":"g","calories":320,"protein":12.0,"carbs":45.0,"fat":10.0}]}\n\n' +
-          'Use Traditional Chinese (繁體中文) for all food names. Be specific: write "雞腿排" not "雞肉", "白飯" not "飯".'
+          'All food names must be in Traditional Chinese (繁體中文).'
         }
       ]
     }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+    generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }
   });
 
   let resp, lastErr;
@@ -1820,12 +1846,15 @@ async function analyzePhoto() {
 
     const data    = await resp.json();
     const text    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const jsonStr = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)?.[1]
-                 || text.match(/\{[\s\S]*\}/)?.[0];
+    const jsonStr = extractJSON(text);
     if (!jsonStr) throw new Error('無法解析 AI 回應，請重試');
     let parsed;
     try { parsed = JSON.parse(jsonStr); }
-    catch { throw new Error('AI 回應格式錯誤，請重試'); }
+    catch {
+      const cleaned = jsonStr.replace(/,\s*([}\]])/g, '$1');
+      try { parsed = JSON.parse(cleaned); }
+      catch { throw new Error('AI 回應格式錯誤，請重試'); }
+    }
     scanResults   = (parsed.foods || []).filter(f => f.name && f.calories > 0);
     if (!scanResults.length) throw new Error('未偵測到食物，請換張照片');
     scanOriginals = scanResults.map(f => ({ ...f }));
