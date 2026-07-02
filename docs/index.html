@@ -129,17 +129,15 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="greeting">飲食記錄 <span style="color:var(--green)">🍽️</span></div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-bottom:16px">
-      <button onclick="foodDateShift(-1)" style="background:#F3F4F6;border:none;font-size:1.4rem;color:var(--text);cursor:pointer;min-width:48px;min-height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center">‹</button>
-      <div onclick="openFoodDatePicker()" style="position:relative;cursor:pointer">
-        <div id="fl-date" style="font-size:1rem;font-weight:700;color:var(--text);min-width:88px;text-align:center;padding:6px 12px;background:#F3F4F6;border-radius:12px;display:flex;align-items:center;gap:5px;justify-content:center">
+    <div style="display:flex;justify-content:center;margin-bottom:16px">
+      <div style="position:relative;cursor:pointer">
+        <div id="fl-date" style="font-size:1rem;font-weight:700;color:var(--text);padding:8px 20px;background:#F3F4F6;border-radius:12px;display:flex;align-items:center;gap:6px">
           <i class="bi bi-calendar3" style="font-size:0.85rem;color:var(--muted)"></i>
           <span id="fl-date-label"></span>
         </div>
         <input type="date" id="fl-date-input" onchange="pickFoodDate(this.value)"
           style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer">
       </div>
-      <button id="fl-next-btn" onclick="foodDateShift(1)" style="background:#F3F4F6;border:none;font-size:1.4rem;color:var(--text);cursor:pointer;min-width:48px;min-height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center">›</button>
     </div>
 
     <div class="card fade-in">
