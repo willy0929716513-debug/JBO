@@ -1233,8 +1233,6 @@ function renderFoodLog() {
   const labelEl = document.getElementById('fl-date-label');
   if (labelEl) labelEl.textContent = foodDateLabel(currentFoodDate);
 
-  const nextBtn = document.getElementById('fl-next-btn');
-  if (nextBtn) nextBtn.style.opacity = currentFoodDate >= todayStr() ? '0.25' : '1';
 
   const meals   = getMeals(currentFoodDate);
   const flMeals = document.getElementById('fl-meals');
