@@ -755,6 +755,10 @@
         </div>
         <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
         <div style="font-size:0.72rem;color:var(--muted);margin-top:8px;line-height:1.7">匯出：將所有飲食、運動、體重記錄存成 JSON 備份檔<br>匯入：從備份檔還原資料（會覆蓋現有記錄）</div>
+        <div style="margin-top:12px;border-top:1px solid #F3F4F6;padding-top:12px">
+          <div style="font-size:0.8rem;font-weight:600;margin-bottom:8px;color:var(--text)">📅 每日自動備份</div>
+          <div id="snap-list" style="font-size:0.78rem;color:var(--muted)">載入中…</div>
+        </div>
       </div>
     </div>
 

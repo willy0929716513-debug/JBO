@@ -2640,6 +2640,47 @@ function renderSettings() {
 
   _renderApiKeyStatus();
   liveCalcTDEE();
+  _renderSnapList();
+}
+
+function _renderSnapList() {
+  const el = document.getElementById('snap-list');
+  if (!el) return;
+  const snaps = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('nm_snap_')) {
+      const date = k.replace('nm_snap_', '');
+      try {
+        const foods = JSON.parse(localStorage.getItem(k) || '[]');
+        snaps.push({ date, count: foods.length });
+      } catch { /* skip corrupt */ }
+    }
+  }
+  if (!snaps.length) {
+    el.textContent = '尚無自動備份（每天午夜自動建立）';
+    return;
+  }
+  snaps.sort((a, b) => b.date.localeCompare(a.date));
+  el.innerHTML = snaps.map(s => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F3F4F6">
+      <span>${s.date} <span style="color:var(--muted)">(${s.count} 筆)</span></span>
+      <button onclick="downloadSnap('${s.date}')"
+        style="font-size:0.72rem;background:var(--green-light);color:var(--green-dark);border:none;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit">
+        下載
+      </button>
+    </div>`).join('');
+}
+
+function downloadSnap(date) {
+  const raw = localStorage.getItem(`nm_snap_${date}`);
+  if (!raw) { showToast('找不到備份'); return; }
+  const blob = new Blob([raw], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `飲食備份_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 function _renderApiKeyStatus() {
@@ -3138,13 +3179,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Auto-advance to next day at midnight
+  // Auto-backup + advance to next day at midnight
   (function scheduleMidnight() {
     const now = new Date();
     const msUntilMidnight = new Date(
       now.getFullYear(), now.getMonth(), now.getDate() + 1
     ) - now;
     setTimeout(() => {
+      const backupDate = currentFoodDate;
+      // Save daily snapshot before switching
+      const dayFoods = DB.getFoods().filter(f => f.date === backupDate);
+      if (dayFoods.length > 0) {
+        localStorage.setItem(`nm_snap_${backupDate}`, JSON.stringify(dayFoods));
+        showToast(`💾 ${foodDateLabel(backupDate)} 飲食已自動備份（${dayFoods.length} 筆）`);
+      }
       currentFoodDate = todayStr();
       if (document.getElementById('page-food-log')?.classList.contains('active')) {
         renderFoodLog();
