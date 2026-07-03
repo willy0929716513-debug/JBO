@@ -3415,6 +3415,94 @@ function saveNotifSettings() {
   };
   _saveNotifCfg(cfg);
   showToast('🔔 通知設定已儲存');
+  scheduleNotifications();
+}
+
+// ── Notification scheduler (main-thread setTimeout — more reliable than SW setInterval) ──
+
+const _notifTimers = [];
+
+function _clearNotifTimers() {
+  _notifTimers.forEach(t => clearTimeout(t));
+  _notifTimers.length = 0;
+}
+
+function _fireNotif(title, body, tag) {
+  if (Notification.permission !== 'granted') return;
+  navigator.serviceWorker?.ready.then(reg => {
+    reg.showNotification(title, { body, tag, renotify: false });
+  }).catch(() => {
+    try { new Notification(title, { body, tag }); } catch (_) {}
+  });
+}
+
+function _msUntilHHMM(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  const now = new Date();
+  const t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+  if (t - now <= 0) t.setDate(t.getDate() + 1);
+  return t - now;
+}
+
+function scheduleNotifications() {
+  _clearNotifTimers();
+  const cfg = _loadNotifCfg();
+  if (!cfg.enabled || Notification.permission !== 'granted') return;
+
+  function schedMeal(key, emoji, label, hhmm) {
+    if (cfg.meals === false) return;
+    const ms = _msUntilHHMM(hhmm);
+    const id = setTimeout(() => {
+      _fireNotif(`${emoji} 記錄${label}`, `現在 ${hhmm}，記得記錄今天的${label}！`, `meal-${key}`);
+      _notifTimers.splice(_notifTimers.indexOf(id), 1);
+      schedMeal(key, emoji, label, hhmm);
+    }, ms);
+    _notifTimers.push(id);
+  }
+
+  function schedWater() {
+    if (cfg.water === false) return;
+    const [sh, sm] = (cfg.water_start || '08:00').split(':').map(Number);
+    const [eh, em] = (cfg.water_end   || '22:00').split(':').map(Number);
+    const interval  = Number(cfg.water_interval) || 90;
+    const now       = new Date();
+    const nowMins   = now.getHours() * 60 + now.getMinutes();
+    const startMins = sh * 60 + sm;
+    const endMins   = eh * 60 + em;
+
+    let nextMins;
+    if (nowMins < startMins) {
+      nextMins = startMins;
+    } else if (nowMins >= endMins) {
+      nextMins = startMins + 24 * 60;           // tomorrow's first reminder
+    } else {
+      const slots = Math.ceil((nowMins - startMins + 1) / interval);
+      nextMins = startMins + slots * interval;
+      if (nextMins >= endMins) nextMins = startMins + 24 * 60;
+    }
+
+    const isTomorrow = nextMins >= 24 * 60;
+    const absH = Math.floor((nextMins % (24 * 60)) / 60);
+    const absM = nextMins % 60;
+    const fire = new Date(now.getFullYear(), now.getMonth(), now.getDate(), absH, absM, 0, 0);
+    if (isTomorrow) fire.setDate(fire.getDate() + 1);
+    const ms = Math.max(0, fire - now);
+    const hhmm = `${String(absH).padStart(2,'0')}:${String(absM).padStart(2,'0')}`;
+
+    const id = setTimeout(() => {
+      _fireNotif('💧 喝水提醒', '記得補充水分，保持健康！', `water-${hhmm}`);
+      _notifTimers.splice(_notifTimers.indexOf(id), 1);
+      schedWater();
+    }, ms);
+    _notifTimers.push(id);
+  }
+
+  if (cfg.meals !== false) {
+    schedMeal('breakfast', '🌅', '早餐', cfg.breakfast || '08:00');
+    schedMeal('lunch',     '☀️',  '午餐', cfg.lunch     || '12:00');
+    schedMeal('dinner',    '🌙',  '晚餐', cfg.dinner    || '18:00');
+  }
+  schedWater();
 }
 
 function _renderSnapList() {
@@ -3962,6 +4050,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.data?.type === 'OPEN_TAB') navigate(e.data.tab || 'dashboard');
     });
   }
+  scheduleNotifications();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') scheduleNotifications();
+  });
 
   // Auto-backup + advance to next day at midnight
   (function scheduleMidnight() {
