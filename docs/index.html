@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#22C55E">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="NutriMate">
+  <link rel="manifest" href="manifest.json">
   <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet" href="css/style.css">
@@ -731,6 +736,52 @@
           取得金鑰：前往 <strong>aistudio.google.com</strong> → Get API key → Create API key<br>
           金鑰名稱填 <strong>NutriMate</strong>，完全免費不需信用卡<br>
           金鑰儲存於本機瀏覽器，不會上傳任何伺服器
+        </div>
+      </div>
+    </div>
+
+    <!-- 提醒通知 -->
+    <div class="card fade-in">
+      <div class="card-body">
+        <div class="card-title">🔔 提醒通知</div>
+
+        <!-- 權限狀態 -->
+        <div id="notifPermRow" style="margin-bottom:14px"></div>
+
+        <!-- 三餐提醒 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:0.88rem;font-weight:600">🍽️ 三餐記錄提醒</div>
+          <label class="nm-toggle"><input type="checkbox" id="notifMeals" onchange="saveNotifSettings()"><span></span></label>
+        </div>
+        <div id="mealTimesArea" style="display:none;background:var(--bg);border-radius:10px;padding:10px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px 12px;font-size:0.84rem">
+            <span>🌅 早餐</span><input type="time" id="notifBreakfast" value="08:00" class="form-input" style="padding:6px 10px" onchange="saveNotifSettings()">
+            <span>☀️ 午餐</span><input type="time" id="notifLunch"     value="12:00" class="form-input" style="padding:6px 10px" onchange="saveNotifSettings()">
+            <span>🌙 晚餐</span><input type="time" id="notifDinner"    value="18:00" class="form-input" style="padding:6px 10px" onchange="saveNotifSettings()">
+          </div>
+        </div>
+
+        <!-- 喝水提醒 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:0.88rem;font-weight:600">💧 喝水提醒</div>
+          <label class="nm-toggle"><input type="checkbox" id="notifWater" onchange="saveNotifSettings()"><span></span></label>
+        </div>
+        <div id="waterNotifArea" style="display:none;background:var(--bg);border-radius:10px;padding:10px">
+          <div style="display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px 12px;font-size:0.84rem">
+            <span>每隔</span>
+            <select id="notifWaterInterval" class="form-input" style="padding:6px 10px" onchange="saveNotifSettings()">
+              <option value="60">60 分鐘</option>
+              <option value="90" selected>90 分鐘</option>
+              <option value="120">120 分鐘</option>
+              <option value="150">150 分鐘</option>
+            </select>
+            <span>開始時間</span><input type="time" id="notifWaterStart" value="08:00" class="form-input" style="padding:6px 10px" onchange="saveNotifSettings()">
+            <span>結束時間</span><input type="time" id="notifWaterEnd"   value="22:00" class="form-input" style="padding:6px 10px" onchange="saveNotifSettings()">
+          </div>
+        </div>
+
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:10px;line-height:1.7">
+          iOS 需將網站加入主畫面（Safari → 分享 → 加入主畫面）才能在背景收到通知
         </div>
       </div>
     </div>

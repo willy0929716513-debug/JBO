@@ -3319,6 +3319,102 @@ function renderSettings() {
   _renderApiKeyStatus();
   liveCalcTDEE();
   _renderSnapList();
+  _renderNotifSettings();
+}
+
+// ── Notification helpers ──────────────────────────────────────────────────────
+
+function _notifCfgKey() { return 'nm_notif_cfg'; }
+
+function _loadNotifCfg() {
+  try { return JSON.parse(localStorage.getItem(_notifCfgKey()) || '{}'); } catch { return {}; }
+}
+
+function _saveNotifCfg(cfg) {
+  localStorage.setItem(_notifCfgKey(), JSON.stringify(cfg));
+  // Send to SW so it can notify even when page is in background
+  navigator.serviceWorker?.ready.then(reg => {
+    reg.active?.postMessage({ type: 'SAVE_NOTIF', cfg });
+  });
+}
+
+function _renderNotifSettings() {
+  const perm    = Notification.permission;   // 'granted' | 'denied' | 'default'
+  const cfg     = _loadNotifCfg();
+  const permRow = document.getElementById('notifPermRow');
+  if (!permRow) return;
+
+  if (!('Notification' in window)) {
+    permRow.innerHTML = '<div style="font-size:0.78rem;color:var(--muted)">此瀏覽器不支援通知功能</div>';
+    return;
+  }
+
+  if (perm === 'granted') {
+    permRow.innerHTML = '<div style="font-size:0.78rem;color:var(--green);display:flex;align-items:center;gap:6px"><i class="bi bi-check-circle-fill"></i> 通知權限已開啟</div>';
+  } else if (perm === 'denied') {
+    permRow.innerHTML = '<div style="font-size:0.78rem;color:var(--red)">通知已被封鎖，請至手機設定 → Safari/Chrome → 通知，手動允許</div>';
+  } else {
+    permRow.innerHTML = `<button class="btn-primary" style="width:100%;justify-content:center;font-size:0.84rem;padding:10px" onclick="requestNotifPermission()">
+      <i class="bi bi-bell-fill"></i> 開啟通知權限
+    </button>`;
+  }
+
+  // Restore checkbox state
+  const mealsCb = document.getElementById('notifMeals');
+  const waterCb = document.getElementById('notifWater');
+  if (mealsCb) { mealsCb.checked = cfg.meals !== false && perm === 'granted'; }
+  if (waterCb) { waterCb.checked = cfg.water !== false && perm === 'granted'; }
+
+  if (cfg.breakfast)      document.getElementById('notifBreakfast')?.setAttribute('value', cfg.breakfast);
+  if (cfg.lunch)          document.getElementById('notifLunch')?.setAttribute('value', cfg.lunch);
+  if (cfg.dinner)         document.getElementById('notifDinner')?.setAttribute('value', cfg.dinner);
+  if (cfg.water_start)    document.getElementById('notifWaterStart')?.setAttribute('value', cfg.water_start);
+  if (cfg.water_end)      document.getElementById('notifWaterEnd')?.setAttribute('value', cfg.water_end);
+  if (cfg.water_interval) {
+    const sel = document.getElementById('notifWaterInterval');
+    if (sel) sel.value = String(cfg.water_interval);
+  }
+
+  _syncNotifAreas();
+}
+
+function _syncNotifAreas() {
+  const meals = document.getElementById('notifMeals')?.checked;
+  const water = document.getElementById('notifWater')?.checked;
+  const mealArea  = document.getElementById('mealTimesArea');
+  const waterArea = document.getElementById('waterNotifArea');
+  if (mealArea)  mealArea.style.display  = meals ? 'block' : 'none';
+  if (waterArea) waterArea.style.display = water ? 'block' : 'none';
+}
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) { showToast('此瀏覽器不支援通知'); return; }
+  const result = await Notification.requestPermission();
+  if (result === 'granted') {
+    showToast('✅ 通知權限已開啟！');
+    // Sync current settings to SW
+    saveNotifSettings();
+  } else {
+    showToast('❌ 通知權限被拒絕，請至系統設定手動開啟');
+  }
+  _renderNotifSettings();
+}
+
+function saveNotifSettings() {
+  _syncNotifAreas();
+  const cfg = {
+    enabled:        Notification.permission === 'granted',
+    meals:          document.getElementById('notifMeals')?.checked  ?? false,
+    water:          document.getElementById('notifWater')?.checked  ?? false,
+    breakfast:      document.getElementById('notifBreakfast')?.value  || '08:00',
+    lunch:          document.getElementById('notifLunch')?.value      || '12:00',
+    dinner:         document.getElementById('notifDinner')?.value     || '18:00',
+    water_start:    document.getElementById('notifWaterStart')?.value || '08:00',
+    water_end:      document.getElementById('notifWaterEnd')?.value   || '22:00',
+    water_interval: Number(document.getElementById('notifWaterInterval')?.value) || 90,
+  };
+  _saveNotifCfg(cfg);
+  showToast('🔔 通知設定已儲存');
 }
 
 function _renderSnapList() {
@@ -3858,6 +3954,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  // ── Service Worker & Notifications ──────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data?.type === 'OPEN_TAB') navigate(e.data.tab || 'dashboard');
+    });
+  }
 
   // Auto-backup + advance to next day at midnight
   (function scheduleMidnight() {

@@ -1,0 +1,12 @@
+{
+  "name": "NutriMate 智慧飲食",
+  "short_name": "NutriMate",
+  "description": "智慧飲食追蹤，記錄三餐與喝水",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#22C55E",
+  "background_color": "#ffffff",
+  "lang": "zh-TW"
+}
