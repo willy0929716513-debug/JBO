@@ -3391,8 +3391,13 @@ async function requestNotifPermission() {
   if (!('Notification' in window)) { showToast('此瀏覽器不支援通知'); return; }
   const result = await Notification.requestPermission();
   if (result === 'granted') {
-    showToast('✅ 通知權限已開啟！');
-    // Sync current settings to SW
+    showToast('✅ 通知權限已開啟！三餐與喝水提醒已自動啟用');
+    // Auto-enable both toggles on first permission grant
+    const mealsCb = document.getElementById('notifMeals');
+    const waterCb = document.getElementById('notifWater');
+    if (mealsCb) mealsCb.checked = true;
+    if (waterCb) waterCb.checked = true;
+    _syncNotifAreas();
     saveNotifSettings();
   } else {
     showToast('❌ 通知權限被拒絕，請至系統設定手動開啟');
@@ -3446,8 +3451,8 @@ function _msUntilHHMM(hhmm) {
 
 function scheduleNotifications() {
   _clearNotifTimers();
+  if (Notification.permission !== 'granted') return;
   const cfg = _loadNotifCfg();
-  if (!cfg.enabled || Notification.permission !== 'granted') return;
 
   function schedMeal(key, emoji, label, hhmm) {
     if (cfg.meals === false) return;
@@ -3503,6 +3508,12 @@ function scheduleNotifications() {
     schedMeal('dinner',    '🌙',  '晚餐', cfg.dinner    || '18:00');
   }
   schedWater();
+}
+
+function testNotification() {
+  if (Notification.permission !== 'granted') { showToast('請先開啟通知權限'); return; }
+  _fireNotif('🔔 NutriMate 通知測試', '通知功能正常！設定成功 ✅', 'notif-test');
+  showToast('已送出測試通知，請查看是否收到');
 }
 
 function _renderSnapList() {
