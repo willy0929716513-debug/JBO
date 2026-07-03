@@ -728,3 +728,20 @@ body {
     .modal-overlay { justify-content: center; align-items: center; }
     .modal-sheet { border-radius: 20px; width: 420px; }
 }
+
+/* ── Notification toggle switch ────────────────────────────── */
+.nm-toggle { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; }
+.nm-toggle input { opacity:0; width:0; height:0; position:absolute; }
+.nm-toggle span {
+    position:absolute; inset:0; border-radius:26px;
+    background:#D1D5DB; cursor:pointer;
+    transition: background 0.2s;
+}
+.nm-toggle span::before {
+    content:''; position:absolute;
+    width:20px; height:20px; left:3px; top:3px; border-radius:50%;
+    background:white; transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.nm-toggle input:checked + span { background: var(--green); }
+.nm-toggle input:checked + span::before { transform: translateX(20px); }
