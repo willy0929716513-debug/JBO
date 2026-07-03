@@ -1796,7 +1796,14 @@ async function analyzePhoto() {
   document.getElementById('scanResultsContent').innerHTML   =
     '<div class="spinner"></div><div style="text-align:center;font-size:0.82rem;color:var(--muted);margin-top:10px">AI 正在辨識食物…</div>';
 
-  const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const GEMINI_MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-flash-002',
+    'gemini-1.5-pro-latest',
+  ];
   const geminiBody = JSON.stringify({
     system_instruction: {
       parts: [{ text:
@@ -2223,15 +2230,17 @@ async function analyzePhoto() {
   });
 
   let resp, lastErr;
-  for (const model of GEMINI_MODELS) {
-    resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      { method: 'POST', headers: { 'content-type': 'application/json' }, body: geminiBody }
-    );
-    if (resp.ok) break;
-    const e = await resp.json().catch(() => ({}));
-    lastErr = e.error?.message || `API 錯誤 ${resp.status}`;
-    if (resp.status === 401 || resp.status === 403) break;
+  outer: for (const model of GEMINI_MODELS) {
+    for (const ver of ['v1beta', 'v1']) {
+      resp = await fetch(
+        `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${apiKey}`,
+        { method: 'POST', headers: { 'content-type': 'application/json' }, body: geminiBody }
+      );
+      if (resp.ok) break outer;
+      const e = await resp.json().catch(() => ({}));
+      lastErr = e.error?.message || `API 錯誤 ${resp.status}`;
+      if (resp.status === 401 || resp.status === 403) break outer;
+    }
   }
 
   try {
@@ -3376,19 +3385,21 @@ async function testApiKey() {
   const key = document.getElementById('sApiKey').value.trim() || DB.getSettings().gemini_api_key;
   if (!key || key.length < 20) { showToast('請先輸入並儲存金鑰'); return; }
   showToast('🔄 測試中…');
-  const TEST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const TEST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-002', 'gemini-1.5-pro-latest'];
   const testBody = JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 5 } });
   try {
     let ok = false, lastMsg = '';
-    for (const model of TEST_MODELS) {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-        { method: 'POST', headers: { 'content-type': 'application/json' }, body: testBody }
-      );
-      if (res.ok) { ok = true; break; }
-      const err = await res.json().catch(() => ({}));
-      lastMsg = err.error?.message || `錯誤 ${res.status}`;
-      if (res.status === 401 || res.status === 403) break;
+    outer: for (const model of TEST_MODELS) {
+      for (const ver of ['v1beta', 'v1']) {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${key}`,
+          { method: 'POST', headers: { 'content-type': 'application/json' }, body: testBody }
+        );
+        if (res.ok) { ok = true; break outer; }
+        const err = await res.json().catch(() => ({}));
+        lastMsg = err.error?.message || `錯誤 ${res.status}`;
+        if (res.status === 401 || res.status === 403) break outer;
+      }
     }
     if (ok) {
       showToast('✅ 金鑰有效！AI 辨識功能可以使用了', 3000);
