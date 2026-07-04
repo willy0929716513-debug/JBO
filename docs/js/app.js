@@ -1604,7 +1604,7 @@ async function fetchOnlineFoods(q, box, input) {
     const res = await fetch(url);
     const data = await res.json();
     const products = (data.products || []).filter(p =>
-      p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'] > 0
+      p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'] >= 0
     ).slice(0, 8);
     if (!products.length) {
       box.innerHTML = `<div class="result-item" style="justify-content:center;color:var(--muted);font-size:0.85rem">找不到「${q}」相關食物</div>`;
@@ -2447,7 +2447,7 @@ function addScanResults() {
 function submitManualFood() {
   const name = document.getElementById('mName').value.trim();
   const cal  = parseFloat(document.getElementById('mCal').value);
-  if (!name || !cal) { showToast('請填寫食物名稱和卡路里'); return; }
+  if (!name || isNaN(cal)) { showToast('請填寫食物名稱和卡路里'); return; }
   DB.addFood({
     date: currentFoodDate, meal_type: activeMeal, food_name: name,
     amount: parseFloat(document.getElementById('mAmt').value) || 1, unit: '份',
