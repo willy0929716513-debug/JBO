@@ -173,6 +173,11 @@ const FOOD_DB = {
   '蚵仔':        { calories: 69,  protein: 8.5,  carbs: 4.0,  fat: 1.8  },
   '干貝':        { calories: 111, protein: 24.0, carbs: 0.0,  fat: 0.5  },
   '魚板':        { calories: 113, protein: 12.0, carbs: 11.5, fat: 1.8  },
+  '竹輪':        { calories: 121, protein: 12.2, carbs: 13.5, fat: 2.2  },
+  '炸竹輪':      { calories: 190, protein: 11.0, carbs: 17.0, fat: 8.5  },
+  '銀魚':        { calories: 96,  protein: 19.5, carbs: 0.0,  fat: 1.8  },
+  '炸銀魚':      { calories: 210, protein: 16.0, carbs: 12.0, fat: 11.0 },
+  '小銀魚':      { calories: 96,  protein: 19.5, carbs: 0.0,  fat: 1.8  },
   '魚丸':        { calories: 110, protein: 8.5,  carbs: 12.5, fat: 2.5  },
   '蟹肉棒':      { calories: 94,  protein: 8.5,  carbs: 13.0, fat: 0.5  },
   // ══ 豆製品 ══
@@ -1804,20 +1809,24 @@ async function analyzePhoto() {
     'gemini-1.5-flash-002',
     'gemini-1.5-pro-latest',
   ];
-  const geminiBody = JSON.stringify({
-    system_instruction: {
-      parts: [{ text:
-        'You are an elite-level nutritionist, registered dietitian, and food analyst with 20+ years of expertise in Asian cuisines — especially Taiwanese home cooking, night market street food, Japanese cuisine, Korean cuisine, Chinese regional dishes, and Western fast food. ' +
-        'You have encyclopedic knowledge of the USDA food database, Taiwan TFDA food composition tables, Japan MEXT nutrient database, and Korea NFRI food database. ' +
-        'You can identify foods from visual cues including color, texture, sauce sheen, steam, container type, and cultural presentation style. ' +
-        'You NEVER refuse or say you cannot identify food. You always provide your best nutritional estimate based on visual evidence and culinary expertise. ' +
-        'You understand that accurate food logging helps people manage their health, so you take every analysis seriously and are as precise as possible.'
-      }]
-    },
-    contents: [{
-      parts: [
-        { inline_data: { mime_type: scanMediaType, data: scanImageBase64 } },
-        { text:
+  const _sysTxt =
+    'You are an elite-level nutritionist, registered dietitian, and food analyst with 20+ years of expertise in Asian cuisines — especially Taiwanese home cooking, night market street food, Japanese cuisine, Korean cuisine, Chinese regional dishes, and Western fast food. ' +
+    'You have encyclopedic knowledge of the USDA food database, Taiwan TFDA food composition tables, Japan MEXT nutrient database, and Korea NFRI food database. ' +
+    'You can identify foods from visual cues including color, texture, sauce sheen, steam, container type, and cultural presentation style. ' +
+    'You NEVER refuse or say you cannot identify food. You always provide your best nutritional estimate based on visual evidence and culinary expertise. ' +
+    'You understand that accurate food logging helps people manage their health, so you take every analysis seriously and are as precise as possible.';
+
+  // v1beta supports system_instruction; v1 does not — prepend to user content instead
+  const _buildBody = (useSysField, userText) => JSON.stringify(useSysField ? {
+    system_instruction: { parts: [{ text: _sysTxt }] },
+    contents: [{ parts: [{ inline_data: { mime_type: scanMediaType, data: scanImageBase64 } }, { text: userText }] }],
+    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+  } : {
+    contents: [{ parts: [{ inline_data: { mime_type: scanMediaType, data: scanImageBase64 } }, { text: _sysTxt + '\n\n' + userText }] }],
+    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+  });
+
+  const _geminiUserText = (
           'Carefully analyze this food photo and return complete nutritional information.\n\n' +
 
           '━━ STEP 1: VISUAL SCAN ━━\n' +
@@ -1903,7 +1912,7 @@ async function analyzePhoto() {
           '蛋豆腐: 荷包蛋/滷蛋/溏心蛋/茶葉蛋/炒蛋/蒸蛋/皮蛋/鹹蛋/玉子燒\n' +
           '        嫩豆腐/板豆腐/百頁豆腐/臭豆腐/炸豆腐/凍豆腐/豆皮\n' +
           '加工品: 貢丸/魚丸/燕餃/豬血糕/米腸/香腸/黑輪/甜不辣/魚板/蟹肉棒\n' +
-          '        旗魚丸/花枝丸/蟹味棒/蝦餃/魚餃/燕餃/豬耳朵/豬腳\n' +
+          '        竹輪/炸竹輪/銀魚/炸銀魚/小銀魚/旗魚丸/花枝丸/蟹味棒/蝦餃/魚餃/燕餃\n' +
           '早餐店: 蛋餅(原味/起司/鮪魚/培根/玉米/總匯)\n' +
           '        蘿蔔糕(煎)/芋頭糕(煎)/燒餅/油條/燒餅油條/蔥花卷\n' +
           '        厚片吐司/薄片土司/法式厚片/奶油厚片/花生厚片/草莓厚片\n' +
@@ -2223,22 +2232,21 @@ async function analyzePhoto() {
           '• calories/protein/carbs/fat = totals for estimated portion (NOT per 100g)\n' +
           '• Calories: round to integer; macros: 1 decimal place\n' +
           '• Unidentifiable item: "不明食物" with conservative estimate'
-        }
-      ]
-    }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
-  });
+  );
+  const geminiBodyBeta = _buildBody(true,  _geminiUserText);
+  const geminiBodyV1   = _buildBody(false, _geminiUserText);
 
   let resp, lastErr;
   outer: for (const model of GEMINI_MODELS) {
     for (const ver of ['v1beta', 'v1']) {
       resp = await fetch(
         `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${apiKey}`,
-        { method: 'POST', headers: { 'content-type': 'application/json' }, body: geminiBody }
+        { method: 'POST', headers: { 'content-type': 'application/json' }, body: ver === 'v1beta' ? geminiBodyBeta : geminiBodyV1 }
       );
       if (resp.ok) break outer;
       const e = await resp.json().catch(() => ({}));
       lastErr = e.error?.message || `API 錯誤 ${resp.status}`;
+      if (resp.status === 400 && lastErr.includes('system_instruction')) continue; // skip v1 sys_instr error
       if (resp.status === 401 || resp.status === 403) break outer;
     }
   }
