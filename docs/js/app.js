@@ -173,6 +173,11 @@ const FOOD_DB = {
   '蚵仔':        { calories: 69,  protein: 8.5,  carbs: 4.0,  fat: 1.8  },
   '干貝':        { calories: 111, protein: 24.0, carbs: 0.0,  fat: 0.5  },
   '魚板':        { calories: 113, protein: 12.0, carbs: 11.5, fat: 1.8  },
+  '竹輪':        { calories: 121, protein: 12.2, carbs: 13.5, fat: 2.2  },
+  '炸竹輪':      { calories: 190, protein: 11.0, carbs: 17.0, fat: 8.5  },
+  '銀魚':        { calories: 96,  protein: 19.5, carbs: 0.0,  fat: 1.8  },
+  '炸銀魚':      { calories: 210, protein: 16.0, carbs: 12.0, fat: 11.0 },
+  '小銀魚':      { calories: 96,  protein: 19.5, carbs: 0.0,  fat: 1.8  },
   '魚丸':        { calories: 110, protein: 8.5,  carbs: 12.5, fat: 2.5  },
   '蟹肉棒':      { calories: 94,  protein: 8.5,  carbs: 13.0, fat: 0.5  },
   // ══ 豆製品 ══
@@ -1907,7 +1912,7 @@ async function analyzePhoto() {
           '蛋豆腐: 荷包蛋/滷蛋/溏心蛋/茶葉蛋/炒蛋/蒸蛋/皮蛋/鹹蛋/玉子燒\n' +
           '        嫩豆腐/板豆腐/百頁豆腐/臭豆腐/炸豆腐/凍豆腐/豆皮\n' +
           '加工品: 貢丸/魚丸/燕餃/豬血糕/米腸/香腸/黑輪/甜不辣/魚板/蟹肉棒\n' +
-          '        旗魚丸/花枝丸/蟹味棒/蝦餃/魚餃/燕餃/豬耳朵/豬腳\n' +
+          '        竹輪/炸竹輪/銀魚/炸銀魚/小銀魚/旗魚丸/花枝丸/蟹味棒/蝦餃/魚餃/燕餃\n' +
           '早餐店: 蛋餅(原味/起司/鮪魚/培根/玉米/總匯)\n' +
           '        蘿蔔糕(煎)/芋頭糕(煎)/燒餅/油條/燒餅油條/蔥花卷\n' +
           '        厚片吐司/薄片土司/法式厚片/奶油厚片/花生厚片/草莓厚片\n' +
