@@ -1,5 +1,9 @@
 'use strict';
 
+// ── Push Worker URL (fill in after deploying Cloudflare Worker) ──────────────
+const PUSH_WORKER_URL = '';
+const VAPID_PUBLIC_KEY = 'BF1Ebypxb5Bi92iqYRtXo-SL2Fz_T9VJJUXLtSj1n7BjyZFqR4aiYpdWkOEXrhLoS4iLFSJ4vQ1hxi6dLSaCbUo';
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_SETTINGS = {
@@ -3474,6 +3478,7 @@ function saveNotifSettings() {
   _saveNotifCfg(cfg);
   showToast('🔔 通知設定已儲存');
   scheduleNotifications();
+  _registerWebPush();
 }
 
 // ── Notification scheduler (main-thread setTimeout — more reliable than SW setInterval) ──
@@ -3492,6 +3497,38 @@ function _fireNotif(title, body, tag) {
   }).catch(() => {
     try { new Notification(title, { body, tag }); } catch (_) {}
   });
+}
+
+async function _registerWebPush() {
+  if (!PUSH_WORKER_URL) return;
+  if (Notification.permission !== 'granted') return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const keyResp = await fetch(`${PUSH_WORKER_URL}/vapid-public-key`);
+    const { key } = await keyResp.json();
+
+    // Convert base64url public key to Uint8Array for applicationServerKey
+    const rawKey = Uint8Array.from(
+      atob(key.replace(/-/g, '+').replace(/_/g, '/')),
+      c => c.charCodeAt(0)
+    );
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: rawKey });
+    }
+
+    const cfg       = _loadNotifCfg();
+    const tzOffset  = -new Date().getTimezoneOffset(); // positive = UTC+ timezone
+    await fetch(`${PUSH_WORKER_URL}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), schedule: cfg, tzOffset }),
+    });
+  } catch (e) {
+    console.warn('Web Push registration failed:', e);
+  }
 }
 
 function _msUntilHHMM(hhmm) {
@@ -4115,6 +4152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   scheduleNotifications();
+  _registerWebPush();
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') scheduleNotifications();
   });
