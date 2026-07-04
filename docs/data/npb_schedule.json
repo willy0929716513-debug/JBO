@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-04T13:29:16.948144+09:00",
+  "updated_at": "2026-07-04T16:45:54.192244+09:00",
   "date": "2026-07-04",
   "games": [
     {
@@ -36,7 +36,7 @@
           "win_pct": 0.55
         },
         "last_5_record": "3-2",
-        "last_10_record": "5-5",
+        "last_10_record": "6-4",
         "last_20_record": "11-9",
         "stadium": "甲子園"
       },
@@ -70,7 +70,7 @@
         },
         "last_5_record": "2-3",
         "last_10_record": "4-6",
-        "last_20_record": "9-11",
+        "last_20_record": "8-12",
         "stadium": "横浜スタジアム"
       },
       "home_probable_pitcher": {
@@ -135,7 +135,7 @@
           "t": 2,
           "win_pct": 0.557
         },
-        "last_5_record": "3-2",
+        "last_5_record": "2-3",
         "last_10_record": "6-4",
         "last_20_record": "11-9",
         "stadium": "東京ドーム"
@@ -168,8 +168,8 @@
           "t": 1,
           "win_pct": 0.339
         },
-        "last_5_record": "2-3",
-        "last_10_record": "3-7",
+        "last_5_record": "1-4",
+        "last_10_record": "4-6",
         "last_20_record": "7-13",
         "stadium": "ナゴヤドーム"
       },
@@ -237,7 +237,7 @@
         },
         "last_5_record": "2-3",
         "last_10_record": "4-6",
-        "last_20_record": "8-12",
+        "last_20_record": "7-13",
         "stadium": "マツダスタジアム"
       },
       "away_stats": {
@@ -268,7 +268,7 @@
           "t": 1,
           "win_pct": 0.532
         },
-        "last_5_record": "2-3",
+        "last_5_record": "3-2",
         "last_10_record": "5-5",
         "last_20_record": "10-10",
         "stadium": "神宮球場"
@@ -368,9 +368,9 @@
           "t": 2,
           "win_pct": 0.492
         },
-        "last_5_record": "2-3",
+        "last_5_record": "3-2",
         "last_10_record": "5-5",
-        "last_20_record": "10-10",
+        "last_20_record": "9-11",
         "stadium": "ZOZOマリン"
       },
       "home_probable_pitcher": {
@@ -436,7 +436,7 @@
           "win_pct": 0.548
         },
         "last_5_record": "3-2",
-        "last_10_record": "5-5",
+        "last_10_record": "6-4",
         "last_20_record": "11-9",
         "stadium": "京セラドーム大阪"
       },
@@ -468,9 +468,9 @@
           "t": 2,
           "win_pct": 0.629
         },
-        "last_5_record": "3-2",
-        "last_10_record": "6-4",
-        "last_20_record": "13-7",
+        "last_5_record": "4-1",
+        "last_10_record": "7-3",
+        "last_20_record": "12-8",
         "stadium": "ベルーナドーム"
       },
       "home_probable_pitcher": {
