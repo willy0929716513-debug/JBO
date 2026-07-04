@@ -2354,7 +2354,22 @@ function renderScanResults() {
     </div>
     <button class="btn-primary" style="width:100%;justify-content:center;margin-top:10px" onclick="addScanResults()">
       <i class="bi bi-plus-circle"></i> 加入${mealLabel}紀錄
-    </button>`;
+    </button>
+    <div style="margin-top:14px;padding:12px 14px;background:var(--surface2,rgba(0,0,0,0.04));border-radius:12px">
+      <div style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:5px">
+        <i class="bi bi-pencil-square" style="font-size:0.8rem"></i> 覺得辨識不準？告訴 AI 是什麼，重新分析
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="scanCorrectHint" class="form-input"
+          placeholder="例：炸雞腿、牛肉麵、水果沙拉…"
+          style="flex:1;padding:8px 10px;font-size:0.82rem;border-radius:8px"
+          onkeydown="if(event.key==='Enter'){const v=this.value.trim();if(v)analyzePhoto(v);}">
+        <button onclick="const v=document.getElementById('scanCorrectHint').value.trim();if(v)analyzePhoto(v);else document.getElementById('scanCorrectHint').focus();"
+          style="white-space:nowrap;padding:8px 12px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:0.8rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <i class="bi bi-stars"></i> 重新分析
+        </button>
+      </div>
+    </div>`;
   updateScanTotal();
 }
 
