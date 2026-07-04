@@ -1,5 +1,18 @@
-// Notification scheduling is handled by the main thread (app.js scheduleNotifications).
-// This SW only handles notification clicks and lifecycle events.
+// Handles Web Push, notification clicks, and lifecycle events.
+
+self.addEventListener('push', event => {
+  if (!event.data) return;
+  let data;
+  try { data = event.data.json(); } catch { return; }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'NutriMate', {
+      body: data.body || '',
+      tag: data.tag || 'push',
+      renotify: true,
+      data: { tab: (data.tag || '').startsWith('meal') ? 'log' : 'water' }
+    })
+  );
+});
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
