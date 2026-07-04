@@ -459,6 +459,12 @@ const FOOD_DB = {
   '無糖豆漿':    { calories: 35,  protein: 3.2,  carbs: 1.5,  fat: 1.5  },
   '牛奶':        { calories: 61,  protein: 3.2,  carbs: 4.8,  fat: 3.3  },
   '可樂':        { calories: 37,  protein: 0.0,  carbs: 9.6,  fat: 0.0  },
+  '零卡可樂':    { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
+  '0卡可樂':     { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
+  'Coke Zero':   { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
+  'Diet Coke':   { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
+  '零卡雪碧':    { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
+  '無糖汽水':    { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
   '雪碧':        { calories: 38,  protein: 0.0,  carbs: 9.6,  fat: 0.0  },
   '汽水':        { calories: 37,  protein: 0.0,  carbs: 9.6,  fat: 0.0  },
   '芬達':        { calories: 44,  protein: 0.0,  carbs: 11.0, fat: 0.0  },
@@ -2209,6 +2215,7 @@ async function analyzePhoto(userHint = '') {
           '  無糖豆漿350ml: 100kcal, p8, c7, f4\n' +
           '  全糖豆漿350ml: 195kcal, p8, c32, f4\n' +
           '  可口可樂330ml: 139kcal, p0, c35, f0\n' +
+          '  零卡可樂/Coke Zero/Diet Coke 330ml: 0kcal, p0, c0, f0\n' +
           '  啤酒330ml: 145kcal, p1, c12, f0\n' +
           '  紅酒150ml: 120kcal, p0.3, c4, f0\n\n' +
           '[甜點]\n' +
