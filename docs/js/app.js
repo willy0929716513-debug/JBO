@@ -1783,7 +1783,27 @@ function extractJSON(text) {
   return src.slice(start, end + 1);
 }
 
-async function analyzePhoto() {
+function _showAskUserHint(reason) {
+  document.getElementById('scanResultsContent').innerHTML = `
+    <div style="padding:16px 4px">
+      <div style="text-align:center;margin-bottom:14px">
+        <i class="bi bi-question-circle" style="font-size:2.2rem;color:var(--muted);display:block;margin-bottom:8px"></i>
+        <div style="font-size:0.9rem;font-weight:600">AI 無法確定這是什麼食物</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:4px">描述一下，AI 會重新幫你辨識</div>
+      </div>
+      <input type="text" id="userFoodHint" class="form-input"
+        placeholder="例：炸銀魚、竹輪、天婦羅便當..."
+        style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px;font-size:0.9rem"
+        onkeydown="if(event.key==='Enter'){const v=this.value.trim();if(v)analyzePhoto(v);}">
+      <button class="btn-primary" style="width:100%;justify-content:center"
+        onclick="const v=document.getElementById('userFoodHint').value.trim();if(v)analyzePhoto(v);else document.getElementById('userFoodHint').focus();">
+        <i class="bi bi-stars"></i> 告訴 AI 重新辨識
+      </button>
+    </div>`;
+  document.getElementById('userFoodHint').focus();
+}
+
+async function analyzePhoto(userHint = '') {
   const s      = DB.getSettings();
   const apiKey = s.gemini_api_key;
   if (!apiKey || apiKey.length < 20) {
@@ -2233,8 +2253,11 @@ async function analyzePhoto() {
           '• Calories: round to integer; macros: 1 decimal place\n' +
           '• Unidentifiable item: "不明食物" with conservative estimate'
   );
-  const geminiBodyBeta = _buildBody(true,  _geminiUserText);
-  const geminiBodyV1   = _buildBody(false, _geminiUserText);
+  const _promptToUse = userHint
+    ? `[USER HINT: The user says this food is "${userHint}". Use this to confirm/refine your identification, cooking method, and portion estimates.]\n\n` + _geminiUserText
+    : _geminiUserText;
+  const geminiBodyBeta = _buildBody(true,  _promptToUse);
+  const geminiBodyV1   = _buildBody(false, _promptToUse);
 
   let resp, lastErr;
   outer: for (const model of GEMINI_MODELS) {
@@ -2266,15 +2289,22 @@ async function analyzePhoto() {
       catch { throw new Error('AI 回應格式錯誤，請重試'); }
     }
     scanResults   = (parsed.foods || []).filter(f => f.name && f.calories > 0);
-    if (!scanResults.length) throw new Error('未偵測到食物，請換張照片');
+    if (!scanResults.length) throw new Error('辨識');
+    // If every item is unknown and user hasn't hinted yet, ask for help
+    if (!userHint && scanResults.every(f => f.name === '不明食物')) throw new Error('辨識');
     scanOriginals = scanResults.map(f => ({ ...f }));
     renderScanResults();
   } catch (err) {
-    document.getElementById('scanResultsContent').innerHTML = `
-      <div style="text-align:center;padding:20px;color:var(--red)">
-        <i class="bi bi-exclamation-circle" style="font-size:2rem;display:block;margin-bottom:8px"></i>
-        <div style="font-size:0.84rem">${esc(String(err.message))}</div>
-      </div>`;
+    const isApiErr = /API 錯誤|金鑰|網路/.test(err.message);
+    if (!isApiErr) {
+      _showAskUserHint();
+    } else {
+      document.getElementById('scanResultsContent').innerHTML = `
+        <div style="text-align:center;padding:20px;color:var(--red)">
+          <i class="bi bi-exclamation-circle" style="font-size:2rem;display:block;margin-bottom:8px"></i>
+          <div style="font-size:0.84rem">${esc(String(err.message))}</div>
+        </div>`;
+    }
   } finally {
     btn.disabled  = false;
     btn.innerHTML = '<i class="bi bi-stars"></i> 重新分析';
