@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-05T13:51:41.139896+09:00",
+  "updated_at": "2026-07-05T16:56:14.866021+09:00",
   "date": "2026-07-05",
   "games": [
     {
@@ -69,7 +69,7 @@
           "win_pct": 0.426
         },
         "last_5_record": "2-3",
-        "last_10_record": "4-6",
+        "last_10_record": "5-5",
         "last_20_record": "9-11",
         "stadium": "横浜スタジアム"
       },
@@ -135,7 +135,7 @@
           "t": 2,
           "win_pct": 0.557
         },
-        "last_5_record": "2-3",
+        "last_5_record": "3-2",
         "last_10_record": "6-4",
         "last_20_record": "11-9",
         "stadium": "東京ドーム"
@@ -269,7 +269,7 @@
           "win_pct": 0.532
         },
         "last_5_record": "3-2",
-        "last_10_record": "5-5",
+        "last_10_record": "6-4",
         "last_20_record": "11-9",
         "stadium": "神宮球場"
       },
@@ -436,7 +436,7 @@
           "win_pct": 0.548
         },
         "last_5_record": "3-2",
-        "last_10_record": "5-5",
+        "last_10_record": "6-4",
         "last_20_record": "11-9",
         "stadium": "京セラドーム大阪"
       },
@@ -469,7 +469,7 @@
           "win_pct": 0.629
         },
         "last_5_record": "3-2",
-        "last_10_record": "6-4",
+        "last_10_record": "7-3",
         "last_20_record": "13-7",
         "stadium": "ベルーナドーム"
       },
@@ -569,8 +569,8 @@
           "win_pct": 0.554
         },
         "last_5_record": "3-2",
-        "last_10_record": "5-5",
-        "last_20_record": "11-9",
+        "last_10_record": "6-4",
+        "last_20_record": "12-8",
         "stadium": "エスコンフィールドHOKKAIDO"
       },
       "home_probable_pitcher": {
