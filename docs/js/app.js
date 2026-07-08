@@ -1229,6 +1229,425 @@ const FOOD_DB = {
   '韭菜盒子':    { calories: 225, protein: 7.5,  carbs: 28.0, fat: 9.5  },
 };
 
+// ── 食物別名（搜尋關鍵字對應正式名稱）────────────────────────────────────────
+const FOOD_ALIASES = {
+  // 常見縮寫/俗名
+  '珍奶':   '珍珠奶茶', '波霸奶茶': '珍珠奶茶', '波霸': '珍珠奶茶',
+  '奶茶':   '珍珠奶茶',
+  '可可':   '巧克力牛奶',
+  '麥片':   '燕麥片', '燕麥': '燕麥片',
+  '優酪乳': '優格', '優形': '優格',
+  '沙拉':   '生菜沙拉',
+  '雞蛋':   '雞蛋', '蛋': '雞蛋',
+  '白蛋':   '水煮蛋', '水煮蛋': '水煮蛋',
+  '滷蛋':   '溏心蛋',
+  '菜飯':   '炒飯',
+  '雞肉飯': '雞腿飯',
+  '便當':   '雞腿便當',
+  '自助餐': '雞腿飯',
+  '滷肉':   '滷肉飯', '焢肉': '控肉飯', '焢肉飯': '控肉飯',
+  '地瓜':   '地瓜', '番薯': '地瓜',
+  '玉米':   '玉米',
+  '南瓜':   '南瓜',
+  '火腿':   '火腿片',
+  '香腸':   '台式香腸',
+  '貢丸':   '關東煮貢丸',
+  '魚丸':   '魚丸',
+  '魚板':   '關東煮魚板',
+  '黑輪':   '關東煮黑輪',
+  '蘿蔔':   '關東煮蘿蔔',
+  '章魚':   '章魚燒',
+  '炸蝦':   '炸蝦',
+  '蝦':     '蝦子',
+  '螃蟹':   '螃蟹', '蟹': '螃蟹',
+  '蛤蜊':   '蛤蜊',
+  '牡蠣':   '蚵仔', '蚵':  '蚵仔',
+  '燕麥粥': '燕麥片',
+  '豆花':   '豆腐花',
+  '豆腐花': '嫩豆腐',
+  '皮蛋':   '皮蛋',
+  '鴨蛋':   '鴨蛋',
+  '鮭魚':   '鮭魚', '三文魚': '鮭魚',
+  '鮪魚':   '鮪魚', '吞拿魚': '鮪魚',
+  '秋刀':   '秋刀魚',
+  '虱目魚': '虱目魚',
+  '烤魚':   '烤鯖魚',
+  '蒸魚':   '清蒸魚',
+  '炸魚':   '炸魚薯條',
+  '雞胸':   '雞胸肉',
+  '雞腿':   '烤雞腿',
+  '雞翅':   '雞翅',
+  '豬肉':   '豬排',
+  '豬肚':   '豬肚',
+  '五花肉': '豬五花',
+  '牛肉':   '牛肉',
+  '羊肉':   '羊肉',
+  '滷豆干': '豆干',
+  '毛豆':   '毛豆',
+  '花椰菜': '白花椰菜',
+  '西蘭花': '綠花椰菜', '花椰': '綠花椰菜',
+  '玉米筍': '玉米筍',
+  '木耳':   '黑木耳',
+  '金針菇': '金針菇',
+  '杏鮑菇': '杏鮑菇',
+  '香菇':   '香菇',
+  'KFC':    '炸雞', 'kfc': '炸雞',
+  'MOS':    '漢堡', '摩斯': '漢堡',
+  '麥當勞': '漢堡', '肯德基': '炸雞',
+  '必勝客': '披薩',
+  '拿坡里': '紅醬義大利麵',
+  '卡邦尼': '白醬義大利麵', '奶油培根': '白醬義大利麵',
+  '拿鐵咖啡': '拿鐵',
+  '黑咖啡': '美式咖啡', 'americano': '美式咖啡',
+  '豆腐湯': '味噌湯',
+  '蔥花蛋': '炒蛋',
+  '高蛋白': '乳清蛋白',
+  '蛋白粉': '乳清蛋白',
+  '地瓜葉': '地瓜葉',
+  '空心菜': '蒜炒空心菜',
+  '苦瓜':   '苦瓜',
+  '茄子':   '魚香茄子',
+  '番茄蛋': '番茄炒蛋', '蕃茄蛋': '番茄炒蛋',
+  '大腸麵線': '大腸麵線',
+  '麻辣鍋': '麻辣火鍋',
+  '壽喜鍋': '壽喜燒',
+  '涮涮鍋': '火鍋',
+  '土城魚羹': '土魠魚羹飯',
+};
+
+// ── 常見份量（市面標準份量，不需自己查）──────────────────────────────────────
+const FOOD_SERVING = {
+  // 米飯
+  '白飯':           { amt: 200, label: '1碗' },
+  '糙米飯':         { amt: 200, label: '1碗' },
+  '五穀飯':         { amt: 200, label: '1碗' },
+  '紫米飯':         { amt: 200, label: '1碗' },
+  '燕麥飯':         { amt: 200, label: '1碗' },
+  '炒飯':           { amt: 250, label: '1碗' },
+  '蛋炒飯':         { amt: 250, label: '1碗' },
+  '揚州炒飯':       { amt: 250, label: '1碗' },
+  '日式炒飯':       { amt: 250, label: '1碗' },
+  '泡菜炒飯':       { amt: 250, label: '1碗' },
+  '滷肉飯':         { amt: 300, label: '1碗' },
+  '控肉飯':         { amt: 300, label: '1碗' },
+  '瓜仔肉飯':       { amt: 300, label: '1碗' },
+  '雞腿飯':         { amt: 450, label: '1盒' },
+  '排骨飯':         { amt: 450, label: '1盒' },
+  '雞腿便當':       { amt: 550, label: '1盒' },
+  '排骨便當':       { amt: 550, label: '1盒' },
+  '控肉便當':       { amt: 550, label: '1盒' },
+  '虱目魚便當':     { amt: 500, label: '1盒' },
+  '鰻魚飯':         { amt: 350, label: '1碗' },
+  '親子丼':         { amt: 350, label: '1碗' },
+  '豬排丼':         { amt: 350, label: '1碗' },
+  '牛丼':           { amt: 350, label: '1碗' },
+  '海鮮丼':         { amt: 350, label: '1碗' },
+  '鮭魚丼':         { amt: 350, label: '1碗' },
+  '鮪魚丼':         { amt: 350, label: '1碗' },
+  '石鍋拌飯':       { amt: 350, label: '1碗' },
+  '煲仔飯':         { amt: 350, label: '1碗' },
+  '飯糰':           { amt: 110, label: '1個' },
+  '御飯糰':         { amt: 110, label: '1個' },
+  '鮭魚御飯糰':     { amt: 110, label: '1個' },
+  '梅子御飯糰':     { amt: 110, label: '1個' },
+  // 粥
+  '白粥':           { amt: 250, label: '1碗' },
+  '皮蛋瘦肉粥':     { amt: 300, label: '1碗' },
+  '虱目魚粥':       { amt: 300, label: '1碗' },
+  '地瓜粥':         { amt: 250, label: '1碗' },
+  '廣東粥':         { amt: 300, label: '1碗' },
+  '鹹粥':           { amt: 300, label: '1碗' },
+  // 麵條
+  '泡麵':           { amt: 85,  label: '1包' },
+  '白麵條':         { amt: 200, label: '1碗' },
+  '烏龍麵':         { amt: 200, label: '1碗' },
+  '炒烏龍':         { amt: 300, label: '1盤' },
+  '海鮮烏龍':       { amt: 300, label: '1碗' },
+  '牛肉麵':         { amt: 400, label: '1碗' },
+  '麻辣麵':         { amt: 350, label: '1碗' },
+  '豚骨拉麵':       { amt: 350, label: '1碗' },
+  '味噌拉麵':       { amt: 350, label: '1碗' },
+  '醬油拉麵':       { amt: 350, label: '1碗' },
+  '鹽味拉麵':       { amt: 350, label: '1碗' },
+  '蚵仔麵線':       { amt: 300, label: '1碗' },
+  '大腸麵線':       { amt: 300, label: '1碗' },
+  '義大利麵':       { amt: 200, label: '1人份' },
+  '白醬義大利麵':   { amt: 200, label: '1人份' },
+  '紅醬義大利麵':   { amt: 200, label: '1人份' },
+  '青醬義大利麵':   { amt: 200, label: '1人份' },
+  '焗烤義大利麵':   { amt: 250, label: '1人份' },
+  '焗烤飯':         { amt: 250, label: '1人份' },
+  '乾麵':           { amt: 200, label: '1碗' },
+  '油麵':           { amt: 200, label: '1碗' },
+  '冬粉':           { amt: 150, label: '1碗' },
+  '河粉':           { amt: 200, label: '1碗' },
+  '越南河粉':       { amt: 350, label: '1碗' },
+  '粄條':           { amt: 200, label: '1碗' },
+  '意麵':           { amt: 200, label: '1碗' },
+  '擔仔麵':         { amt: 200, label: '1碗' },
+  '韓式冷麵':       { amt: 300, label: '1碗' },
+  // 蛋
+  '雞蛋':           { amt: 60,  label: '1顆' },
+  '水煮蛋':         { amt: 60,  label: '1顆' },
+  '溏心蛋':         { amt: 60,  label: '1顆' },
+  '荷包蛋':         { amt: 70,  label: '1顆' },
+  '煎蛋':           { amt: 70,  label: '1顆' },
+  '炒蛋':           { amt: 120, label: '2顆份' },
+  '皮蛋':           { amt: 65,  label: '1顆' },
+  '鵪鶉蛋':         { amt: 12,  label: '1顆' },
+  '茶葉蛋':         { amt: 65,  label: '1顆' },
+  '關東煮蛋':       { amt: 65,  label: '1顆' },
+  '蒸蛋':           { amt: 150, label: '1碗' },
+  '茶碗蒸':         { amt: 150, label: '1碗' },
+  '番茄炒蛋':       { amt: 200, label: '1盤' },
+  '韭黃炒蛋':       { amt: 150, label: '1盤' },
+  // 雞肉
+  '雞胸肉':         { amt: 150, label: '1塊' },
+  '雞腿肉':         { amt: 200, label: '1隻' },
+  '烤雞腿':         { amt: 200, label: '1隻' },
+  '炸雞腿':         { amt: 200, label: '1隻' },
+  '滷雞腿':         { amt: 200, label: '1隻' },
+  '雞翅':           { amt: 60,  label: '1隻' },
+  '雞爪':           { amt: 30,  label: '1隻' },
+  '雞排':           { amt: 180, label: '1塊' },
+  '炸雞排':         { amt: 180, label: '1塊' },
+  '唐揚雞':         { amt: 150, label: '1人份' },
+  '韓式炸雞':       { amt: 200, label: '1人份' },
+  '炸雞':           { amt: 130, label: '1塊' },
+  '辣炒雞':         { amt: 200, label: '1人份' },
+  // 豬肉
+  '豬排':           { amt: 120, label: '1片' },
+  '炸豬排':         { amt: 120, label: '1片' },
+  '日式炸豬排':     { amt: 120, label: '1片' },
+  '培根':           { amt: 30,  label: '2片' },
+  '豬五花':         { amt: 100, label: '約3片' },
+  '韓式豬五花':     { amt: 150, label: '1人份' },
+  '松阪豬':         { amt: 150, label: '1人份' },
+  '滷豬腳':         { amt: 150, label: '1份' },
+  '叉燒':           { amt: 100, label: '約4片' },
+  '燒鴨':           { amt: 150, label: '1份' },
+  '脆皮燒肉':       { amt: 100, label: '1份' },
+  '紅燒肉':         { amt: 150, label: '1份' },
+  '東坡肉':         { amt: 150, label: '1份' },
+  '回鍋肉':         { amt: 150, label: '1盤' },
+  '糖醋排骨':       { amt: 150, label: '1人份' },
+  // 牛肉
+  '牛排':           { amt: 200, label: '1份' },
+  '牛肉':           { amt: 100, label: '1份' },
+  '韓式烤肉':       { amt: 150, label: '1人份' },
+  // 海鮮
+  '鮭魚':           { amt: 120, label: '1片' },
+  '鯖魚':           { amt: 120, label: '1片' },
+  '秋刀魚':         { amt: 100, label: '1條' },
+  '虱目魚':         { amt: 120, label: '1片' },
+  '鱈魚':           { amt: 120, label: '1片' },
+  '鮪魚罐頭':       { amt: 75,  label: '半罐' },
+  '鮪魚':           { amt: 100, label: '1份' },
+  '蝦子':           { amt: 100, label: '約10隻' },
+  '草蝦':           { amt: 120, label: '約8隻' },
+  '透抽':           { amt: 100, label: '1隻' },
+  '花枝':           { amt: 100, label: '1份' },
+  '蛤蜊':           { amt: 100, label: '約10個' },
+  '甜不辣':         { amt: 100, label: '3-4片' },
+  '蚵仔煎':         { amt: 200, label: '1份' },
+  '土魠魚羹飯':     { amt: 350, label: '1碗' },
+  '土魠魚羹':       { amt: 250, label: '1碗' },
+  '土托魚羹飯':     { amt: 350, label: '1碗' },
+  '土托魚羹':       { amt: 250, label: '1碗' },
+  '魚羹飯':         { amt: 350, label: '1碗' },
+  '魚羹':           { amt: 250, label: '1碗' },
+  '魚羹湯':         { amt: 250, label: '1碗' },
+  '清蒸魚':         { amt: 200, label: '1份' },
+  '糖醋魚':         { amt: 200, label: '1份' },
+  '清炒蝦仁':       { amt: 150, label: '1盤' },
+  // 豆製品
+  '豆腐':           { amt: 100, label: '1小塊' },
+  '板豆腐':         { amt: 150, label: '半塊' },
+  '嫩豆腐':         { amt: 100, label: '半盒' },
+  '豆干':           { amt: 40,  label: '1片' },
+  '毛豆':           { amt: 80,  label: '半碗' },
+  '麻婆豆腐':       { amt: 200, label: '1盤' },
+  '紅燒豆腐':       { amt: 150, label: '1盤' },
+  // 蔬菜
+  '炒青菜':         { amt: 150, label: '1盤' },
+  '炒高麗菜':       { amt: 150, label: '1盤' },
+  '蒜炒空心菜':     { amt: 150, label: '1盤' },
+  '乾煸四季豆':     { amt: 150, label: '1盤' },
+  '地三鮮':         { amt: 200, label: '1盤' },
+  '宮保雞丁':       { amt: 200, label: '1盤' },
+  '魚香茄子':       { amt: 200, label: '1盤' },
+  // 水果
+  '蘋果':           { amt: 200, label: '1顆' },
+  '香蕉':           { amt: 120, label: '1根' },
+  '柳橙':           { amt: 180, label: '1顆' },
+  '橘子':           { amt: 150, label: '1顆' },
+  '葡萄':           { amt: 150, label: '1串(小)' },
+  '草莓':           { amt: 150, label: '約10顆' },
+  '芒果':           { amt: 200, label: '半顆' },
+  '西瓜':           { amt: 300, label: '1片' },
+  '鳳梨':           { amt: 200, label: '2片' },
+  '番茄':           { amt: 150, label: '1顆' },
+  '小番茄':         { amt: 100, label: '約10顆' },
+  '奇異果':         { amt: 80,  label: '1顆' },
+  '藍莓':           { amt: 100, label: '1杯' },
+  '火龍果':         { amt: 200, label: '半顆' },
+  '荔枝':           { amt: 100, label: '約8顆' },
+  '龍眼':           { amt: 100, label: '約15顆' },
+  '芭樂':           { amt: 200, label: '半顆' },
+  '木瓜':           { amt: 200, label: '1片' },
+  '蓮霧':           { amt: 100, label: '1顆' },
+  '水蜜桃':         { amt: 180, label: '1顆' },
+  '梨子':           { amt: 200, label: '1顆' },
+  '葡萄柚':         { amt: 200, label: '半顆' },
+  '哈密瓜':         { amt: 200, label: '1片' },
+  '百香果':         { amt: 60,  label: '1顆' },
+  // 乳製品
+  '牛奶':           { amt: 240, label: '1杯' },
+  '全脂牛奶':       { amt: 240, label: '1杯' },
+  '低脂牛奶':       { amt: 240, label: '1杯' },
+  '豆漿':           { amt: 250, label: '1杯' },
+  '無糖豆漿':       { amt: 250, label: '1杯' },
+  '優格':           { amt: 150, label: '1杯' },
+  '起司片':         { amt: 20,  label: '1片' },
+  '奶油':           { amt: 10,  label: '1茶匙' },
+  // 麵包
+  '吐司':           { amt: 30,  label: '1片' },
+  '全麥吐司':       { amt: 30,  label: '1片' },
+  '白吐司':         { amt: 30,  label: '1片' },
+  '法國麵包':       { amt: 50,  label: '1段' },
+  '貝果':           { amt: 100, label: '1個' },
+  '可頌':           { amt: 60,  label: '1個' },
+  '菠蘿包':         { amt: 80,  label: '1個' },
+  '肉鬆麵包':       { amt: 80,  label: '1個' },
+  '燒餅':           { amt: 80,  label: '1個' },
+  '油條':           { amt: 50,  label: '1根' },
+  '燒餅油條':       { amt: 130, label: '1套' },
+  // 飲料
+  '可樂':           { amt: 330, label: '1罐' },
+  '零卡可樂':       { amt: 330, label: '1罐' },
+  '0卡可樂':        { amt: 330, label: '1罐' },
+  'Coke Zero':      { amt: 330, label: '1罐' },
+  '雪碧':           { amt: 330, label: '1罐' },
+  '沙士':           { amt: 330, label: '1罐' },
+  '黑松沙士':       { amt: 330, label: '1罐' },
+  '蘋果西打':       { amt: 330, label: '1罐' },
+  '芬達':           { amt: 330, label: '1罐' },
+  '珍珠奶茶':       { amt: 500, label: '1杯(大)' },
+  '鮮奶茶':         { amt: 500, label: '1杯' },
+  '黑咖啡':         { amt: 240, label: '1杯' },
+  '美式咖啡':       { amt: 240, label: '1杯' },
+  '拿鐵':           { amt: 360, label: '1杯(大)' },
+  '卡布奇諾':       { amt: 240, label: '1杯' },
+  '摩卡':           { amt: 360, label: '1杯' },
+  '港式奶茶':       { amt: 350, label: '1杯' },
+  '罐裝咖啡':       { amt: 240, label: '1罐' },
+  '柳橙汁':         { amt: 250, label: '1杯' },
+  '蘋果汁':         { amt: 250, label: '1杯' },
+  '番石榴汁':       { amt: 250, label: '1杯' },
+  '木瓜牛奶':       { amt: 500, label: '1杯' },
+  '草莓牛奶':       { amt: 240, label: '1杯' },
+  '巧克力牛奶':     { amt: 240, label: '1杯' },
+  '燒仙草':         { amt: 500, label: '1杯' },
+  '愛玉':           { amt: 150, label: '1碗' },
+  '多多':           { amt: 100, label: '1瓶' },
+  '養樂多':         { amt: 100, label: '1瓶' },
+  '啤酒':           { amt: 330, label: '1罐' },
+  '紅酒':           { amt: 150, label: '1杯' },
+  '檸檬水':         { amt: 300, label: '1杯' },
+  // 速食
+  '漢堡':           { amt: 180, label: '1個' },
+  '雙層漢堡':       { amt: 250, label: '1個' },
+  '起司漢堡':       { amt: 200, label: '1個' },
+  '雞腿堡':         { amt: 220, label: '1個' },
+  '薯條':           { amt: 115, label: '1份(中)' },
+  '熱狗':           { amt: 120, label: '1條' },
+  '披薩':           { amt: 100, label: '1片' },
+  '起司披薩':       { amt: 100, label: '1片' },
+  '三明治':         { amt: 120, label: '1個' },
+  '鮪魚三明治':     { amt: 130, label: '1個' },
+  '起司蛋三明治':   { amt: 130, label: '1個' },
+  // 日式小吃
+  '天婦羅':         { amt: 150, label: '1人份' },
+  '章魚燒':         { amt: 150, label: '1份(6顆)' },
+  '大阪燒':         { amt: 200, label: '1份' },
+  '串燒雞腿':       { amt: 50,  label: '1串' },
+  '串燒雞翅':       { amt: 60,  label: '1串' },
+  '串燒豬五花':     { amt: 40,  label: '1串' },
+  '味噌湯':         { amt: 200, label: '1碗' },
+  // 港式點心
+  '蝦餃':           { amt: 120, label: '4顆' },
+  '燒賣':           { amt: 100, label: '4顆' },
+  '叉燒包':         { amt: 80,  label: '1個' },
+  '腸粉':           { amt: 150, label: '1份' },
+  '蘿蔔糕':         { amt: 80,  label: '1塊' },
+  // 台灣小吃
+  '刈包':           { amt: 150, label: '1個' },
+  '割包':           { amt: 150, label: '1個' },
+  '小籠包':         { amt: 120, label: '5顆' },
+  '湯包':           { amt: 120, label: '5顆' },
+  '水餃':           { amt: 150, label: '6-8顆' },
+  '煎餃':           { amt: 150, label: '6顆' },
+  '鍋貼':           { amt: 150, label: '6顆' },
+  '韭菜盒子':       { amt: 90,  label: '1個' },
+  '台式香腸':       { amt: 60,  label: '1條' },
+  '糯米腸':         { amt: 80,  label: '1條' },
+  '豬血糕':         { amt: 100, label: '1串' },
+  '米血':           { amt: 100, label: '1串' },
+  '碗粿':           { amt: 150, label: '1碗' },
+  '筒仔米糕':       { amt: 120, label: '1個' },
+  '潤餅':           { amt: 180, label: '1捲' },
+  '蚵嗲':           { amt: 80,  label: '1個' },
+  '棺材板':         { amt: 120, label: '1個' },
+  '炒年糕':         { amt: 250, label: '1人份' },
+  // 關東煮
+  '關東煮蘿蔔':     { amt: 80,  label: '1塊' },
+  '關東煮蛋':       { amt: 65,  label: '1顆' },
+  '關東煮豆腐':     { amt: 100, label: '1塊' },
+  '關東煮貢丸':     { amt: 40,  label: '2顆' },
+  '關東煮魚板':     { amt: 40,  label: '1片' },
+  '關東煮黑輪':     { amt: 50,  label: '1條' },
+  '關東煮昆布':     { amt: 30,  label: '1段' },
+  // 甜點
+  '蛋糕':           { amt: 80,  label: '1片' },
+  '起司蛋糕':       { amt: 80,  label: '1片' },
+  '巧克力蛋糕':     { amt: 80,  label: '1片' },
+  '生乳捲':         { amt: 80,  label: '1片' },
+  '布丁':           { amt: 100, label: '1個' },
+  '果凍':           { amt: 100, label: '1個' },
+  '冰淇淋':         { amt: 90,  label: '1球' },
+  '麻糬':           { amt: 50,  label: '1顆' },
+  '大福':           { amt: 50,  label: '1顆' },
+  '草莓大福':       { amt: 50,  label: '1顆' },
+  '銅鑼燒':         { amt: 60,  label: '1個' },
+  '蛋塔':           { amt: 75,  label: '1個' },
+  '奶油泡芙':       { amt: 80,  label: '1個' },
+  '蛋黃酥':         { amt: 55,  label: '1顆' },
+  '鳳梨酥':         { amt: 35,  label: '1個' },
+  '太陽餅':         { amt: 40,  label: '1個' },
+  '牛軋糖':         { amt: 15,  label: '1顆' },
+  '芋圓':           { amt: 100, label: '1份' },
+  '仙草凍':         { amt: 150, label: '1碗' },
+  '燒仙草':         { amt: 500, label: '1杯' },
+  '雪花冰':         { amt: 250, label: '1碗' },
+  '芒果冰':         { amt: 250, label: '1碗' },
+  '草莓冰':         { amt: 250, label: '1碗' },
+  // 零食
+  '洋芋片':         { amt: 30,  label: '小包' },
+  '餅乾':           { amt: 30,  label: '5-6片' },
+  '巧克力':         { amt: 30,  label: '3格' },
+  '爆米花':         { amt: 50,  label: '1份' },
+  // 堅果
+  '杏仁':           { amt: 28,  label: '約20顆' },
+  '核桃':           { amt: 28,  label: '約7顆' },
+  '腰果':           { amt: 28,  label: '約15顆' },
+  '花生':           { amt: 28,  label: '約35顆' },
+  '開心果':         { amt: 28,  label: '約49顆' },
+  // 健身
+  '乳清蛋白':       { amt: 30,  label: '1匙' },
+  '蛋白棒':         { amt: 55,  label: '1條' },
+  '能量棒':         { amt: 50,  label: '1條' },
+};
+
 
 
 // ── Exercise DB (MET values from Compendium of Physical Activities 2011) ──────
@@ -1834,6 +2253,15 @@ function doSearch(q) {
   const nutFilter = NUTRITION_KEYWORDS[q];
   const entries   = Object.entries(FOOD_DB);
 
+  // Collect canonical names from aliases that match the query
+  const qLow = q.toLowerCase();
+  const aliasTargets = new Set();
+  for (const [alias, canonical] of Object.entries(FOOD_ALIASES)) {
+    if (alias.toLowerCase().includes(qLow) || qLow.includes(alias.toLowerCase())) {
+      aliasTargets.add(canonical);
+    }
+  }
+
   if (nutFilter) {
     searchCache = entries
       .filter(([, info]) => nutFilter(info))
@@ -1842,7 +2270,11 @@ function doSearch(q) {
       .slice(0, 15);
   } else {
     searchCache = entries
-      .map(([name, info]) => ({ name, score: foodScore(name, q), ...info }))
+      .map(([name, info]) => {
+        let score = foodScore(name, q);
+        if (aliasTargets.has(name)) score = Math.max(score, 80);
+        return { name, score, ...info };
+      })
       .filter(f => f.score > 0)
       .sort((a, b) => b.score - a.score || a.name.length - b.name.length)
       .slice(0, 15);
@@ -1858,14 +2290,20 @@ function doSearch(q) {
   box.style.left  = rect.left + 'px';
   box.style.width = rect.width + 'px';
 
-  box.innerHTML = searchCache.map((f, i) => `
+  box.innerHTML = searchCache.map((f, i) => {
+    const srv = FOOD_SERVING[f.name];
+    const srvTag = srv
+      ? `<span style="color:var(--green,#22C55E);font-weight:600">${srv.label}</span> · ${srv.amt}g · `
+      : '';
+    return `
     <div class="result-item" onclick="selectFoodByIdx(${i})">
       <div>
         <div class="result-name">${boldMatch(f.name, q)}</div>
-        <div class="result-info">蛋白 ${f.protein}g · 碳水 ${f.carbs}g · 脂肪 ${f.fat}g <span style="font-size:0.7rem">/100g</span></div>
+        <div class="result-info">${srvTag}蛋白 ${f.protein}g · 碳水 ${f.carbs}g · 脂肪 ${f.fat}g</div>
       </div>
       <div class="result-cal">${f.calories} kcal</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   box.classList.add('show');
 }
 
@@ -1916,7 +2354,10 @@ function selectFoodByIdx(i) {
   document.getElementById('foodSearch').value = selectedFood.name;
   document.getElementById('modalFoodName').textContent = selectedFood.name;
   document.getElementById('modalCal').textContent = selectedFood.calories;
-  document.getElementById('modalAmt').value = 100;
+  const srv = FOOD_SERVING[selectedFood.name];
+  document.getElementById('modalAmt').value = srv ? srv.amt : 100;
+  const hint = document.getElementById('modalSrvHint');
+  if (hint) hint.textContent = srv ? `常見份量：${srv.label}（${srv.amt}g）` : '';
   updateModalCalc();
   document.getElementById('foodModal').classList.remove('hidden');
 }
