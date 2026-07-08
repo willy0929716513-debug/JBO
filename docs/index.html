@@ -40,7 +40,7 @@
   <!-- Dashboard -->
   <div id="page-dashboard" class="page">
     <div style="margin-bottom:16px">
-      <div class="greeting">今日飲食紀錄 <span style="color:var(--green)">👋</span></div>
+      <div class="greeting" id="dash-greeting">今日飲食紀錄 <span style="color:var(--green)">👋</span></div>
       <div class="subgreeting" id="dash-date"></div>
     </div>
 
@@ -180,6 +180,7 @@
         <button class="btn-outline" style="width:100%;margin-top:8px;font-size:0.82rem;padding:8px 14px;color:var(--muted)" onclick="copyYesterdayMeals()">
           <i class="bi bi-calendar-check"></i> 複製昨天的餐點
         </button>
+        <div id="recentFoodsWrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
       </div>
     </div>
 
@@ -872,6 +873,7 @@
       <label class="form-label">份量 (g)</label>
       <input id="modalAmt" class="form-input" type="number" value="100" min="1" oninput="updateModalCalc()">
       <div id="modalSrvHint" style="font-size:0.75rem;color:var(--muted);margin-top:4px"></div>
+      <div id="modalServingBtns" style="display:none;gap:6px;margin-top:8px"></div>
     </div>
     <div id="modalCalc" style="font-size:0.82rem;color:var(--muted);margin-bottom:20px;padding:10px;background:#F9FAFB;border-radius:10px"></div>
     <div style="display:flex;gap:10px">
