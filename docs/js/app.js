@@ -165,6 +165,10 @@ const FOOD_DB = {
   '鱈魚':        { calories: 82,  protein: 18.0, carbs: 0.0,  fat: 0.7  },
   '比目魚':      { calories: 91,  protein: 19.5, carbs: 0.0,  fat: 1.2  },
   '土魠魚':      { calories: 155, protein: 22.5, carbs: 0.0,  fat: 7.0  },
+  '土魠魚羹':    { calories: 95,  protein: 7.5,  carbs: 10.5, fat: 2.5  },
+  '土魠魚羹飯':  { calories: 108, protein: 6.5,  carbs: 17.5, fat: 2.0  },
+  '魚羹飯':      { calories: 105, protein: 6.0,  carbs: 17.0, fat: 2.0  },
+  '魚羹':        { calories: 88,  protein: 6.5,  carbs: 10.0, fat: 2.0  },
   '蝦子':        { calories: 99,  protein: 24.0, carbs: 0.0,  fat: 0.3  },
   '草蝦':        { calories: 98,  protein: 22.5, carbs: 0.0,  fat: 0.5  },
   '龍蝦':        { calories: 98,  protein: 21.5, carbs: 0.3,  fat: 0.8  },
@@ -1956,6 +1960,7 @@ async function analyzePhoto(userHint = '') {
           '          滷豬腳/滷大腸/滷豆干/滷海帶/滷蛋/滷鴨翅\n' +
           '          燒烤串(雞心/雞皮/豬舌/豬排/蝦子/玉米)\n' +
           '小吃湯品: 貢丸湯/魚丸湯/餛飩湯/酸辣湯/蛤蜊湯/蚵仔湯\n' +
+          '          土魠魚羹飯/土魠魚羹/魚羹飯/魚羹湯\n' +
           '          薑母鴨/羊肉爐/麻油雞/當歸鴨/薑黃雞湯\n' +
           '          苦瓜排骨湯/玉米排骨湯/蘿蔔排骨湯/四神湯\n' +
           '台式甜湯: 紅豆湯/綠豆湯/花生湯/芋泥湯/湯圓(甜/鹹)\n' +
