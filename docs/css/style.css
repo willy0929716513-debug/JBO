@@ -375,6 +375,34 @@ body {
 }
 .chip:hover:not(.active) { border-color: var(--green); color: var(--green); }
 
+/* ── Recent food chips ─────────────────────────────────────── */
+.recent-chip {
+    padding: 5px 12px;
+    border-radius: 16px;
+    border: 1.5px solid var(--border);
+    background: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-2);
+    transition: all 0.15s;
+    font-family: inherit;
+    white-space: nowrap;
+}
+.recent-chip:hover {
+    border-color: var(--green);
+    background: var(--green-light);
+    color: var(--green-dark);
+}
+
+/* ── Serving btn active state ──────────────────────────────── */
+.srv-btn.active {
+    background: var(--green) !important;
+    color: white !important;
+    border-color: var(--green) !important;
+}
+.srv-btn.active span { color: rgba(255,255,255,0.8) !important; }
+
 /* ── Buttons ───────────────────────────────────────────────── */
 .btn-primary {
     background: var(--green);

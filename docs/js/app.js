@@ -2065,7 +2065,23 @@ function renderDashboard() {
   const meals    = getMeals(today);
 
   const dateEl = document.getElementById('dash-date');
-  if (dateEl) dateEl.textContent = today;
+  if (dateEl) {
+    const d = new Date();
+    const days = ['日','一','二','三','四','五','六'];
+    dateEl.textContent = `${d.getMonth()+1}月${d.getDate()}日 週${days[d.getDay()]}`;
+  }
+  const greetEl = document.getElementById('dash-greeting');
+  if (greetEl) {
+    const h = new Date().getHours();
+    const emoji = h < 6 ? '🌙' : h < 12 ? '🌞' : h < 14 ? '☀️' : h < 18 ? '🌤️' : h < 21 ? '🌙' : '🌛';
+    const msg   = h < 6  ? '夜深了，注意休息'
+                : h < 10 ? '早安！記得吃早餐'
+                : h < 14 ? '午安！午餐記錄了嗎？'
+                : h < 18 ? '下午好！補充水分中'
+                : h < 21 ? '晚上好！記錄今天晚餐'
+                :           '睡前回顧今日飲食';
+    greetEl.innerHTML = `${msg} <span>${emoji}</span>`;
+  }
 
   const exBurned = sum.exercise_burned || 0;
   const netCal   = sum.calories - exBurned;
@@ -2193,14 +2209,23 @@ function renderFoodLog() {
   const labelEl = document.getElementById('fl-date-label');
   if (labelEl) labelEl.textContent = foodDateLabel(currentFoodDate);
 
-
   const meals   = getMeals(currentFoodDate);
   const flMeals = document.getElementById('fl-meals');
   if (flMeals) flMeals.innerHTML = renderMealsHTML(meals, true);
 
   const sum    = getSummary(currentFoodDate);
+  const goal   = DB.getSettings().calorie_goal;
+  const diff   = Math.round(sum.calories) - goal;
   const totalEl = document.getElementById('fl-total');
-  if (totalEl) totalEl.textContent = `${Math.round(sum.calories)} kcal`;
+  if (totalEl) {
+    const diffText = sum.calories === 0 ? '' :
+      diff > 0  ? `<span style="color:var(--orange);font-size:0.75rem;margin-left:6px">超過 ${diff} kcal</span>` :
+      diff < 0  ? `<span style="color:var(--green);font-size:0.75rem;margin-left:6px">還差 ${-diff} kcal</span>` :
+                  `<span style="color:var(--green);font-size:0.75rem;margin-left:6px">✓ 剛好達標</span>`;
+    totalEl.innerHTML = `${Math.round(sum.calories)} kcal${diffText}`;
+  }
+
+  renderRecentFoods();
 }
 
 function setActiveMeal(mt) {
@@ -2355,9 +2380,23 @@ function selectFoodByIdx(i) {
   document.getElementById('modalFoodName').textContent = selectedFood.name;
   document.getElementById('modalCal').textContent = selectedFood.calories;
   const srv = FOOD_SERVING[selectedFood.name];
-  document.getElementById('modalAmt').value = srv ? srv.amt : 100;
+  const defaultAmt = srv ? srv.amt : 100;
+  document.getElementById('modalAmt').value = defaultAmt;
   const hint = document.getElementById('modalSrvHint');
   if (hint) hint.textContent = srv ? `常見份量：${srv.label}（${srv.amt}g）` : '';
+  const btnsEl = document.getElementById('modalServingBtns');
+  if (btnsEl) {
+    if (srv) {
+      btnsEl.style.display = 'flex';
+      btnsEl.innerHTML = [['½', 0.5], ['1', 1], ['1.5', 1.5], ['2', 2]].map(([label, mult]) => {
+        const a = Math.round(srv.amt * mult);
+        return `<button type="button" onclick="document.getElementById('modalAmt').value=${a};updateModalCalc();document.querySelectorAll('.srv-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')" class="srv-btn${mult === 1 ? ' active' : ''}" style="flex:1;padding:7px 2px;font-size:0.78rem;font-weight:700;background:#F0FDF4;border:1.5px solid var(--green);border-radius:8px;cursor:pointer;color:var(--green-dark);text-align:center;line-height:1.3">${label}份<br><span style="font-size:0.65rem;color:var(--muted);font-weight:400">${a}g</span></button>`;
+      }).join('');
+    } else {
+      btnsEl.style.display = 'none';
+      btnsEl.innerHTML = '';
+    }
+  }
   updateModalCalc();
   document.getElementById('foodModal').classList.remove('hidden');
 }
@@ -2388,11 +2427,63 @@ function confirmAddFood() {
     carbs:    selectedFood.carbs    * r,
     fat:      selectedFood.fat      * r,
   });
+  _saveRecentFood(selectedFood);
   closeModal();
   document.getElementById('foodSearch').value = '';
   showToast(`✅ 已加入${MEAL_META.find(m => m.id === activeMeal)?.label || ''}`);
   renderFoodLog();
   if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+}
+
+let _recentFoodsCache = null;
+function _getRecentFoods() {
+  if (!_recentFoodsCache) _recentFoodsCache = JSON.parse(localStorage.getItem('nm_recent_foods') || '[]');
+  return _recentFoodsCache;
+}
+function _saveRecentFood(food) {
+  const recent = _getRecentFoods();
+  const idx = recent.findIndex(f => f.name === food.name);
+  if (idx >= 0) recent.splice(idx, 1);
+  recent.unshift({ name: food.name, calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat });
+  _recentFoodsCache = recent.slice(0, 10);
+  localStorage.setItem('nm_recent_foods', JSON.stringify(_recentFoodsCache));
+}
+function renderRecentFoods() {
+  const el = document.getElementById('recentFoodsWrap');
+  if (!el) return;
+  const recent = _getRecentFoods();
+  if (!recent.length) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `<div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:8px"><i class="bi bi-clock-history"></i> 最近吃過</div>`
+    + `<div style="display:flex;flex-wrap:wrap;gap:6px">`
+    + recent.map((f, i) => `<button class="recent-chip" onclick="quickAddRecent(${i})">${esc(f.name)}</button>`).join('')
+    + `</div>`;
+}
+function quickAddRecent(i) {
+  const f = _getRecentFoods()[i];
+  if (!f) return;
+  selectedFood = f;
+  const srv = FOOD_SERVING[f.name];
+  const defaultAmt = srv ? srv.amt : 100;
+  document.getElementById('modalFoodName').textContent = f.name;
+  document.getElementById('modalCal').textContent = f.calories;
+  document.getElementById('modalAmt').value = defaultAmt;
+  const hint = document.getElementById('modalSrvHint');
+  if (hint) hint.textContent = srv ? `常見份量：${srv.label}（${srv.amt}g）` : '';
+  const btnsEl = document.getElementById('modalServingBtns');
+  if (btnsEl) {
+    if (srv) {
+      btnsEl.style.display = 'flex';
+      btnsEl.innerHTML = [['½', 0.5], ['1', 1], ['1.5', 1.5], ['2', 2]].map(([label, mult]) => {
+        const a = Math.round(srv.amt * mult);
+        return `<button type="button" onclick="document.getElementById('modalAmt').value=${a};updateModalCalc();document.querySelectorAll('.srv-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')" class="srv-btn${mult === 1 ? ' active' : ''}" style="flex:1;padding:7px 2px;font-size:0.78rem;font-weight:700;background:#F0FDF4;border:1.5px solid var(--green);border-radius:8px;cursor:pointer;color:var(--green-dark);text-align:center;line-height:1.3">${label}份<br><span style="font-size:0.65rem;color:var(--muted);font-weight:400">${a}g</span></button>`;
+      }).join('');
+    } else {
+      btnsEl.style.display = 'none';
+    }
+  }
+  updateModalCalc();
+  document.getElementById('foodModal').classList.remove('hidden');
 }
 
 function deleteFoodItem(id) {
@@ -3211,18 +3302,26 @@ function renderWater() {
     listEl.innerHTML = '<div class="empty-state"><i class="bi bi-droplet" style="font-size:1.5rem;opacity:0.4;display:block;margin-bottom:6px"></i>還沒有記錄，快喝水吧！</div>';
     return;
   }
-  listEl.innerHTML = [...logs].reverse().map(w => `
+  const celebBanner = total >= goal
+    ? `<div style="text-align:center;padding:12px 0 8px;background:linear-gradient(135deg,#EFF6FF,#F0FDF4);border-radius:10px;margin-bottom:10px">
+        <div style="font-size:1.5rem;margin-bottom:4px">🎉</div>
+        <div style="font-size:0.88rem;font-weight:700;color:var(--green)">今日飲水目標達成！</div>
+        <div style="font-size:0.72rem;color:var(--muted)">已喝 ${Math.round(total)} ml，超棒！</div>
+       </div>` : '';
+  listEl.innerHTML = celebBanner + [...logs].reverse().map(w => `
     <div class="water-log-item" id="wl-${esc(w.id)}">
       <i class="bi bi-droplet-fill" style="color:#3B82F6;font-size:1.1rem"></i>
       <div class="water-log-ml">${w.amount} ml</div>
-      <div style="margin-left:auto;font-size:0.75rem;color:var(--muted)">${w.date}</div>
+      <div style="margin-left:auto;font-size:0.75rem;color:var(--muted)">${w.time || ''}</div>
       <button class="del-btn" onclick="deleteWaterItem('${esc(w.id)}')"><i class="bi bi-trash3"></i></button>
     </div>`).join('');
 }
 
 function addWater(ml) {
   if (!ml || ml <= 0) { showToast('請輸入有效水量'); return; }
-  DB.addWater({ date: todayStr(), amount: ml });
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  DB.addWater({ date: todayStr(), amount: ml, time: timeStr });
   showToast(`💧 +${ml}ml 已記錄`);
   renderWater();
 }
