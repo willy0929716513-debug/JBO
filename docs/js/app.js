@@ -3169,6 +3169,65 @@ function renderDashboard() {
       wtCard.style.display = 'none';
     }
   }
+
+  // Calorie total summary
+  const calSumEl = document.getElementById('dash-cal-summary');
+  if (calSumEl) {
+    const intake  = Math.round(sum.calories);
+    const burned  = Math.round(exBurned);
+    const net     = Math.round(netCal);
+    const goal    = settings.calorie_goal;
+    const over    = net > goal;
+    const diff    = Math.abs(net - goal);
+
+    const mealMeta = [
+      { id: 'breakfast', label: '早餐', icon: '🌅' },
+      { id: 'lunch',     label: '午餐', icon: '☀️' },
+      { id: 'dinner',    label: '晚餐', icon: '🌙' },
+      { id: 'snack',     label: '點心', icon: '🍿' },
+    ];
+    const mealRows = mealMeta.map(m => {
+      const items = meals[m.id] || [];
+      const cal   = Math.round(items.reduce((s, f) => s + f.calories, 0));
+      const pct   = intake > 0 ? Math.round((cal / intake) * 100) : 0;
+      if (!items.length) return '';
+      return `
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:1rem;width:20px;text-align:center">${m.icon}</span>
+          <span style="font-size:0.82rem;color:var(--text-2);width:32px">${m.label}</span>
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="height:100%;background:var(--green);border-radius:3px;width:${pct}%;transition:width 0.4s"></div>
+          </div>
+          <span style="font-size:0.82rem;font-weight:700;color:var(--text);min-width:56px;text-align:right">${cal} kcal</span>
+        </div>`;
+    }).filter(Boolean).join('');
+
+    calSumEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+        <div style="text-align:center;background:var(--green-light);border-radius:12px;padding:12px 6px">
+          <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px">攝取</div>
+          <div style="font-size:1.5rem;font-weight:800;color:var(--green);line-height:1">${intake}</div>
+          <div style="font-size:0.62rem;color:var(--muted);margin-top:2px">kcal</div>
+        </div>
+        <div style="text-align:center;background:${burned ? 'var(--orange-light)' : '#F9FAFB'};border-radius:12px;padding:12px 6px">
+          <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px">運動消耗</div>
+          <div style="font-size:1.5rem;font-weight:800;color:${burned ? 'var(--orange)' : 'var(--muted)'};line-height:1">${burned > 0 ? '-' + burned : '—'}</div>
+          <div style="font-size:0.62rem;color:var(--muted);margin-top:2px">${burned > 0 ? 'kcal' : '未記錄'}</div>
+        </div>
+        <div style="text-align:center;background:${over ? '#FEF2F2' : 'var(--blue-light)'};border-radius:12px;padding:12px 6px">
+          <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px">淨攝取</div>
+          <div style="font-size:1.5rem;font-weight:800;color:${over ? 'var(--red)' : 'var(--blue)'};line-height:1">${net}</div>
+          <div style="font-size:0.62rem;color:var(--muted);margin-top:2px">kcal</div>
+        </div>
+      </div>
+      ${mealRows ? `<div style="margin-bottom:10px">${mealRows}</div>` : '<div style="text-align:center;padding:8px 0;font-size:0.82rem;color:var(--muted)">今天還沒有飲食記錄</div>'}
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-top:6px">
+        <span style="color:var(--muted)">每日目標 ${goal} kcal</span>
+        <span style="font-weight:700;color:${over ? 'var(--red)' : 'var(--green)'}">
+          ${over ? `超出 ${diff} kcal` : (net === 0 ? '尚未記錄' : `還差 ${diff} kcal`)}
+        </span>
+      </div>`;
+  }
 }
 
 function setBar(id, val, goal, color) {
