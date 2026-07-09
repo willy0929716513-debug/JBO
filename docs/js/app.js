@@ -3075,7 +3075,7 @@ function navigate(page) {
   switch (page) {
     case 'dashboard': renderDashboard(); break;
     case 'food-log':  currentFoodDate = todayStr(); renderFoodLog(); break;
-    case 'exercise':  renderExercise();  break;
+    case 'exercise':  currentExerciseDate = todayStr(); renderExercise(); break;
     case 'water':     renderWater();     break;
     case 'weight':    renderWeight();    break;
     case 'trends':    renderTrends(7);   break;
@@ -4369,8 +4369,65 @@ function deleteWaterItem(id) {
 
 // ── Exercise ───────────────────────────────────────────────────────────────────
 
-let selectedExercise = null;
-let exSearchCache    = [];
+let selectedExercise   = null;
+let exSearchCache      = [];
+let currentExerciseDate = todayStr();
+
+function exDateLabel(d) {
+  const today = todayStr();
+  if (d === today) return '今天';
+  const yest = new Date(today + 'T00:00:00');
+  yest.setDate(yest.getDate() - 1);
+  const yesterdayStr = yest.toISOString().slice(0, 10);
+  if (d === yesterdayStr) return '昨天';
+  const dt = new Date(d + 'T00:00:00');
+  const days = ['日','一','二','三','四','五','六'];
+  return `${dt.getMonth()+1}/${dt.getDate()} 週${days[dt.getDay()]}`;
+}
+
+function prevExerciseDay() {
+  const d = new Date(currentExerciseDate + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  currentExerciseDate = d.toISOString().slice(0, 10);
+  renderExercise();
+}
+
+function nextExerciseDay() {
+  const today = todayStr();
+  const d = new Date(currentExerciseDate + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  const next = d.toISOString().slice(0, 10);
+  if (next > today) return;
+  currentExerciseDate = next;
+  renderExercise();
+}
+
+function openExerciseDatePicker() {
+  const inp = document.getElementById('ex-date-input');
+  if (!inp) return;
+  inp.max   = todayStr();
+  inp.value = currentExerciseDate;
+  try { inp.showPicker(); } catch { inp.click(); }
+}
+
+function pickExerciseDate(val) {
+  if (!val || val > todayStr()) return;
+  currentExerciseDate = val;
+  renderExercise();
+}
+
+function jumpToExerciseDate(date) {
+  currentExerciseDate = date;
+  renderExercise();
+  // scroll to the add-exercise card (has card-title "新增運動")
+  const cards = document.querySelectorAll('#page-exercise .card');
+  for (const c of cards) {
+    if (c.textContent.includes('新增運動')) {
+      setTimeout(() => c.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      break;
+    }
+  }
+}
 
 function getExerciseWeight() {
   const s = DB.getSettings();
@@ -4383,18 +4440,38 @@ function calcExerciseCal(met, durationMin) {
 }
 
 function renderExercise() {
-  const today = todayStr();
-  const dateEl = document.getElementById('ex-date');
-  if (dateEl) dateEl.textContent = today;
+  const today  = todayStr();
+  const date   = currentExerciseDate;
+  const isToday = date === today;
 
-  const exes     = DB.getExercises().filter(e => e.date === today);
+  // Date label
+  const labelEl = document.getElementById('ex-date-label');
+  if (labelEl) labelEl.textContent = exDateLabel(date);
+
+  // Date input sync
+  const inp = document.getElementById('ex-date-input');
+  if (inp) { inp.max = today; inp.value = date; }
+
+  // Next button: disabled on today
+  const nextBtn = document.getElementById('ex-next-btn');
+  if (nextBtn) nextBtn.disabled = date >= today;
+
+  // Summary label
+  const summaryLbl = document.getElementById('ex-summary-label');
+  if (summaryLbl) summaryLbl.textContent = isToday ? '今日運動消耗' : `${exDateLabel(date)} 運動消耗`;
+
+  // Badge on add card
+  const badge = document.getElementById('ex-add-date-badge');
+  if (badge) badge.textContent = isToday ? '今天' : `補登：${exDateLabel(date)}`;
+
+  const exes     = DB.getExercises().filter(e => e.date === date);
   const totalCal = exes.reduce((s, e) => s + e.calories_burned, 0);
   const totalMin = exes.reduce((s, e) => s + e.duration, 0);
 
   const calEl  = document.getElementById('ex-total-cal');
   const timeEl = document.getElementById('ex-total-time');
   if (calEl)  calEl.textContent  = Math.round(totalCal);
-  if (timeEl) timeEl.textContent = totalMin > 0 ? `共 ${totalMin} 分鐘` : '今日尚未記錄';
+  if (timeEl) timeEl.textContent = totalMin > 0 ? `共 ${totalMin} 分鐘` : '尚未記錄';
 
   renderExerciseQuick();
   renderExerciseList();
@@ -4542,9 +4619,10 @@ function logExercise() {
   const dur = parseInt(document.getElementById('exDuration')?.value) || 30;
   if (dur <= 0 || dur > 600) { showToast('請輸入有效時長（1–600 分鐘）'); return; }
   const cal = calcExerciseCal(selectedExercise.met, dur);
+  const date = currentExerciseDate;
 
   DB.addExercise({
-    date: todayStr(),
+    date,
     exercise_name: selectedExercise.name,
     icon: selectedExercise.icon,
     met: selectedExercise.met,
@@ -4553,7 +4631,8 @@ function logExercise() {
     calories_burned: cal,
   });
 
-  showToast(`✅ ${selectedExercise.icon} ${selectedExercise.name} ${dur}分 · 消耗 ${cal} kcal`);
+  const dateHint = date !== todayStr() ? ` (${exDateLabel(date)})` : '';
+  showToast(`✅ ${selectedExercise.icon} ${selectedExercise.name} ${dur}分 · 消耗 ${cal} kcal${dateHint}`);
   selectedExercise = null;
   renderExercise();
   if (document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
@@ -4625,15 +4704,21 @@ function renderExerciseList() {
       bodyHtml = rows + summary;
     }
 
+    const isActive = date === currentExerciseDate;
+    const activeBorder = isActive ? ';box-shadow:0 0 0 2px var(--orange)' : '';
+
     return `
-      <div style="margin-bottom:10px;border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+      <div style="margin-bottom:10px;border-radius:12px;overflow:hidden;border:1px solid var(--border)${activeBorder}">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;${headerBg}">
           <div style="display:flex;align-items:center;gap:6px">
             <span style="font-weight:700;font-size:0.88rem;color:${isToday ? 'var(--orange)' : 'var(--text)'}">${dayLabel}</span>
             <span style="font-size:0.75rem;color:var(--muted)">${mmdd}</span>
             ${isToday ? '<span style="font-size:0.65rem;background:var(--orange);color:white;border-radius:8px;padding:1px 7px;font-weight:700">今天</span>' : ''}
           </div>
-          ${!isFuture && !restDay && exes.length ? `<span style="font-size:0.75rem;color:var(--orange);font-weight:700">${exes.length} 項</span>` : ''}
+          <div style="display:flex;align-items:center;gap:6px">
+            ${!isFuture && !restDay && exes.length ? `<span style="font-size:0.75rem;color:var(--orange);font-weight:700">${exes.length} 項</span>` : ''}
+            ${!isFuture ? `<button onclick="jumpToExerciseDate('${date}')" style="font-size:0.72rem;background:${isActive ? 'var(--orange)' : 'var(--orange-light)'};color:${isActive ? 'white' : 'var(--orange)'};border:none;border-radius:8px;padding:2px 9px;cursor:pointer;font-weight:700">${isActive ? '選中' : '+ 新增'}</button>` : ''}
+          </div>
         </div>
         <div style="padding:0 12px 8px">${bodyHtml}</div>
       </div>`;
@@ -5823,8 +5908,9 @@ function submitManualExercise() {
   if (!dur || dur <= 0){ showToast('請輸入有效時長'); return; }
   if (!cal || cal <= 0){ showToast('請輸入有效消耗熱量'); return; }
 
+  const date = currentExerciseDate;
   DB.addExercise({
-    date:            todayStr(),
+    date,
     exercise_name:   name,
     icon:            '✏️',
     met:             null,
@@ -5835,7 +5921,8 @@ function submitManualExercise() {
   });
 
   closeManualExercise();
-  showToast(`✅ ${name} ${dur}分 · 消耗 ${Math.round(cal)} kcal`);
+  const dateHint = date !== todayStr() ? ` (${exDateLabel(date)})` : '';
+  showToast(`✅ ${name} ${dur}分 · 消耗 ${Math.round(cal)} kcal${dateHint}`);
   renderExercise();
   if (document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
 }
@@ -5863,13 +5950,14 @@ function copyYesterdayMeals() {
 // ── Exercise: Rest Day ────────────────────────────────────────────────────────
 
 function markRestDay() {
-  const today = todayStr();
-  if (DB.getExercises().some(e => e.date === today && e.is_rest_day)) {
-    showToast('今天已標記為休息日');
+  const date = currentExerciseDate;
+  if (DB.getExercises().some(e => e.date === date && e.is_rest_day)) {
+    showToast('該天已標記為休息日');
     return;
   }
-  DB.addExercise({ date: today, exercise_name: '休息日', icon: '😴', met: 0, cat: '休息', duration: 0, calories_burned: 0, is_rest_day: true });
-  showToast('😴 已標記為休息日');
+  DB.addExercise({ date, exercise_name: '休息日', icon: '😴', met: 0, cat: '休息', duration: 0, calories_burned: 0, is_rest_day: true });
+  const hint = date !== todayStr() ? ` (${exDateLabel(date)})` : '';
+  showToast(`😴 已標記為休息日${hint}`);
   renderExercise();
 }
 
