@@ -4452,10 +4452,6 @@ function renderExercise() {
   const inp = document.getElementById('ex-date-input');
   if (inp) { inp.max = today; inp.value = date; }
 
-  // Next button: disabled on today
-  const nextBtn = document.getElementById('ex-next-btn');
-  if (nextBtn) nextBtn.disabled = date >= today;
-
   // Summary label
   const summaryLbl = document.getElementById('ex-summary-label');
   if (summaryLbl) summaryLbl.textContent = isToday ? '今日運動消耗' : `${exDateLabel(date)} 運動消耗`;
