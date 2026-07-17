@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-17T12:55:29.737504+09:00",
+  "updated_at": "2026-07-17T16:16:09.845346+09:00",
   "season": 2026,
   "source": "baseballdata.jp + npb.jp",
   "teams": {
@@ -32,7 +32,7 @@
         "win_pct": 0.55
       },
       "last_5_record": "3-2",
-      "last_10_record": "6-4",
+      "last_10_record": "5-5",
       "last_20_record": "11-9",
       "stadium": "甲子園"
     },
@@ -99,7 +99,7 @@
       },
       "last_5_record": "2-3",
       "last_10_record": "5-5",
-      "last_20_record": "8-12",
+      "last_20_record": "9-11",
       "stadium": "横浜スタジアム"
     },
     "中日": {
@@ -163,9 +163,9 @@
         "t": 1,
         "win_pct": 0.532
       },
-      "last_5_record": "3-2",
+      "last_5_record": "2-3",
       "last_10_record": "5-5",
-      "last_20_record": "11-9",
+      "last_20_record": "10-10",
       "stadium": "神宮球場"
     },
     "広島": {
@@ -197,7 +197,7 @@
         "win_pct": 0.386
       },
       "last_5_record": "2-3",
-      "last_10_record": "4-6",
+      "last_10_record": "3-7",
       "last_20_record": "8-12",
       "stadium": "マツダスタジアム"
     },
@@ -263,8 +263,8 @@
         "win_pct": 0.554
       },
       "last_5_record": "3-2",
-      "last_10_record": "6-4",
-      "last_20_record": "11-9",
+      "last_10_record": "5-5",
+      "last_20_record": "12-8",
       "stadium": "エスコンフィールドHOKKAIDO"
     },
     "ロッテ": {
@@ -329,8 +329,8 @@
         "win_pct": 0.629
       },
       "last_5_record": "3-2",
-      "last_10_record": "7-3",
-      "last_20_record": "12-8",
+      "last_10_record": "6-4",
+      "last_20_record": "13-7",
       "stadium": "ベルーナドーム"
     },
     "楽天": {
@@ -363,7 +363,7 @@
       },
       "last_5_record": "2-3",
       "last_10_record": "4-6",
-      "last_20_record": "7-13",
+      "last_20_record": "8-12",
       "stadium": "楽天モバイルパーク宮城"
     },
     "オリックス": {
