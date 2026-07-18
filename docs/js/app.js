@@ -1328,6 +1328,9 @@ const FOOD_DB = {
   '茶裏王':      { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
   '純喫茶':      { calories: 18,  protein: 0.0,  carbs: 4.5,  fat: 0.0  },
   '原萃':        { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
+
+  // ══ 韓式豆腐煲 ══
+  '韓式大醬炸魚嫩豆腐煲': { calories: 96, protein: 8.5, carbs: 4.0, fat: 5.0 },
 };
 
 // ── 食物別名（搜尋關鍵字對應正式名稱）────────────────────────────────────────
@@ -2864,6 +2867,9 @@ const FOOD_SERVING = {
   '茶裏王':         { amt: 580, label: '1瓶' },
   '純喫茶':         { amt: 500, label: '1瓶' },
   '原萃':           { amt: 580, label: '1瓶' },
+
+  // ── 韓式豆腐煲 ──
+  '韓式大醬炸魚嫩豆腐煲': { amt: 500, label: '1份' },
 };
 
 
