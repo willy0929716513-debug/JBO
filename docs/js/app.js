@@ -1227,6 +1227,107 @@ const FOOD_DB = {
   '小籠包':      { calories: 165, protein: 8.5,  carbs: 20.0, fat: 5.5  },
   '湯包':        { calories: 130, protein: 6.5,  carbs: 17.0, fat: 4.0  },
   '韭菜盒子':    { calories: 225, protein: 7.5,  carbs: 28.0, fat: 9.5  },
+
+  // ══ 鴨肉系列 ══
+  '鴨肉麵羹':    { calories: 80,  protein: 5.5,  carbs: 9.0,  fat: 2.0  },
+  '鴨肉羹':      { calories: 88,  protein: 6.5,  carbs: 8.5,  fat: 2.5  },
+  '鴨肉飯':      { calories: 130, protein: 9.0,  carbs: 15.5, fat: 4.0  },
+  '鴨肉米粉':    { calories: 78,  protein: 5.0,  carbs: 8.5,  fat: 2.0  },
+  '薑母鴨':      { calories: 165, protein: 16.0, carbs: 4.5,  fat: 9.5  },
+  '鹽水鴨':      { calories: 185, protein: 20.0, carbs: 1.0,  fat: 11.0 },
+  '烤鴨':        { calories: 200, protein: 19.5, carbs: 0.5,  fat: 13.5 },
+  '北京烤鴨':    { calories: 255, protein: 15.5, carbs: 5.0,  fat: 19.5 },
+
+  // ══ 虱目魚系列 ══
+  '虱目魚湯':    { calories: 55,  protein: 8.0,  carbs: 0.5,  fat: 2.5  },
+  '虱目魚粥':    { calories: 65,  protein: 5.5,  carbs: 7.5,  fat: 1.5  },
+  '虱目魚肚':    { calories: 215, protein: 20.0, carbs: 0.0,  fat: 14.5 },
+  '香煎虱目魚':  { calories: 185, protein: 22.0, carbs: 1.0,  fat: 10.0 },
+  '虱目魚肚粥':  { calories: 75,  protein: 5.5,  carbs: 7.5,  fat: 2.5  },
+
+  // ══ 台式家常菜補充 ══
+  '麻油雞':      { calories: 158, protein: 18.5, carbs: 0.5,  fat: 9.0  },
+  '麻油雞飯':    { calories: 138, protein: 10.5, carbs: 15.0, fat: 4.5  },
+  '麻油腰子':    { calories: 118, protein: 14.5, carbs: 1.5,  fat: 6.0  },
+  '瓜仔肉':      { calories: 168, protein: 12.5, carbs: 5.5,  fat: 11.0 },
+  '瓜仔肉飯':    { calories: 128, protein: 7.5,  carbs: 16.5, fat: 3.5  },
+  '三色蛋':      { calories: 155, protein: 10.5, carbs: 2.0,  fat: 12.0 },
+  '皮蛋豆腐':    { calories: 78,  protein: 5.5,  carbs: 3.5,  fat: 4.5  },
+  '蝦仁炒蛋':    { calories: 122, protein: 12.5, carbs: 1.0,  fat: 7.5  },
+  '青椒炒肉絲':  { calories: 118, protein: 10.5, carbs: 5.0,  fat: 6.5  },
+  '台式鹹豬肉':  { calories: 305, protein: 15.5, carbs: 2.5,  fat: 26.0 },
+  '芹菜炒花枝':  { calories: 78,  protein: 10.5, carbs: 4.0,  fat: 2.0  },
+  '炒蛤蜊':      { calories: 62,  protein: 8.5,  carbs: 3.5,  fat: 1.5  },
+  '九層塔炒蛤蜊':{ calories: 68,  protein: 8.5,  carbs: 4.0,  fat: 1.5  },
+  '台式泡菜':    { calories: 28,  protein: 1.0,  carbs: 6.0,  fat: 0.2  },
+  '高麗菜滷':    { calories: 35,  protein: 1.5,  carbs: 4.0,  fat: 1.0  },
+  '小魚乾炒花生':{ calories: 355, protein: 28.0, carbs: 10.5, fat: 22.0 },
+  '滷豬腳':      { calories: 235, protein: 17.5, carbs: 8.0,  fat: 15.5 },
+  '薑燒豬肉':    { calories: 175, protein: 14.5, carbs: 8.0,  fat: 10.0 },
+  '梅子豬排':    { calories: 195, protein: 15.5, carbs: 10.0, fat: 11.0 },
+  '水蓮炒肉':    { calories: 95,  protein: 7.5,  carbs: 4.5,  fat: 5.5  },
+  '焢肉飯':      { calories: 208, protein: 9.5,  carbs: 24.0, fat: 8.5  },
+  '炸排骨飯':    { calories: 175, protein: 9.5,  carbs: 18.0, fat: 7.0  },
+  '炸雞腿飯':    { calories: 162, protein: 10.5, carbs: 16.5, fat: 5.5  },
+  '雞絲涼麵':    { calories: 145, protein: 7.5,  carbs: 20.5, fat: 4.5  },
+  '豬血湯':      { calories: 42,  protein: 5.5,  carbs: 3.0,  fat: 0.8  },
+  '四神湯':      { calories: 55,  protein: 4.5,  carbs: 6.5,  fat: 1.5  },
+  '冬瓜排骨湯':  { calories: 38,  protein: 3.0,  carbs: 3.5,  fat: 1.0  },
+  '藥膳排骨湯':  { calories: 52,  protein: 4.5,  carbs: 3.5,  fat: 1.5  },
+  '貢丸湯':      { calories: 58,  protein: 5.0,  carbs: 4.5,  fat: 2.0  },
+  '蛤蜊湯':      { calories: 35,  protein: 4.5,  carbs: 2.0,  fat: 0.5  },
+  '絲瓜蛤蜊':    { calories: 38,  protein: 4.5,  carbs: 2.5,  fat: 0.5  },
+  '酸辣湯':      { calories: 48,  protein: 3.5,  carbs: 5.5,  fat: 1.5  },
+  '西湖牛肉羹':  { calories: 62,  protein: 5.5,  carbs: 6.0,  fat: 1.5  },
+  '紫菜蛋花湯':  { calories: 25,  protein: 2.5,  carbs: 2.0,  fat: 0.8  },
+  '味噌蛤蜊湯':  { calories: 38,  protein: 4.0,  carbs: 3.0,  fat: 0.8  },
+  '肉骨茶':      { calories: 82,  protein: 8.5,  carbs: 2.5,  fat: 4.5  },
+  '薑絲大腸':    { calories: 115, protein: 8.0,  carbs: 3.5,  fat: 8.0  },
+
+  // ══ 飯便當補充 ══
+  '排骨飯':      { calories: 155, protein: 8.5,  carbs: 18.0, fat: 5.5  },
+  '控肉飯':      { calories: 208, protein: 9.5,  carbs: 22.5, fat: 8.5  },
+  '雞腿排飯':    { calories: 158, protein: 11.5, carbs: 16.5, fat: 5.5  },
+  '燒肉飯':      { calories: 168, protein: 10.0, carbs: 16.5, fat: 6.0  },
+  '鮭魚炒飯':    { calories: 168, protein: 8.5,  carbs: 22.5, fat: 5.0  },
+  '蝦仁炒飯':    { calories: 162, protein: 8.0,  carbs: 22.0, fat: 4.5  },
+  '皮蛋瘦肉粥':  { calories: 72,  protein: 5.5,  carbs: 10.0, fat: 1.5  },
+  '廣東粥':      { calories: 68,  protein: 5.0,  carbs: 9.5,  fat: 1.5  },
+  '鹹粥':        { calories: 62,  protein: 4.5,  carbs: 8.5,  fat: 1.5  },
+
+  // ══ 夜市/台式小吃補充 ══
+  '胡椒餅':      { calories: 225, protein: 8.5,  carbs: 32.0, fat: 7.5  },
+  '割包':        { calories: 285, protein: 12.5, carbs: 36.0, fat: 10.0 },
+  '刈包':        { calories: 285, protein: 12.5, carbs: 36.0, fat: 10.0 },
+  '炸臭豆腐':    { calories: 188, protein: 10.5, carbs: 12.0, fat: 11.0 },
+  '麻辣臭豆腐':  { calories: 120, protein: 8.5,  carbs: 8.5,  fat: 5.5  },
+  '台灣漢堡':    { calories: 285, protein: 12.5, carbs: 36.0, fat: 10.0 },
+  '鹽酥雞':      { calories: 295, protein: 22.5, carbs: 12.5, fat: 17.5 },
+  '蚵仔麵線':    { calories: 75,  protein: 4.5,  carbs: 10.5, fat: 1.5  },
+  '甜不辣':      { calories: 105, protein: 8.5,  carbs: 10.5, fat: 3.5  },
+  '涼圓':        { calories: 125, protein: 1.5,  carbs: 29.5, fat: 0.5  },
+  '花枝漿':      { calories: 82,  protein: 11.5, carbs: 5.5,  fat: 1.5  },
+  '肉羹':        { calories: 85,  protein: 7.0,  carbs: 9.5,  fat: 2.0  },
+  '肉羹麵':      { calories: 108, protein: 6.5,  carbs: 15.0, fat: 2.5  },
+  '米血':        { calories: 135, protein: 4.0,  carbs: 28.0, fat: 1.0  },
+  '蘿蔔糕':      { calories: 150, protein: 2.5,  carbs: 26.5, fat: 4.0  },
+
+  // ══ 飲料補充 ══
+  '黑松沙士':    { calories: 42,  protein: 0.0,  carbs: 10.5, fat: 0.0  },
+  '蘋果西打':    { calories: 40,  protein: 0.0,  carbs: 10.0, fat: 0.0  },
+  '維大力':      { calories: 38,  protein: 0.0,  carbs: 9.5,  fat: 0.0  },
+  '舒跑':        { calories: 25,  protein: 0.0,  carbs: 6.3,  fat: 0.0  },
+  '光泉鮮奶':    { calories: 62,  protein: 3.1,  carbs: 4.8,  fat: 3.3  },
+  '味全鮮奶':    { calories: 62,  protein: 3.1,  carbs: 4.8,  fat: 3.3  },
+  '統一鮮奶':    { calories: 62,  protein: 3.1,  carbs: 4.8,  fat: 3.3  },
+  '麥香紅茶':    { calories: 38,  protein: 0.0,  carbs: 9.5,  fat: 0.0  },
+  '麥香奶茶':    { calories: 50,  protein: 0.5,  carbs: 11.5, fat: 0.5  },
+  '統一麥茶':    { calories: 5,   protein: 0.0,  carbs: 1.2,  fat: 0.0  },
+  '古道梅子綠茶':{ calories: 28,  protein: 0.0,  carbs: 7.0,  fat: 0.0  },
+  '御茶園每朝健康綠茶': { calories: 0, protein: 0.0, carbs: 0.0, fat: 0.0 },
+  '茶裏王':      { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
+  '純喫茶':      { calories: 18,  protein: 0.0,  carbs: 4.5,  fat: 0.0  },
+  '原萃':        { calories: 0,   protein: 0.0,  carbs: 0.0,  fat: 0.0  },
 };
 
 // ── 食物別名（搜尋關鍵字對應正式名稱）────────────────────────────────────────
@@ -1313,6 +1414,14 @@ const FOOD_ALIASES = {
   '壽喜鍋': '壽喜燒',
   '涮涮鍋': '火鍋',
   '土城魚羹': '土魠魚羹飯',
+  // 新增別名
+  '鴨羹':     '鴨肉麵羹', '鴨肉羹湯': '鴨肉羹',
+  '四神':     '四神湯',   '麻油':     '麻油雞',
+  '蚵麵線':   '蚵仔麵線', '肉羹湯':   '肉羹',
+  '豬血':     '豬血湯',   '冬瓜湯':   '冬瓜排骨湯',
+  '藥燉':     '藥膳排骨湯', '肉骨':   '肉骨茶',
+  '胡椒':     '胡椒餅',
+  '茶裏王':   '茶裏王',   '維大力':   '維大力',
 };
 
 // ── 常見份量（市面標準份量，不需自己查）──────────────────────────────────────
@@ -2674,6 +2783,87 @@ const FOOD_SERVING = {
   '蘑菇濃湯':       { amt: 300, label: '1碗' },
   '南瓜濃湯':       { amt: 300, label: '1碗' },
   '茶葉蛋(超商)':   { amt: 55,  label: '1顆' },
+
+  // ── 鴨肉系列 ──
+  '鴨肉麵羹':       { amt: 350, label: '1碗' },
+  '鴨肉羹':         { amt: 300, label: '1碗' },
+  '鴨肉飯':         { amt: 350, label: '1碗' },
+  '鴨肉米粉':       { amt: 300, label: '1碗' },
+  '鹽水鴨':         { amt: 150, label: '1份' },
+  '烤鴨':           { amt: 150, label: '1份' },
+  '北京烤鴨':       { amt: 200, label: '1份' },
+
+  // ── 虱目魚系列 ──
+  '虱目魚湯':       { amt: 300, label: '1碗' },
+  '虱目魚肚':       { amt: 120, label: '1片' },
+  '香煎虱目魚':     { amt: 120, label: '1片' },
+  '虱目魚肚粥':     { amt: 300, label: '1碗' },
+
+  // ── 台式家常菜 ──
+  '麻油雞':         { amt: 400, label: '1份' },
+  '麻油雞飯':       { amt: 400, label: '1份' },
+  '麻油腰子':       { amt: 150, label: '1份' },
+  '瓜仔肉':         { amt: 150, label: '1份' },
+  '三色蛋':         { amt: 150, label: '1份' },
+  '皮蛋豆腐':       { amt: 150, label: '1份' },
+  '蝦仁炒蛋':       { amt: 150, label: '1盤' },
+  '青椒炒肉絲':     { amt: 150, label: '1盤' },
+  '台式鹹豬肉':     { amt: 120, label: '1份' },
+  '芹菜炒花枝':     { amt: 150, label: '1盤' },
+  '炒蛤蜊':         { amt: 200, label: '1盤' },
+  '九層塔炒蛤蜊':   { amt: 200, label: '1盤' },
+  '台式泡菜':       { amt: 80,  label: '1份' },
+  '高麗菜滷':       { amt: 150, label: '1盤' },
+  '小魚乾炒花生':   { amt: 50,  label: '1份' },
+  '薑燒豬肉':       { amt: 150, label: '1份' },
+  '梅子豬排':       { amt: 150, label: '1份' },
+  '水蓮炒肉':       { amt: 150, label: '1盤' },
+  '焢肉飯':         { amt: 350, label: '1碗' },
+  '炸排骨飯':       { amt: 400, label: '1份' },
+  '炸雞腿飯':       { amt: 450, label: '1份' },
+  '雞絲涼麵':       { amt: 300, label: '1份' },
+  '豬血湯':         { amt: 250, label: '1碗' },
+  '四神湯':         { amt: 350, label: '1碗' },
+  '冬瓜排骨湯':     { amt: 300, label: '1碗' },
+  '藥膳排骨湯':     { amt: 300, label: '1碗' },
+  '貢丸湯':         { amt: 250, label: '1碗' },
+  '蛤蜊湯':         { amt: 250, label: '1碗' },
+  '絲瓜蛤蜊':       { amt: 250, label: '1碗' },
+  '酸辣湯':         { amt: 250, label: '1碗' },
+  '西湖牛肉羹':     { amt: 250, label: '1碗' },
+  '紫菜蛋花湯':     { amt: 250, label: '1碗' },
+  '味噌蛤蜊湯':     { amt: 250, label: '1碗' },
+  '肉骨茶':         { amt: 400, label: '1份' },
+  '薑絲大腸':       { amt: 150, label: '1盤' },
+
+  // ── 飯便當補充 ──
+  '雞腿排飯':       { amt: 400, label: '1份' },
+  '鮭魚炒飯':       { amt: 300, label: '1碗' },
+  '蝦仁炒飯':       { amt: 300, label: '1碗' },
+
+  // ── 夜市小吃 ──
+  '胡椒餅':         { amt: 120, label: '1個' },
+  '炸臭豆腐':       { amt: 200, label: '1份' },
+  '台灣漢堡':       { amt: 150, label: '1個' },
+  '涼圓':           { amt: 100, label: '1份' },
+  '花枝漿':         { amt: 100, label: '1份' },
+  '肉羹':           { amt: 250, label: '1碗' },
+  '肉羹麵':         { amt: 350, label: '1碗' },
+
+  // ── 台灣品牌飲料 ──
+  '維大力':         { amt: 330, label: '1罐' },
+  '舒跑':           { amt: 350, label: '1瓶' },
+  '光泉鮮奶':       { amt: 236, label: '1瓶' },
+  '味全鮮奶':       { amt: 236, label: '1瓶' },
+  '統一鮮奶':       { amt: 236, label: '1瓶' },
+  '麥香紅茶':       { amt: 300, label: '1瓶' },
+  '麥香奶茶':       { amt: 300, label: '1瓶' },
+  '統一麥茶':       { amt: 480, label: '1瓶' },
+  '古道梅子綠茶':   { amt: 500, label: '1瓶' },
+  '御茶園每朝健康綠茶': { amt: 530, label: '1瓶' },
+  '茶裏王':         { amt: 580, label: '1瓶' },
+  '純喫茶':         { amt: 500, label: '1瓶' },
+  '原萃':           { amt: 580, label: '1瓶' },
 };
 
 
@@ -3460,6 +3650,14 @@ async function fetchOnlineFoods(q, box, input) {
   }
 }
 
+function _srvUnit(label) {
+  // extract unit word from labels like "1碗","1杯(大)","約10顆","半碗","½個","1人份"
+  const clean = label.replace(/^[約约半½¼\s]*/, '');
+  const m = clean.match(/[0-9]+(?:[.\-\/][0-9]+)?\s*([^\d(（(）)]+)/) ||
+            clean.match(/^([^\d(（(）)0-9]+)/);
+  return m ? m[1].trim() || '份' : '份';
+}
+
 function selectFoodByIdx(i) {
   selectedFood = searchCache[i];
   document.getElementById('searchResults').classList.remove('show');
@@ -3475,9 +3673,10 @@ function selectFoodByIdx(i) {
   if (btnsEl) {
     if (srv) {
       btnsEl.style.display = 'flex';
+      const unit = _srvUnit(srv.label);
       btnsEl.innerHTML = [['½', 0.5], ['1', 1], ['1.5', 1.5], ['2', 2]].map(([label, mult]) => {
         const a = Math.round(srv.amt * mult);
-        return `<button type="button" onclick="document.getElementById('modalAmt').value=${a};updateModalCalc();document.querySelectorAll('.srv-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')" class="srv-btn${mult === 1 ? ' active' : ''}" style="flex:1;padding:7px 2px;font-size:0.78rem;font-weight:700;background:#F0FDF4;border:1.5px solid var(--green);border-radius:8px;cursor:pointer;color:var(--green-dark);text-align:center;line-height:1.3">${label}份<br><span style="font-size:0.65rem;color:var(--muted);font-weight:400">${a}g</span></button>`;
+        return `<button type="button" onclick="document.getElementById('modalAmt').value=${a};updateModalCalc();document.querySelectorAll('.srv-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')" class="srv-btn${mult === 1 ? ' active' : ''}" style="flex:1;padding:7px 2px;font-size:0.78rem;font-weight:700;background:#F0FDF4;border:1.5px solid var(--green);border-radius:8px;cursor:pointer;color:var(--green-dark);text-align:center;line-height:1.3">${label}${unit}<br><span style="font-size:0.65rem;color:var(--muted);font-weight:400">${a}g</span></button>`;
       }).join('');
     } else {
       btnsEl.style.display = 'none';
@@ -3561,9 +3760,10 @@ function quickAddRecent(i) {
   if (btnsEl) {
     if (srv) {
       btnsEl.style.display = 'flex';
+      const unit2 = _srvUnit(srv.label);
       btnsEl.innerHTML = [['½', 0.5], ['1', 1], ['1.5', 1.5], ['2', 2]].map(([label, mult]) => {
         const a = Math.round(srv.amt * mult);
-        return `<button type="button" onclick="document.getElementById('modalAmt').value=${a};updateModalCalc();document.querySelectorAll('.srv-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')" class="srv-btn${mult === 1 ? ' active' : ''}" style="flex:1;padding:7px 2px;font-size:0.78rem;font-weight:700;background:#F0FDF4;border:1.5px solid var(--green);border-radius:8px;cursor:pointer;color:var(--green-dark);text-align:center;line-height:1.3">${label}份<br><span style="font-size:0.65rem;color:var(--muted);font-weight:400">${a}g</span></button>`;
+        return `<button type="button" onclick="document.getElementById('modalAmt').value=${a};updateModalCalc();document.querySelectorAll('.srv-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')" class="srv-btn${mult === 1 ? ' active' : ''}" style="flex:1;padding:7px 2px;font-size:0.78rem;font-weight:700;background:#F0FDF4;border:1.5px solid var(--green);border-radius:8px;cursor:pointer;color:var(--green-dark);text-align:center;line-height:1.3">${label}${unit2}<br><span style="font-size:0.65rem;color:var(--muted);font-weight:400">${a}g</span></button>`;
       }).join('');
     } else {
       btnsEl.style.display = 'none';
