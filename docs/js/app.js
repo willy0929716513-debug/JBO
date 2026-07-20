@@ -6374,6 +6374,10 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.addEventListener('message', e => {
       if (e.data?.type === 'OPEN_TAB') navigate(e.data.tab || 'dashboard');
     });
+    // Auto-reload when a new SW version takes over (delivers latest app.js/CSS)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
   }
   scheduleNotifications();
   _registerWebPush();

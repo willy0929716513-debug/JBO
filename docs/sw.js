@@ -1,4 +1,61 @@
-// Handles Web Push, notification clicks, and lifecycle events.
+// Service worker: versioned caching + push notifications.
+// Bump CACHE_VERSION on every deployment so installed PWAs auto-refresh.
+
+const CACHE_VERSION = '20260720';
+const CACHE_NAME = `nutrimate-${CACHE_VERSION}`;
+const PRECACHE = [
+  './',
+  './index.html',
+  `./js/app.js?v=${CACHE_VERSION}`,
+  `./css/style.css?v=${CACHE_VERSION}`,
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(c => c.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
+  const isKeyAsset =
+    request.mode === 'navigate' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.includes('app.js') ||
+    url.pathname.includes('style.css');
+
+  if (isKeyAsset) {
+    // Network-first: always try to get fresh copy; fall back to cache offline
+    event.respondWith(
+      fetch(request).then(resp => {
+        if (resp.ok) {
+          caches.open(CACHE_NAME).then(c => c.put(request, resp.clone()));
+        }
+        return resp;
+      }).catch(() => caches.match(request))
+    );
+  } else {
+    // Cache-first for everything else (icons, fonts, etc.)
+    event.respondWith(
+      caches.match(request).then(cached => cached || fetch(request))
+    );
+  }
+});
+
+// ── Push Notifications ───────────────────────────────────────────────────────
 
 self.addEventListener('push', event => {
   if (!event.data) return;
@@ -29,6 +86,3 @@ self.addEventListener('notificationclick', event => {
     })
   );
 });
-
-self.addEventListener('install',  () => self.skipWaiting());
-self.addEventListener('activate', e  => e.waitUntil(self.clients.claim()));
