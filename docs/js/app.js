@@ -1275,6 +1275,7 @@ const FOOD_DB = {
   '冬瓜排骨湯':  { calories: 38,  protein: 3.0,  carbs: 3.5,  fat: 1.0  },
   '藥膳排骨湯':  { calories: 52,  protein: 4.5,  carbs: 3.5,  fat: 1.5  },
   '貢丸湯':      { calories: 58,  protein: 5.0,  carbs: 4.5,  fat: 2.0  },
+  '餛飩湯':      { calories: 52,  protein: 4.0,  carbs: 5.5,  fat: 1.5  },
   '蛤蜊湯':      { calories: 35,  protein: 4.5,  carbs: 2.0,  fat: 0.5  },
   '絲瓜蛤蜊':    { calories: 38,  protein: 4.5,  carbs: 2.5,  fat: 0.5  },
   '酸辣湯':      { calories: 48,  protein: 3.5,  carbs: 5.5,  fat: 1.5  },
@@ -1430,6 +1431,7 @@ const FOOD_ALIASES = {
   // 新增別名
   '鴨羹':     '鴨肉麵羹', '鴨肉羹湯': '鴨肉羹',
   '四神':     '四神湯',   '麻油':     '麻油雞',
+  '雲吞湯':   '餛飩湯',   '雲吞':     '餛飩湯',
   '蚵麵線':   '蚵仔麵線', '肉羹湯':   '肉羹',
   '豬血':     '豬血湯',   '冬瓜湯':   '冬瓜排骨湯',
   '藥燉':     '藥膳排骨湯', '肉骨':   '肉骨茶',
@@ -2842,6 +2844,7 @@ const FOOD_SERVING = {
   '冬瓜排骨湯':     { amt: 300, label: '1碗' },
   '藥膳排骨湯':     { amt: 300, label: '1碗' },
   '貢丸湯':         { amt: 250, label: '1碗' },
+  '餛飩湯':         { amt: 300, label: '1碗' },
   '蛤蜊湯':         { amt: 250, label: '1碗' },
   '絲瓜蛤蜊':       { amt: 250, label: '1碗' },
   '酸辣湯':         { amt: 250, label: '1碗' },
