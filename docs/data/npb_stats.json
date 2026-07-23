@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-23T13:10:17.355285+09:00",
+  "updated_at": "2026-07-23T16:32:24.301298+09:00",
   "season": 2026,
   "source": "baseballdata.jp + npb.jp",
   "teams": {
@@ -31,8 +31,8 @@
         "t": 1,
         "win_pct": 0.55
       },
-      "last_5_record": "2-3",
-      "last_10_record": "5-5",
+      "last_5_record": "3-2",
+      "last_10_record": "6-4",
       "last_20_record": "11-9",
       "stadium": "甲子園"
     },
@@ -99,7 +99,7 @@
       },
       "last_5_record": "2-3",
       "last_10_record": "4-6",
-      "last_20_record": "9-11",
+      "last_20_record": "8-12",
       "stadium": "横浜スタジアム"
     },
     "中日": {
@@ -131,8 +131,8 @@
         "win_pct": 0.339
       },
       "last_5_record": "2-3",
-      "last_10_record": "4-6",
-      "last_20_record": "6-14",
+      "last_10_record": "3-7",
+      "last_20_record": "7-13",
       "stadium": "ナゴヤドーム"
     },
     "ヤクルト": {
@@ -163,8 +163,8 @@
         "t": 1,
         "win_pct": 0.532
       },
-      "last_5_record": "2-3",
-      "last_10_record": "5-5",
+      "last_5_record": "3-2",
+      "last_10_record": "6-4",
       "last_20_record": "11-9",
       "stadium": "神宮球場"
     },
@@ -263,7 +263,7 @@
         "win_pct": 0.554
       },
       "last_5_record": "3-2",
-      "last_10_record": "5-5",
+      "last_10_record": "6-4",
       "last_20_record": "11-9",
       "stadium": "エスコンフィールドHOKKAIDO"
     },
@@ -295,9 +295,9 @@
         "t": 2,
         "win_pct": 0.492
       },
-      "last_5_record": "3-2",
+      "last_5_record": "2-3",
       "last_10_record": "5-5",
-      "last_20_record": "9-11",
+      "last_20_record": "10-10",
       "stadium": "ZOZOマリン"
     },
     "西武": {
@@ -330,7 +330,7 @@
       },
       "last_5_record": "3-2",
       "last_10_record": "6-4",
-      "last_20_record": "13-7",
+      "last_20_record": "12-8",
       "stadium": "ベルーナドーム"
     },
     "楽天": {
@@ -362,8 +362,8 @@
         "win_pct": 0.377
       },
       "last_5_record": "2-3",
-      "last_10_record": "4-6",
-      "last_20_record": "8-12",
+      "last_10_record": "3-7",
+      "last_20_record": "7-13",
       "stadium": "楽天モバイルパーク宮城"
     },
     "オリックス": {
@@ -394,7 +394,7 @@
         "t": 1,
         "win_pct": 0.548
       },
-      "last_5_record": "2-3",
+      "last_5_record": "3-2",
       "last_10_record": "6-4",
       "last_20_record": "11-9",
       "stadium": "京セラドーム大阪"
