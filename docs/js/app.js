@@ -380,6 +380,7 @@ const FOOD_DB = {
   '麻油':        { calories: 884, protein: 0.0,  carbs: 0.0,  fat: 100.0},
   // ══ 早餐店熱門 ══
   '蛋餅加火腿':  { calories: 330, protein: 16.0, carbs: 33.5, fat: 14.5 },
+  '熱狗蛋餅':    { calories: 310, protein: 13.5, carbs: 33.0, fat: 14.0 },
   '鮪魚蛋餅':    { calories: 320, protein: 18.5, carbs: 33.0, fat: 12.5 },
   '漢堡加蛋':    { calories: 370, protein: 20.5, carbs: 31.0, fat: 17.0 },
   '肉蛋吐司':    { calories: 360, protein: 18.5, carbs: 35.5, fat: 16.0 },
@@ -2655,6 +2656,7 @@ const FOOD_SERVING = {
 
   // ── 早餐(補) ──
   '蛋餅加火腿':     { amt: 200, label: '1份' },
+  '熱狗蛋餅':       { amt: 200, label: '1份' },
   '鮪魚蛋餅':       { amt: 195, label: '1份' },
   '漢堡加蛋':       { amt: 220, label: '1份' },
   '肉蛋吐司':       { amt: 180, label: '1份' },
