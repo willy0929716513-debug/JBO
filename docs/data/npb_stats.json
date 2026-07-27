@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-26T16:34:38.212866+09:00",
+  "updated_at": "2026-07-27T13:31:58.468322+09:00",
   "season": 2026,
   "source": "baseballdata.jp + npb.jp",
   "teams": {
@@ -9,13 +9,13 @@
         "ops": 0.68,
         "slg": 0.38,
         "obp": 0.32,
-        "hr": 72,
-        "runs": 337,
+        "hr": 73,
+        "runs": 338,
         "wrc_plus_est": 100
       },
       "pitching": {
-        "era": 2.95,
-        "whip": 1.12,
+        "era": 2.91,
+        "whip": 1.11,
         "k9": 8.3,
         "bb9": 2.2,
         "saves": 28,
@@ -32,14 +32,14 @@
         "win_pct": 0.55
       },
       "last_5_record": "3-2",
-      "last_10_record": "5-5",
+      "last_10_record": "6-4",
       "last_20_record": "11-9",
       "stadium": "甲子園"
     },
     "巨人": {
       "batting": {
         "avg": 0.235,
-        "ops": 0.647,
+        "ops": 0.645,
         "slg": 0.38,
         "obp": 0.32,
         "hr": 71,
@@ -47,7 +47,7 @@
         "wrc_plus_est": 95
       },
       "pitching": {
-        "era": 2.91,
+        "era": 2.9,
         "whip": 1.17,
         "k9": 7.5,
         "bb9": 3.0,
@@ -64,9 +64,9 @@
         "t": 2,
         "win_pct": 0.557
       },
-      "last_5_record": "2-3",
+      "last_5_record": "3-2",
       "last_10_record": "5-5",
-      "last_20_record": "12-8",
+      "last_20_record": "11-9",
       "stadium": "東京ドーム"
     },
     "DeNA": {
@@ -85,7 +85,7 @@
         "k9": 8.5,
         "bb9": 2.8,
         "saves": 17,
-        "holds": 88
+        "holds": 89
       },
       "defense": {
         "fielding_pct": 0.983,
@@ -97,7 +97,7 @@
         "t": 2,
         "win_pct": 0.426
       },
-      "last_5_record": "3-2",
+      "last_5_record": "2-3",
       "last_10_record": "4-6",
       "last_20_record": "9-11",
       "stadium": "横浜スタジアム"
@@ -138,15 +138,15 @@
     "ヤクルト": {
       "batting": {
         "avg": 0.231,
-        "ops": 0.627,
+        "ops": 0.625,
         "slg": 0.38,
         "obp": 0.32,
         "hr": 56,
-        "runs": 284,
+        "runs": 287,
         "wrc_plus_est": 92
       },
       "pitching": {
-        "era": 3.57,
+        "era": 3.58,
         "whip": 1.2,
         "k9": 7.5,
         "bb9": 3.0,
@@ -165,25 +165,25 @@
       },
       "last_5_record": "3-2",
       "last_10_record": "5-5",
-      "last_20_record": "11-9",
+      "last_20_record": "10-10",
       "stadium": "神宮球場"
     },
     "広島": {
       "batting": {
         "avg": 0.225,
-        "ops": 0.611,
+        "ops": 0.613,
         "slg": 0.38,
         "obp": 0.32,
-        "hr": 56,
-        "runs": 261,
+        "hr": 57,
+        "runs": 265,
         "wrc_plus_est": 90
       },
       "pitching": {
         "era": 3.26,
-        "whip": 1.21,
+        "whip": 1.2,
         "k9": 7.5,
         "bb9": 3.0,
-        "saves": 17,
+        "saves": 18,
         "holds": 72
       },
       "defense": {
@@ -203,20 +203,20 @@
     },
     "ソフトバンク": {
       "batting": {
-        "avg": 0.256,
-        "ops": 0.741,
+        "avg": 0.254,
+        "ops": 0.738,
         "slg": 0.38,
         "obp": 0.32,
         "hr": 103,
-        "runs": 437,
+        "runs": 440,
         "wrc_plus_est": 109
       },
       "pitching": {
-        "era": 3.12,
-        "whip": 1.23,
+        "era": 3.09,
+        "whip": 1.22,
         "k9": 8.3,
         "bb9": 2.9,
-        "saves": 26,
+        "saves": 27,
         "holds": 75
       },
       "defense": {
@@ -236,16 +236,16 @@
     },
     "日本ハム": {
       "batting": {
-        "avg": 0.254,
-        "ops": 0.74,
+        "avg": 0.255,
+        "ops": 0.742,
         "slg": 0.38,
         "obp": 0.32,
-        "hr": 120,
-        "runs": 388,
+        "hr": 122,
+        "runs": 394,
         "wrc_plus_est": 109
       },
       "pitching": {
-        "era": 3.33,
+        "era": 3.32,
         "whip": 1.18,
         "k9": 7.5,
         "bb9": 3.0,
@@ -263,27 +263,27 @@
         "win_pct": 0.554
       },
       "last_5_record": "3-2",
-      "last_10_record": "6-4",
+      "last_10_record": "5-5",
       "last_20_record": "11-9",
       "stadium": "エスコンフィールドHOKKAIDO"
     },
     "ロッテ": {
       "batting": {
-        "avg": 0.237,
-        "ops": 0.654,
+        "avg": 0.238,
+        "ops": 0.657,
         "slg": 0.38,
         "obp": 0.32,
-        "hr": 74,
-        "runs": 315,
-        "wrc_plus_est": 96
+        "hr": 76,
+        "runs": 318,
+        "wrc_plus_est": 97
       },
       "pitching": {
-        "era": 3.63,
+        "era": 3.61,
         "whip": 1.22,
         "k9": 7.5,
         "bb9": 3.0,
-        "saves": 28,
-        "holds": 69
+        "saves": 29,
+        "holds": 70
       },
       "defense": {
         "fielding_pct": 0.984,
@@ -295,28 +295,28 @@
         "t": 2,
         "win_pct": 0.492
       },
-      "last_5_record": "2-3",
-      "last_10_record": "4-6",
+      "last_5_record": "3-2",
+      "last_10_record": "5-5",
       "last_20_record": "10-10",
       "stadium": "ZOZOマリン"
     },
     "西武": {
       "batting": {
-        "avg": 0.249,
-        "ops": 0.673,
+        "avg": 0.247,
+        "ops": 0.669,
         "slg": 0.38,
         "obp": 0.32,
         "hr": 73,
         "runs": 350,
-        "wrc_plus_est": 99
+        "wrc_plus_est": 98
       },
       "pitching": {
         "era": 2.86,
-        "whip": 1.15,
+        "whip": 1.14,
         "k9": 7.5,
         "bb9": 3.0,
         "saves": 32,
-        "holds": 86
+        "holds": 88
       },
       "defense": {
         "fielding_pct": 0.982,
@@ -336,15 +336,15 @@
     "楽天": {
       "batting": {
         "avg": 0.242,
-        "ops": 0.658,
+        "ops": 0.659,
         "slg": 0.38,
         "obp": 0.32,
-        "hr": 59,
-        "runs": 292,
+        "hr": 61,
+        "runs": 294,
         "wrc_plus_est": 97
       },
       "pitching": {
-        "era": 3.78,
+        "era": 3.81,
         "whip": 1.31,
         "k9": 7.5,
         "bb9": 3.0,
@@ -362,8 +362,8 @@
         "win_pct": 0.377
       },
       "last_5_record": "2-3",
-      "last_10_record": "4-6",
-      "last_20_record": "8-12",
+      "last_10_record": "3-7",
+      "last_20_record": "7-13",
       "stadium": "楽天モバイルパーク宮城"
     },
     "オリックス": {
@@ -372,17 +372,17 @@
         "ops": 0.665,
         "slg": 0.38,
         "obp": 0.32,
-        "hr": 60,
-        "runs": 323,
+        "hr": 61,
+        "runs": 325,
         "wrc_plus_est": 98
       },
       "pitching": {
-        "era": 3.77,
+        "era": 3.76,
         "whip": 1.28,
         "k9": 7.5,
         "bb9": 3.0,
         "saves": 24,
-        "holds": 75
+        "holds": 77
       },
       "defense": {
         "fielding_pct": 0.986,
@@ -896,13 +896,13 @@
   },
   "bullpens": {
     "阪神": {
-      "era": 2.95,
+      "era": 2.91,
       "saves": 28,
       "blown_saves": 2,
       "holds": 53
     },
     "巨人": {
-      "era": 2.91,
+      "era": 2.9,
       "saves": 34,
       "blown_saves": 3,
       "holds": 97
@@ -911,7 +911,7 @@
       "era": 3.46,
       "saves": 17,
       "blown_saves": 4,
-      "holds": 88
+      "holds": 89
     },
     "中日": {
       "era": 3.37,
@@ -920,52 +920,52 @@
       "holds": 55
     },
     "ヤクルト": {
-      "era": 3.57,
+      "era": 3.58,
       "saves": 23,
       "blown_saves": 5,
       "holds": 59
     },
     "広島": {
       "era": 3.26,
-      "saves": 17,
+      "saves": 18,
       "blown_saves": 3,
       "holds": 72
     },
     "ソフトバンク": {
-      "era": 3.12,
-      "saves": 26,
+      "era": 3.09,
+      "saves": 27,
       "blown_saves": 2,
       "holds": 75
     },
     "日本ハム": {
-      "era": 3.33,
+      "era": 3.32,
       "saves": 27,
       "blown_saves": 3,
       "holds": 66
     },
     "ロッテ": {
-      "era": 3.63,
-      "saves": 28,
+      "era": 3.61,
+      "saves": 29,
       "blown_saves": 3,
-      "holds": 69
+      "holds": 70
     },
     "西武": {
       "era": 2.86,
       "saves": 32,
       "blown_saves": 4,
-      "holds": 86
+      "holds": 88
     },
     "楽天": {
-      "era": 3.78,
+      "era": 3.81,
       "saves": 22,
       "blown_saves": 4,
       "holds": 59
     },
     "オリックス": {
-      "era": 3.77,
+      "era": 3.76,
       "saves": 24,
       "blown_saves": 2,
-      "holds": 75
+      "holds": 77
     }
   }
 }
