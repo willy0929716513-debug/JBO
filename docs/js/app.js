@@ -6832,6 +6832,42 @@ const WK_EX = {
 
 const WK_PLANS = {
   // ── 增肌 ──────────────────────────────────────────────────────────────────
+  '增肌_1': {
+    name:'全身增肌計畫（週 1 天）', desc:'週六全身訓練，適合超忙族群',
+    pattern:[6],
+    rotation:['A'],
+    workouts:{
+      'A':{ name:'全身大重量訓練', focus:'全身複合動作', exs:[
+        {id:'squat',     sets:4, reps:'6-8',  rest:120},
+        {id:'bench',     sets:4, reps:'6-8',  rest:120},
+        {id:'row_bar',   sets:4, reps:'6-8',  rest:120},
+        {id:'ohp',       sets:3, reps:'8-10', rest:90},
+        {id:'rdl',       sets:3, reps:'8-10', rest:90},
+        {id:'curl',      sets:2, reps:'12',   rest:60},
+      ]},
+    }
+  },
+  '增肌_2': {
+    name:'全身增肌計畫（週 2 天）', desc:'週一、四訓練，A/B 輪替',
+    pattern:[1,4],
+    rotation:['A','B','A','B'],
+    workouts:{
+      'A':{ name:'全身訓練 A（推／腿）', focus:'胸腿肩', exs:[
+        {id:'squat',      sets:4, reps:'6-8',  rest:120},
+        {id:'bench',      sets:4, reps:'6-8',  rest:120},
+        {id:'incline_db', sets:3, reps:'8-10', rest:90},
+        {id:'ohp',        sets:3, reps:'8-10', rest:90},
+        {id:'crunch',     sets:3, reps:'15-20',rest:45},
+      ]},
+      'B':{ name:'全身訓練 B（拉／腿）', focus:'背腿臂', exs:[
+        {id:'rdl',      sets:4, reps:'6-8',  rest:120},
+        {id:'row_bar',  sets:4, reps:'6-8',  rest:120},
+        {id:'lat_pull', sets:3, reps:'8-10', rest:90},
+        {id:'curl',     sets:3, reps:'10-12',rest:60},
+        {id:'plank',    sets:3, reps:'40s',  rest:30},
+      ]},
+    }
+  },
   '增肌_3': {
     name:'全身增肌計畫（週 3 天）', desc:'週一、三、五訓練，充分休息',
     pattern:[1,3,5],
@@ -6933,6 +6969,42 @@ const WK_PLANS = {
     }
   },
   // ── 減脂 ──────────────────────────────────────────────────────────────────
+  '減脂_1': {
+    name:'全身減脂計畫（週 1 天）', desc:'週六高效全身燃脂，訓練後接有氧',
+    pattern:[6],
+    rotation:['A'],
+    workouts:{
+      'A':{ name:'全身燃脂訓練', focus:'全身代謝', exs:[
+        {id:'squat',   sets:4, reps:'12-15',rest:60},
+        {id:'bench',   sets:3, reps:'12-15',rest:60},
+        {id:'row_bar', sets:3, reps:'12-15',rest:60},
+        {id:'lunge',   sets:3, reps:'15',   rest:60},
+        {id:'plank',   sets:3, reps:'45s',  rest:30},
+        {id:'crunch',  sets:3, reps:'20',   rest:30},
+      ]},
+    }
+  },
+  '減脂_2': {
+    name:'全身減脂計畫（週 2 天）', desc:'週一、四高代謝訓練',
+    pattern:[1,4],
+    rotation:['A','B','A','B'],
+    workouts:{
+      'A':{ name:'上肢燃脂 A', focus:'胸背肩', exs:[
+        {id:'bench',     sets:3, reps:'12-15',rest:60},
+        {id:'row_bar',   sets:3, reps:'12-15',rest:60},
+        {id:'ohp',       sets:3, reps:'12-15',rest:60},
+        {id:'lateral',   sets:3, reps:'20',   rest:45},
+        {id:'plank',     sets:3, reps:'40s',  rest:30},
+      ]},
+      'B':{ name:'下肢燃脂 B', focus:'腿臀核心', exs:[
+        {id:'squat',   sets:4, reps:'12-15',rest:60},
+        {id:'rdl',     sets:3, reps:'12-15',rest:60},
+        {id:'lunge',   sets:3, reps:'15',   rest:60},
+        {id:'crunch',  sets:3, reps:'20',   rest:30},
+        {id:'plank',   sets:2, reps:'45s',  rest:30},
+      ]},
+    }
+  },
   '減脂_3': {
     name:'全身減脂計畫（週 3 天）', desc:'每次訓練後接 20 分鐘有氧',
     pattern:[1,3,5],
@@ -7031,6 +7103,42 @@ const WK_PLANS = {
     }
   },
   // ── 維持 ──────────────────────────────────────────────────────────────────
+  '維持_1': {
+    name:'體態維持計畫（週 1 天）', desc:'週六全身維持，高效率訓練',
+    pattern:[6],
+    rotation:['A'],
+    workouts:{
+      'A':{ name:'全身維持訓練', focus:'全身均衡', exs:[
+        {id:'squat',   sets:3, reps:'10',   rest:90},
+        {id:'bench',   sets:3, reps:'10',   rest:90},
+        {id:'row_bar', sets:3, reps:'10',   rest:90},
+        {id:'ohp',     sets:2, reps:'12',   rest:75},
+        {id:'curl',    sets:2, reps:'12',   rest:60},
+        {id:'plank',   sets:2, reps:'40s',  rest:30},
+      ]},
+    }
+  },
+  '維持_2': {
+    name:'體態維持計畫（週 2 天）', desc:'週一、四訓練，A/B 輪替',
+    pattern:[1,4],
+    rotation:['A','B','A','B'],
+    workouts:{
+      'A':{ name:'上肢維持 A', focus:'胸背肩臂', exs:[
+        {id:'bench',   sets:3, reps:'10',   rest:90},
+        {id:'row_bar', sets:3, reps:'10',   rest:90},
+        {id:'ohp',     sets:3, reps:'10',   rest:90},
+        {id:'curl',    sets:2, reps:'12',   rest:60},
+        {id:'dips',    sets:2, reps:'10',   rest:60},
+      ]},
+      'B':{ name:'下肢維持 B', focus:'腿臀核心', exs:[
+        {id:'squat',  sets:3, reps:'10',   rest:90},
+        {id:'rdl',    sets:3, reps:'10',   rest:90},
+        {id:'lunge',  sets:2, reps:'12',   rest:75},
+        {id:'plank',  sets:3, reps:'40s',  rest:30},
+        {id:'crunch', sets:2, reps:'20',   rest:30},
+      ]},
+    }
+  },
   '維持_3': {
     name:'體態維持計畫（週 3 天）', desc:'適合忙碌時期保持體能',
     pattern:[1,3,5],
@@ -7099,7 +7207,8 @@ function _wkMarkDone() {
 
 function _wkPlanKey(profile) {
   if (!profile) return null;
-  const days = profile.days <= 3 ? 3 : profile.days <= 4 ? 4 : 5;
+  const d = parseInt(profile.days) || 3;
+  const days = d <= 1 ? 1 : d <= 2 ? 2 : d <= 3 ? 3 : d <= 4 ? 4 : 5;
   const key = `${profile.goal}_${days}`;
   return WK_PLANS[key] ? key : `${profile.goal}_3`;
 }
