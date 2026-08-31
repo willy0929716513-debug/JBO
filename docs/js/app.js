@@ -7181,12 +7181,12 @@ function renderWorkoutTab() {
 
   if (!profile) {
     el.innerHTML = `
-      <div style="text-align:center;padding:40px 16px">
-        <div style="font-size:3rem;margin-bottom:16px">💪</div>
-        <div style="font-size:1.2rem;font-weight:800;margin-bottom:8px">設定你的健身目標</div>
-        <div style="font-size:0.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6">完成設定後 NutriMate 會根據你的目標、<br>體重和訓練天數為你量身規劃菜單</div>
-        <button class="btn-primary" style="justify-content:center" onclick="openFitnessSetup()">
-          <i class="bi bi-sliders"></i> 開始設定
+      <div class="wk-setup-prompt fade-in">
+        <div style="font-size:3.5rem;margin-bottom:16px">🏋️</div>
+        <div style="font-size:1.2rem;font-weight:900;margin-bottom:8px;color:var(--text)">設定你的健身目標</div>
+        <div style="font-size:0.84rem;color:var(--muted);margin-bottom:28px;line-height:1.7">完成設定後 NutriMate 會根據你的目標、<br>體重和訓練天數為你量身規劃菜單</div>
+        <button class="btn-primary" style="justify-content:center;margin:0 auto" onclick="openFitnessSetup()">
+          <i class="bi bi-sliders2"></i> 開始設定
         </button>
       </div>`;
     return;
@@ -7204,14 +7204,16 @@ function renderWorkoutTab() {
   const weekDots = [0,1,2,3,4,5,6].map(d => {
     const isTrain = plan.pattern.includes(d);
     const isToday = d === dow;
-    const bg = isToday ? (isTrain ? 'var(--green)' : '#6B7280') : (isTrain ? 'var(--green-light)' : '#F3F4F6');
-    const fg = isToday ? 'white' : (isTrain ? 'var(--green)' : 'var(--muted)');
-    const bd = isToday ? 'none' : (isTrain ? '1.5px solid var(--green)' : 'none');
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-      <div style="width:32px;height:32px;border-radius:50%;background:${bg};border:${bd};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:${fg}">
-        ${isTrain ? '<i class="bi bi-lightning-charge-fill"></i>' : '休'}
+    let bg, fg, bd, sz;
+    if (isToday && isTrain)   { bg='var(--green)';  fg='white';         bd='none';                       sz='34px'; }
+    else if (isToday)         { bg='#334155';        fg='white';         bd='none';                       sz='34px'; }
+    else if (isTrain)         { bg='var(--green-light)'; fg='var(--green)'; bd='2px solid var(--green-mid)'; sz='32px'; }
+    else                      { bg='#F1F5F9';        fg='#94A3B8';       bd='none';                       sz='32px'; }
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="width:${sz};height:${sz};border-radius:50%;background:${bg};border:${bd};display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:${fg};transition:transform 0.2s;${isToday?'box-shadow:0 3px 10px rgba(22,192,96,0.35)':''}">
+        ${isTrain ? '<i class="bi bi-lightning-charge-fill"></i>' : ''}
       </div>
-      <div style="font-size:0.62rem;color:${isToday?'var(--green)':'var(--muted)'};font-weight:${isToday?700:400}">週${dayNames[d]}</div>
+      <div style="font-size:0.6rem;color:${isToday?'var(--green)':'#94A3B8'};font-weight:${isToday?800:500}">週${dayNames[d]}</div>
     </div>`;
   }).join('');
 
@@ -7249,8 +7251,8 @@ function renderWorkoutTab() {
               <div style="font-size:0.75rem;color:var(--muted);margin-top:1px">${ex.muscles.join(' · ')}</div>
             </div>
             <div style="text-align:right;flex-shrink:0">
-              <div style="font-weight:800;font-size:0.88rem;color:var(--text)">${e.sets}×${e.reps}</div>
-              ${wt ? `<div style="font-size:0.72rem;color:${catC};font-weight:700">${wt}</div>` : ''}
+              <div style="font-weight:800;font-size:0.9rem;color:var(--text)">${e.sets}×${e.reps}</div>
+              ${wt ? `<div class="wk-weight-badge" style="margin-top:4px">🏋️ ${wt}</div>` : ''}
             </div>
             <i class="bi bi-chevron-down wk-chev" id="wkchev-${e.id}" style="font-size:0.8rem;color:var(--muted);flex-shrink:0;transition:transform 0.2s"></i>
           </div>
@@ -7287,8 +7289,8 @@ function renderWorkoutTab() {
           <div style="display:flex;flex-direction:column;gap:8px">
             ${exRows}
           </div>
-          <button class="btn-primary" style="width:100%;justify-content:center;margin-top:16px" onclick="completeWkToday()">
-            <i class="bi bi-check-circle"></i> 完成今日訓練！
+          <button class="wk-complete-btn" onclick="completeWkToday()" style="margin-top:16px">
+            <i class="bi bi-check-circle-fill"></i> 完成今日訓練！
           </button>
         </div>
       </div>`;
@@ -7320,13 +7322,14 @@ function renderWorkoutTab() {
     </div>` : ''}
 
     <!-- Profile summary -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span style="font-size:0.72rem;background:var(--green-light);color:var(--green);padding:3px 10px;border-radius:8px;font-weight:700">${profile.goal}</span>
-        <span style="font-size:0.72rem;background:#EDE9FE;color:#7C3AED;padding:3px 10px;border-radius:8px;font-weight:700">${{beginner:'初學者',intermediate:'中級',advanced:'進階'}[profile.level]||profile.level}</span>
-        <span style="font-size:0.72rem;background:#FFF7ED;color:var(--orange);padding:3px 10px;border-radius:8px;font-weight:700">週${profile.days}天</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:0.73rem;background:${profile.goal==='增肌'?'#DCFCE7':profile.goal==='減脂'?'#FFEDD5':'#DBEAFE'};color:${profile.goal==='增肌'?'#15803D':profile.goal==='減脂'?'#C2410C':'#1D4ED8'};padding:3px 11px;border-radius:20px;font-weight:800">${profile.goal}</span>
+        <span style="font-size:0.73rem;background:#F3E8FF;color:#7E22CE;padding:3px 11px;border-radius:20px;font-weight:700">${{beginner:'初學者',intermediate:'中級',advanced:'進階'}[profile.level]||profile.level}</span>
+        <span style="font-size:0.73rem;background:#FFF7ED;color:#C2410C;padding:3px 11px;border-radius:20px;font-weight:700">週${profile.days}天</span>
+        <span style="font-size:0.73rem;background:#F0FDF4;color:var(--green-dark);padding:3px 11px;border-radius:20px;font-weight:700">${profile.weight||'?'}kg</span>
       </div>
-      <button onclick="openFitnessSetup()" style="font-size:0.75rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 8px"><i class="bi bi-pencil"></i> 編輯</button>
+      <button onclick="openFitnessSetup()" style="font-size:0.75rem;color:var(--muted);background:#F1F5F9;border:none;cursor:pointer;padding:5px 10px;border-radius:8px;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="bi bi-pencil-square"></i> 編輯</button>
     </div>
 
     <!-- Weekly plan dots -->
@@ -7343,9 +7346,9 @@ function renderWorkoutTab() {
     <div class="card fade-in">
       <div class="card-body" style="padding:14px 16px">
         <div style="font-weight:700;font-size:0.9rem;margin-bottom:10px">📚 動作百科</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
           ${['all','chest','back','legs','shoulders','arms','core'].map(cat =>
-            `<button onclick="filterWkEnc('${cat}')" class="wk-enc-filter${cat==='all'?' active':''}" data-cat="${cat}" style="font-size:0.72rem;padding:3px 10px;border-radius:8px;border:1.5px solid ${cat==='all'?'var(--green)':'var(--border)'};background:${cat==='all'?'var(--green-light)':'transparent'};color:${cat==='all'?'var(--green)':'var(--muted)'};cursor:pointer;font-weight:600">${{all:'全部',chest:'胸',back:'背',legs:'腿',shoulders:'肩',arms:'手臂',core:'核心'}[cat]}</button>`
+            `<button onclick="filterWkEnc('${cat}')" class="wk-cat-chip wk-enc-filter${cat==='all'?' active':''}" data-cat="${cat}">${{all:'全部',chest:'🫁 胸',back:'🦴 背',legs:'🦵 腿',shoulders:'🤷 肩',arms:'💪 臂',core:'🔥 核心'}[cat]}</button>`
           ).join('')}
         </div>
         <div id="wk-enc-list" style="display:flex;flex-direction:column;gap:6px">
@@ -7390,10 +7393,7 @@ function toggleWkEx(id) {
 
 function filterWkEnc(cat) {
   document.querySelectorAll('.wk-enc-filter').forEach(b => {
-    const active = b.dataset.cat === cat;
-    b.style.borderColor = active ? 'var(--green)' : 'var(--border)';
-    b.style.background   = active ? 'var(--green-light)' : 'transparent';
-    b.style.color        = active ? 'var(--green)' : 'var(--muted)';
+    b.classList.toggle('active', b.dataset.cat === cat);
   });
   document.querySelectorAll('.wk-enc-item').forEach(el => {
     el.style.display = (cat === 'all' || el.dataset.cat === cat) ? '' : 'none';
@@ -7406,6 +7406,15 @@ function completeWkToday() {
   renderWorkoutTab();
 }
 
+function selectWkGoal(goal) {
+  document.getElementById('wk-goal').value = goal;
+  ['增肌','減脂','維持'].forEach(g => {
+    const el = document.getElementById(`wk-gc-${g}`);
+    if (!el) return;
+    el.className = 'wk-goal-card' + (g === goal ? ` selected-${g}` : '');
+  });
+}
+
 function openFitnessSetup() {
   const p = _wkProfile() || { goal:'增肌', level:'beginner', days:3, weight:'', gender:'male' };
   const bw = p.weight || (DB.getGoals && DB.getGoals().weight) || '';
@@ -7415,6 +7424,7 @@ function openFitnessSetup() {
   document.getElementById('wk-days').value   = p.days;
   document.getElementById('wk-weight').value = bw;
   document.getElementById('wk-gender').value = p.gender;
+  selectWkGoal(p.goal);
 }
 
 function closeFitnessSetup() {
@@ -7442,11 +7452,11 @@ function saveFitnessProfile() {
 function setExPageTab(tab) {
   document.getElementById('ex-tab-log').style.display   = tab === 'log'     ? '' : 'none';
   document.getElementById('ex-tab-plan').style.display  = tab === 'workout' ? '' : 'none';
-  document.querySelectorAll('.ex-page-tab').forEach(b => {
+  document.querySelectorAll('.ex-page-tab-pill').forEach(b => {
     const active = b.dataset.tab === tab;
-    b.style.color      = active ? 'var(--green)'  : 'var(--muted)';
-    b.style.fontWeight = active ? '800' : '500';
-    b.style.borderBottom = active ? '2.5px solid var(--green)' : '2.5px solid transparent';
+    b.classList.toggle('active', active);
+    if (active && tab === 'workout') b.classList.add('active-workout');
+    else b.classList.remove('active-workout');
   });
   if (tab === 'workout') renderWorkoutTab();
 }

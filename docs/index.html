@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
   <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/style.css?v=20260720">
+  <link rel="stylesheet" href="css/style.css?v=20260831b">
   <style>
     .page { display: none; }
     .page.active { display: block; }
@@ -354,14 +354,12 @@
 
   <!-- Exercise -->
   <div id="page-exercise" class="page">
-    <!-- Sub-tab switcher -->
-    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;gap:0">
-      <button class="ex-page-tab" data-tab="log" onclick="setExPageTab('log')"
-        style="flex:1;background:none;border:none;border-bottom:2.5px solid var(--green);padding:10px 0;font-size:0.88rem;font-weight:800;color:var(--green);cursor:pointer">
-        <i class="bi bi-fire"></i> 運動記錄
+    <!-- Sub-tab switcher (pill style) -->
+    <div class="ex-page-tabs">
+      <button class="ex-page-tab-pill active" data-tab="log" onclick="setExPageTab('log')">
+        <i class="bi bi-fire" style="color:var(--orange)"></i> 運動記錄
       </button>
-      <button class="ex-page-tab" data-tab="workout" onclick="setExPageTab('workout')"
-        style="flex:1;background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 0;font-size:0.88rem;font-weight:500;color:var(--muted);cursor:pointer">
+      <button class="ex-page-tab-pill" data-tab="workout" onclick="setExPageTab('workout')">
         <i class="bi bi-dumbbell"></i> 健身菜單
       </button>
     </div>
@@ -486,61 +484,85 @@
   </div>
 
   <!-- Fitness setup modal -->
-  <div id="wk-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-end;justify-content:center">
-    <div style="background:var(--card-bg);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:20px 20px 32px;max-height:85vh;overflow-y:auto">
-      <div style="width:40px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 20px"></div>
-      <div style="font-weight:800;font-size:1.05rem;margin-bottom:20px">⚙️ 健身目標設定</div>
-
-      <div style="margin-bottom:14px">
-        <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">訓練目標</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-          <label style="cursor:pointer"><input type="radio" name="wk-goal-r" value="增肌" style="display:none" onchange="document.getElementById('wk-goal').value=this.value">
-            <div class="wk-goal-card" data-val="增肌" onclick="this.parentElement.querySelector('input').checked=true;document.getElementById('wk-goal').value='增肌';document.querySelectorAll('.wk-goal-card').forEach(c=>c.style.borderColor='var(--border)');this.style.borderColor='var(--green)'">💪<br><span>增肌</span></div></label>
-          <label style="cursor:pointer"><input type="radio" name="wk-goal-r" value="減脂" style="display:none" onchange="document.getElementById('wk-goal').value=this.value">
-            <div class="wk-goal-card" data-val="減脂" onclick="this.parentElement.querySelector('input').checked=true;document.getElementById('wk-goal').value='減脂';document.querySelectorAll('.wk-goal-card').forEach(c=>c.style.borderColor='var(--border)');this.style.borderColor='var(--green)'">🔥<br><span>減脂</span></div></label>
-          <label style="cursor:pointer"><input type="radio" name="wk-goal-r" value="維持" style="display:none" onchange="document.getElementById('wk-goal').value=this.value">
-            <div class="wk-goal-card" data-val="維持" onclick="this.parentElement.querySelector('input').checked=true;document.getElementById('wk-goal').value='維持';document.querySelectorAll('.wk-goal-card').forEach(c=>c.style.borderColor='var(--border)');this.style.borderColor='var(--green)'">⚖️<br><span>維持</span></div></label>
+  <div id="wk-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:1000;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)">
+    <div class="wk-modal-inner">
+      <!-- Sticky header -->
+      <div class="wk-modal-header">
+        <div style="width:38px;height:4px;background:#E2E8F0;border-radius:4px;margin:0 auto 16px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-weight:900;font-size:1.1rem;color:var(--text)">設定你的健身目標</div>
+            <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">完成設定後 NutriMate 會根據你的目標、<br>體重和訓練天數為你量身規劃菜單</div>
+          </div>
+          <button onclick="closeFitnessSetup()" style="background:#F1F5F9;border:none;border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:1rem;flex-shrink:0">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
-        <input type="hidden" id="wk-goal" value="增肌">
       </div>
 
-      <div style="margin-bottom:14px">
-        <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">訓練等級</label>
-        <select id="wk-level" class="form-input">
-          <option value="beginner">初學者（健身不到 1 年）</option>
-          <option value="intermediate">中級（1–3 年訓練經驗）</option>
-          <option value="advanced">進階（3 年以上）</option>
-        </select>
-      </div>
+      <div class="wk-modal-body">
+        <!-- Goal cards -->
+        <div style="margin-bottom:20px">
+          <span class="wk-section-label">訓練目標</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="wk-goal-card" id="wk-gc-增肌" onclick="selectWkGoal('增肌')">
+              💪<span style="color:#16A34A">增肌</span>
+            </div>
+            <div class="wk-goal-card" id="wk-gc-減脂" onclick="selectWkGoal('減脂')">
+              🔥<span style="color:#EA580C">減脂</span>
+            </div>
+            <div class="wk-goal-card" id="wk-gc-維持" onclick="selectWkGoal('維持')">
+              ⚖️<span style="color:#2563EB">維持</span>
+            </div>
+          </div>
+          <input type="hidden" id="wk-goal" value="增肌">
+        </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">每週訓練天數</label>
-          <select id="wk-days" class="form-input">
-            <option value="3">3 天</option>
-            <option value="4">4 天</option>
-            <option value="5">5 天</option>
+        <!-- Level -->
+        <div style="margin-bottom:16px">
+          <span class="wk-section-label">訓練等級</span>
+          <select id="wk-level" class="wk-select">
+            <option value="beginner">🌱 初學者（健身不到 1 年）</option>
+            <option value="intermediate">💪 中級（1–3 年訓練經驗）</option>
+            <option value="advanced">🏆 進階（3 年以上）</option>
           </select>
         </div>
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">性別</label>
-          <select id="wk-gender" class="form-input">
-            <option value="male">男性</option>
-            <option value="female">女性</option>
-          </select>
+
+        <!-- Days + Gender -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div>
+            <span class="wk-section-label">每週訓練天數</span>
+            <select id="wk-days" class="wk-select">
+              <option value="3">3 天</option>
+              <option value="4">4 天</option>
+              <option value="5">5 天</option>
+            </select>
+          </div>
+          <div>
+            <span class="wk-section-label">性別</span>
+            <select id="wk-gender" class="wk-select">
+              <option value="male">男性 ♂</option>
+              <option value="female">女性 ♀</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div style="margin-bottom:20px">
-        <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">體重（kg）— 用於推薦訓練重量</label>
-        <input id="wk-weight" type="number" class="form-input" placeholder="例：70" min="30" max="200" step="0.5">
-      </div>
+        <!-- Weight -->
+        <div style="margin-bottom:24px">
+          <span class="wk-section-label">體重（kg）— 用於推薦訓練重量</span>
+          <div style="position:relative">
+            <input id="wk-weight" type="number" class="form-input" placeholder="例：70" min="30" max="200" step="0.5" style="padding-right:44px">
+            <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:0.85rem;color:var(--muted);font-weight:600">kg</span>
+          </div>
+        </div>
 
-      <div style="display:flex;gap:10px">
-        <button class="btn-outline" style="flex:1;justify-content:center" onclick="closeFitnessSetup()">取消</button>
-        <button class="btn-primary" style="flex:2;justify-content:center" onclick="saveFitnessProfile()">
-          <i class="bi bi-check-circle"></i> 儲存設定
-        </button>
+        <!-- Action buttons -->
+        <div style="display:flex;gap:10px;padding-bottom:4px">
+          <button class="btn-outline" style="flex:1;justify-content:center" onclick="closeFitnessSetup()">取消</button>
+          <button class="btn-primary" style="flex:2;justify-content:center" onclick="saveFitnessProfile()">
+            <i class="bi bi-check-circle-fill"></i> 儲存設定
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1122,6 +1144,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20260720"></script>
+<script src="js/app.js?v=20260831b"></script>
 </body>
 </html>
