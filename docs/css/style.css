@@ -1021,3 +1021,50 @@ body {
 }
 .wk-cat-chip.active { background: var(--text); border-color: var(--text); color: white; }
 .wk-cat-chip:hover:not(.active) { border-color: var(--text-2); color: var(--text-2); }
+
+/* Day picker buttons */
+.wk-day-btn {
+  flex: 1;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: #F8FAFC;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  padding: 0;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wk-day-btn.active {
+  background: var(--green);
+  color: white;
+  border-color: var(--green);
+  box-shadow: 0 2px 8px rgba(22,192,96,0.35);
+}
+.wk-day-btn:hover:not(.active) { border-color: var(--green-mid); color: var(--green); }
+
+/* YouTube demo button */
+.wk-yt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #FF0000;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  margin-top: 10px;
+}
+.wk-yt-btn:hover { opacity: 0.85; color: white; }

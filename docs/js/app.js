@@ -6674,28 +6674,32 @@ const WK_EX = {
     muscles:['胸大肌','三角肌前束','三頭肌'],
     steps:['平躺臥推椅，眼睛對準槓鈴正下方','雙手比肩略寬握槓，手腕中立','肩胛下沉夾緊，腳踩穩地板','深吸氣，控制下放至乳頭線，手肘約 75°','呼氣，爆發推起至手臂伸直（不鎖死）'],
     tips:['槓鈴垂直移動','背部可自然拱起但臀不離椅','下放時感受胸肌拉伸'],
-    wt:{mb:0.5,mi:0.8,ma:1.15,fb:0.3,fi:0.5,fa:0.75}
+    wt:{mb:0.5,mi:0.8,ma:1.15,fb:0.3,fi:0.5,fa:0.75},
+    yt:'槓鈴臥推 bench press 教學 動作示範'
   },
   db_bench: {
     name:'啞鈴臥推', icon:'🏋️', cat:'chest', equip:'啞鈴', diff:2,
     muscles:['胸大肌','三角肌前束','三頭肌'],
     steps:['坐臥推椅邊，啞鈴立於膝上','仰臥同時將啞鈴推至胸口兩側','吸氣控制下放，啞鈴降至胸口高度','呼氣推起，啞鈴在頂端靠攏（不碰）','核心全程收緊'],
     tips:['活動範圍比槓鈴臥推大','手肘不要完全打開成180°','啞鈴路徑微弧形'],
-    wt:{mb:0.2,mi:0.33,ma:0.5,fb:0.13,fi:0.22,fa:0.35}
+    wt:{mb:0.2,mi:0.33,ma:0.5,fb:0.13,fi:0.22,fa:0.35},
+    yt:'啞鈴臥推 dumbbell bench press 教學'
   },
   incline_db: {
     name:'上斜啞鈴臥推', icon:'💪', cat:'chest', equip:'啞鈴', diff:2,
     muscles:['上胸','三角肌前束','三頭肌'],
     steps:['椅背調至 30–45°','坐上椅，啞鈴置膝，仰臥同時推起','吸氣控制下放，啞鈴至鎖骨高度','呼氣推起，感受上胸收縮','全程核心收緊、腰不過度拱起'],
     tips:['角度 30° 對上胸效果最佳','避免角度過陡變成肩推','動作末端稍微夾胸'],
-    wt:{mb:0.18,mi:0.3,ma:0.45,fb:0.12,fi:0.2,fa:0.32}
+    wt:{mb:0.18,mi:0.3,ma:0.45,fb:0.12,fi:0.2,fa:0.32},
+    yt:'上斜啞鈴臥推 incline dumbbell press 教學'
   },
   pushup: {
     name:'伏地挺身', icon:'🤸', cat:'chest', equip:'徒手', diff:1,
     muscles:['胸大肌','三角肌前束','三頭肌','核心'],
     steps:['手掌比肩略寬撐地，身體一直線','核心、臀部全程收緊','吸氣控制身體下降，胸部靠近地面','呼氣爆發推起至手臂伸直','頭頸不前伸，眼看地面'],
     tips:['身體保持一直線（不塌腰不翹臀）','下降時手肘約 45° 夾角','進階可做鑽石伏地挺身強化三頭'],
-    wt:null
+    wt:null,
+    yt:'伏地挺身 push up 正確動作 教學'
   },
   // ── 背 ──────────────────────────────────────────────────────────────────────
   lat_pull: {
@@ -6703,35 +6707,40 @@ const WK_EX = {
     muscles:['背闊肌','菱形肌','二頭肌'],
     steps:['調好大腿墊片，坐穩固定下肢','雙手比肩略寬正握橫槓','微微後傾（約 15°）','呼氣將槓下拉至鎖骨，手肘往腰部收','吸氣控制回起，感受背肌拉伸'],
     tips:['以手肘帶動動作（想像手肘插向口袋）','不要過度後仰成划船','下拉時肩胛下沉後收'],
-    wt:{mb:0.55,mi:0.75,ma:1.0,fb:0.4,fi:0.55,fa:0.75}
+    wt:{mb:0.55,mi:0.75,ma:1.0,fb:0.4,fi:0.55,fa:0.75},
+    yt:'高位下拉 lat pulldown 背闊肌 教學'
   },
   row_bar: {
     name:'槓鈴划船', icon:'🏋️', cat:'back', equip:'槓鈴', diff:3,
     muscles:['中背','背闊肌','後三角','二頭肌'],
     steps:['腰寬站距，俯身約 45°，背部打直','雙手正握槓鈴（略比肩寬）','呼氣將槓拉向下腹部，手肘夾緊','收縮時稍作停頓感受背部收縮','吸氣控制放下，手臂幾乎伸直'],
     tips:['背部全程中立，不駝背','重量過重時容易借腰—先降重','以手肘帶動非手掌'],
-    wt:{mb:0.5,mi:0.75,ma:1.1,fb:0.3,fi:0.5,fa:0.75}
+    wt:{mb:0.5,mi:0.75,ma:1.1,fb:0.3,fi:0.5,fa:0.75},
+    yt:'槓鈴划船 barbell row 背肌 教學 動作示範'
   },
   seated_row: {
     name:'坐姿划船機', icon:'🏋️', cat:'back', equip:'機械', diff:1,
     muscles:['中背','背闊肌','後三角','二頭肌'],
     steps:['坐穩，雙腳踩在踏板上，膝微彎','身體直立，雙手握握把','呼氣把手柄拉向下腹，肩胛後收','收縮停頓 1 秒','吸氣控制回伸，讓肩胛前伸拉伸背部'],
     tips:['不要靠身體搖晃借力','動作末端確實夾背','脊椎中立，不駝背'],
-    wt:{mb:0.5,mi:0.7,ma:0.95,fb:0.35,fi:0.5,fa:0.7}
+    wt:{mb:0.5,mi:0.7,ma:0.95,fb:0.35,fi:0.5,fa:0.7},
+    yt:'坐姿划船機 seated cable row 教學'
   },
   pullup: {
     name:'引體向上', icon:'🤸', cat:'back', equip:'徒手', diff:3,
     muscles:['背闊肌','二頭肌','核心'],
     steps:['正握或反握單槓，比肩略寬','核心收緊，身體穩定','呼氣以背闊肌拉起身體，下巴過槓','吸氣控制下降，手臂完全伸直','避免晃動身體借力'],
     tips:['做不到可先用輔助機或彈力帶','每次下降到底才算完整動作','反握（chin-up）二頭參與更多'],
-    wt:null
+    wt:null,
+    yt:'引體向上 pull up 正確動作 教學 背闊肌'
   },
   back_ext: {
     name:'山羊挺身', icon:'🤸', cat:'back', equip:'器材', diff:1,
     muscles:['豎脊肌','臀肌','腿後腱'],
     steps:['調好羅馬椅，髖部固定在墊頂邊緣','雙手交叉胸前或放頭後','身體向下彎曲至 90°','呼氣以下背力量挺起至身體與地面平行','不要過度後仰（避免腰椎過伸）'],
     tips:['挺起速度不要過快','如需增加強度可手持槓片','動作全程保持下背中立'],
-    wt:null
+    wt:null,
+    yt:'山羊挺身 back extension 豎脊肌 教學'
   },
   // ── 腿 ──────────────────────────────────────────────────────────────────────
   squat: {
@@ -6739,35 +6748,40 @@ const WK_EX = {
     muscles:['股四頭肌','臀大肌','腿後腱','核心'],
     steps:['槓置於斜方肌上（高槓）或後三角（低槓）','站距略比肩寬，腳尖微微外轉 15–30°','深吸氣，收核心，屈髖向後坐下','大腿至少平行地面，膝朝腳尖方向','呼氣用力蹬地站起，全程背部中立'],
     tips:['膝蓋不要向內塌陷','腳跟全程踩地（必要時墊腳跟）','視線平視或微微向上'],
-    wt:{mb:0.65,mi:1.0,ma:1.4,fb:0.45,fi:0.7,fa:1.0}
+    wt:{mb:0.65,mi:1.0,ma:1.4,fb:0.45,fi:0.7,fa:1.0},
+    yt:'槓鈴深蹲 back squat 正確動作 教學'
   },
   leg_press: {
     name:'腿推機', icon:'🏋️', cat:'legs', equip:'機械', diff:1,
     muscles:['股四頭肌','臀大肌','腿後腱'],
     steps:['背部貼緊椅墊，雙腳踩踏板（與肩同寬）','解開安全閂，吸氣控制腿部彎曲至 90°','呼氣以腳跟發力推起至膝微彎','不要讓膝蓋鎖死（避免關節壓力）'],
     tips:['腳位較高可強化臀部，較低強化大腿前側','每次完全彎曲到底再推','重量可比深蹲大很多'],
-    wt:{mb:1.0,mi:1.5,ma:2.2,fb:0.7,fi:1.1,fa:1.6}
+    wt:{mb:1.0,mi:1.5,ma:2.2,fb:0.7,fi:1.1,fa:1.6},
+    yt:'腿推機 leg press 教學 大腿訓練'
   },
   rdl: {
     name:'羅馬尼亞硬舉', icon:'🏋️', cat:'legs', equip:'槓鈴', diff:2,
     muscles:['腿後腱','臀大肌','豎脊肌'],
     steps:['直立握槓（肩寬），槓緊貼大腿','微彎膝關節（不完全伸直），保持全程','呼氣，髖部後推，身體前傾（背打直）','感受腿後腱強烈拉伸，槓沿腿下滑至小腿中段','吸氣臀部發力站起，臀部夾緊完成動作'],
     tips:['背部全程中立，不圓背','膝蓋彎曲幅度不變','動作末端不需過度後仰'],
-    wt:{mb:0.5,mi:0.8,ma:1.15,fb:0.35,fi:0.6,fa:0.85}
+    wt:{mb:0.5,mi:0.8,ma:1.15,fb:0.35,fi:0.6,fa:0.85},
+    yt:'羅馬尼亞硬舉 RDL Romanian deadlift 教學'
   },
   leg_curl: {
     name:'大腿彎舉機', icon:'🏋️', cat:'legs', equip:'機械', diff:1,
     muscles:['腿後腱'],
     steps:['俯臥在機器上，腳踝置於滾輪下方','膝關節對齊機器轉軸','呼氣彎曲膝關節，腳跟向臀部收縮','頂端停頓 1 秒','吸氣控制緩慢回放'],
     tips:['髖部貼緊墊子，不要抬起','不要用爆發力甩動','也可使用坐姿版腿彎舉'],
-    wt:{mb:0.3,mi:0.45,ma:0.6,fb:0.22,fi:0.33,fa:0.45}
+    wt:{mb:0.3,mi:0.45,ma:0.6,fb:0.22,fi:0.33,fa:0.45},
+    yt:'大腿彎舉 leg curl 腿後腱 教學'
   },
   lunge: {
     name:'弓步蹲', icon:'🤸', cat:'legs', equip:'啞鈴/徒手', diff:1,
     muscles:['股四頭肌','臀大肌','平衡肌群'],
     steps:['直立站好，雙手可持啞鈴或叉腰','一腳向前跨大步','後膝垂直下落至離地約 2–3cm','前膝不超過腳尖太多','用前腳蹬起回到起始位，換腳'],
     tips:['身體保持直立不前傾','步距要夠大（約肩寬 1.5 倍）','初學者先徒手，熟練再加重'],
-    wt:{mb:0.12,mi:0.2,ma:0.3,fb:0.08,fi:0.14,fa:0.22}
+    wt:{mb:0.12,mi:0.2,ma:0.3,fb:0.08,fi:0.14,fa:0.22},
+    yt:'弓步蹲 lunge 股四頭肌 臀大肌 教學'
   },
   // ── 肩 ──────────────────────────────────────────────────────────────────────
   ohp: {
@@ -6775,21 +6789,24 @@ const WK_EX = {
     muscles:['三角肌中束','三角肌前束','三頭肌','斜方肌'],
     steps:['站立或坐姿，槓置於鎖骨上方','握距略比肩寬，手肘在槓下方','深吸氣，核心收緊','呼氣垂直推起，頭微後退讓路','到達頂端時手臂完全伸直（不鎖死）','吸氣控制下放回鎖骨'],
     tips:['不要過度腰椎前凸（核心要收緊）','頂端讓槓通過頭部而非繞開','坐姿做可以減少借力'],
-    wt:{mb:0.35,mi:0.55,ma:0.8,fb:0.2,fi:0.35,fa:0.52}
+    wt:{mb:0.35,mi:0.55,ma:0.8,fb:0.2,fi:0.35,fa:0.52},
+    yt:'槓鈴肩推 overhead press OHP 教學 三角肌'
   },
   db_ohp: {
     name:'啞鈴肩推', icon:'💪', cat:'shoulders', equip:'啞鈴', diff:2,
     muscles:['三角肌中束','三角肌前束','三頭肌'],
     steps:['坐調背靠椅（90°），啞鈴置肩上','掌心朝前或旋轉（Neutral grip）','呼氣推起，啞鈴在頂端靠攏（不碰）','吸氣控制下放至肩膀高度'],
     tips:['比槓鈴版需要更多穩定性','活動範圍可以更大','頂端不要讓啞鈴碰在一起'],
-    wt:{mb:0.15,mi:0.25,ma:0.37,fb:0.1,fi:0.17,fa:0.26}
+    wt:{mb:0.15,mi:0.25,ma:0.37,fb:0.1,fi:0.17,fa:0.26},
+    yt:'啞鈴肩推 dumbbell shoulder press 教學'
   },
   lateral: {
     name:'啞鈴側平舉', icon:'💪', cat:'shoulders', equip:'啞鈴', diff:1,
     muscles:['三角肌中束'],
     steps:['站立或坐姿，雙手各持啞鈴垂於身側','膝微彎，身體微微前傾（約 10°）','呼氣將雙臂側舉至肩膀高度（小指略高）','短暫停頓','吸氣控制緩慢下放'],
     tips:['使用輕重量、感受中束燃燒感','不要聳肩借力','以 15-20 reps 高次數效果佳'],
-    wt:{mb:0.05,mi:0.09,ma:0.14,fb:0.03,fi:0.06,fa:0.1}
+    wt:{mb:0.05,mi:0.09,ma:0.14,fb:0.03,fi:0.06,fa:0.1},
+    yt:'啞鈴側平舉 lateral raise 三角肌 教學'
   },
   // ── 手臂 ─────────────────────────────────────────────────────────────────────
   curl: {
@@ -6797,21 +6814,24 @@ const WK_EX = {
     muscles:['肱二頭肌','肱肌'],
     steps:['站立或坐姿，雙手各持啞鈴，掌心朝前','上臂緊貼身體側面（不要晃動）','呼氣彎舉啞鈴至肩膀高度，頂端收縮','吸氣控制下放，手臂幾乎完全伸直'],
     tips:['上臂不要前後晃動（固定就是訓練效果的關鍵）','也可交替彎舉增加動作範圍','控制下放速度（2秒）'],
-    wt:{mb:0.08,mi:0.14,ma:0.2,fb:0.05,fi:0.09,fa:0.13}
+    wt:{mb:0.08,mi:0.14,ma:0.2,fb:0.05,fi:0.09,fa:0.13},
+    yt:'啞鈴二頭彎舉 dumbbell bicep curl 教學'
   },
   tricep_push: {
     name:'繩索三頭下推', icon:'💪', cat:'arms', equip:'機械', diff:1,
     muscles:['肱三頭肌'],
     steps:['站在繩索機前，抓住直槓或繩子','上臂緊貼身側，身體微前傾','呼氣將槓推至手臂完全伸直，三頭完全收縮','吸氣控制回起至前臂與地面平行'],
     tips:['上臂固定不動（只動前臂）','頂端收縮停留 1 秒','避免過度聳肩'],
-    wt:{mb:0.2,mi:0.35,ma:0.5,fb:0.13,fi:0.23,fa:0.35}
+    wt:{mb:0.2,mi:0.35,ma:0.5,fb:0.13,fi:0.23,fa:0.35},
+    yt:'繩索三頭下推 tricep pushdown 三頭肌 教學'
   },
   dips: {
     name:'雙槓撐體', icon:'🤸', cat:'arms', equip:'器材', diff:2,
     muscles:['肱三頭肌','胸大肌下束','三角肌前束'],
     steps:['雙手握雙槓，手臂伸直撐起身體','稍微前傾（強化胸）或直立（強化三頭）','吸氣彎曲手肘下降，至上臂與地面平行','呼氣伸直手臂推起'],
     tips:['初學者可用輔助機（負重版）','手肘夾緊身側強化三頭','前傾角度越大胸肌參與越多'],
-    wt:null
+    wt:null,
+    yt:'雙槓撐體 dips 三頭肌 教學 動作示範'
   },
   // ── 核心 ─────────────────────────────────────────────────────────────────────
   plank: {
@@ -6819,14 +6839,16 @@ const WK_EX = {
     muscles:['腹橫肌','核心','肩帶'],
     steps:['前臂撐地，手肘在肩膀正下方','腳尖撐地，身體形成一直線','縮肛收腹，不憋氣正常呼吸','保持規定時間'],
     tips:['臀部不要抬高或下塌','眼睛看地面（頸椎中立）','初學者可從膝蓋撐地版開始'],
-    wt:null
+    wt:null,
+    yt:'平板支撐 plank 核心訓練 教學 正確姿勢'
   },
   crunch: {
     name:'捲腹', icon:'🤸', cat:'core', equip:'徒手', diff:1,
     muscles:['腹直肌'],
     steps:['仰臥，膝蓋彎曲踩地，雙手輕放耳側','呼氣，上背離地，以腹肌捲起（非坐起）','肩胛骨離地即可，感受腹部收縮','吸氣控制緩慢躺回（但肩膀不貼地）'],
     tips:['不要拉頭頸（頸椎易受傷）','動作範圍小但精準','速度放慢效果更好'],
-    wt:null
+    wt:null,
+    yt:'捲腹 crunch 腹直肌 核心 教學 正確動作'
   },
 };
 
@@ -7223,7 +7245,8 @@ function _wkTodayWorkout(profile) {
   if (!key) return null;
   const plan = WK_PLANS[key];
   const dow = new Date().getDay();
-  if (!plan.pattern.includes(dow)) return null; // rest day
+  const activePattern = profile.customPattern || plan.pattern;
+  if (!activePattern.includes(dow)) return null;
   const count = _wkCount();
   const rotIdx = count % plan.rotation.length;
   const wName = plan.rotation[rotIdx];
@@ -7307,11 +7330,11 @@ function renderWorkoutTab() {
   const advice = _wkDietAdvice(profile);
   const isDone = _wkTodayDone();
   const dow = new Date().getDay();
-  const isTrainingDay = plan.pattern.includes(dow);
-
+  const activePattern = profile.customPattern || plan.pattern;
+  const isTrainingDay = activePattern.includes(dow);
   const dayNames = ['日','一','二','三','四','五','六'];
   const weekDots = [0,1,2,3,4,5,6].map(d => {
-    const isTrain = plan.pattern.includes(d);
+    const isTrain = activePattern.includes(d);
     const isToday = d === dow;
     let bg, fg, bd, sz;
     if (isToday && isTrain)   { bg='var(--green)';  fg='white';         bd='none';                       sz='34px'; }
@@ -7377,6 +7400,7 @@ function renderWorkoutTab() {
             <div style="font-size:0.78rem;font-weight:700;color:var(--text-2);margin:10px 0 6px">💡 重點提示</div>
             ${ex.tips.map(t => `<div style="font-size:0.77rem;color:var(--muted);margin-bottom:4px;padding-left:4px">• ${t}</div>`).join('')}
             <div style="margin-top:10px;font-size:0.72rem;color:var(--muted)">休息：${e.rest} 秒 / 組間</div>
+            ${ex.yt ? `<a class="wk-yt-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.yt)}" target="_blank" rel="noopener"><i class="bi bi-play-circle-fill"></i> 觀看示範影片</a>` : ''}
           </div>
         </div>`;
     }).join('');
@@ -7484,6 +7508,7 @@ function renderWorkoutTab() {
                 ${ex.steps.map((s,i) => `<div style="display:flex;gap:8px;margin-bottom:5px;font-size:0.78rem;color:var(--text)"><span style="flex-shrink:0;width:18px;height:18px;background:var(--green);color:white;border-radius:50%;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><span>${s}</span></div>`).join('')}
                 <div style="font-size:0.78rem;font-weight:700;color:var(--text-2);margin:10px 0 6px">💡 重點提示</div>
                 ${ex.tips.map(t => `<div style="font-size:0.77rem;color:var(--muted);margin-bottom:4px;padding-left:4px">• ${t}</div>`).join('')}
+                ${ex.yt ? `<a class="wk-yt-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.yt)}" target="_blank" rel="noopener"><i class="bi bi-play-circle-fill"></i> 觀看示範影片</a>` : ''}
               </div>
             </div>`).join('')}
         </div>
@@ -7524,16 +7549,34 @@ function selectWkGoal(goal) {
   });
 }
 
+function toggleWkDay(d) {
+  const btn = document.querySelector(`.wk-day-btn[data-day="${d}"]`);
+  if (!btn) return;
+  btn.classList.toggle('active');
+  const selected = [...document.querySelectorAll('.wk-day-btn.active')].map(b => parseInt(b.dataset.day));
+  document.getElementById('wk-days').value = selected.length || 1;
+}
+
+function _initDayPicker(pattern) {
+  document.querySelectorAll('.wk-day-btn').forEach(btn => {
+    const d = parseInt(btn.dataset.day);
+    btn.classList.toggle('active', pattern.includes(d));
+  });
+  document.getElementById('wk-days').value = pattern.length || 1;
+}
+
 function openFitnessSetup() {
   const p = _wkProfile() || { goal:'增肌', level:'beginner', days:3, weight:'', gender:'male' };
   const bw = p.weight || (DB.getGoals && DB.getGoals().weight) || '';
   document.getElementById('wk-setup-modal').style.display = 'flex';
   document.getElementById('wk-goal').value   = p.goal;
   document.getElementById('wk-level').value  = p.level;
-  document.getElementById('wk-days').value   = p.days;
   document.getElementById('wk-weight').value = bw;
   document.getElementById('wk-gender').value = p.gender;
   selectWkGoal(p.goal);
+  const key = _wkPlanKey(p);
+  const defaultPattern = key ? (WK_PLANS[key].pattern) : [1,3,5];
+  _initDayPicker(p.customPattern || defaultPattern);
 }
 
 function closeFitnessSetup() {
@@ -7541,15 +7584,21 @@ function closeFitnessSetup() {
 }
 
 function saveFitnessProfile() {
+  const selectedDays = [...document.querySelectorAll('.wk-day-btn.active')].map(b => parseInt(b.dataset.day)).sort((a,b) => a-b);
   const p = {
-    goal:   document.getElementById('wk-goal').value,
-    level:  document.getElementById('wk-level').value,
-    days:   parseInt(document.getElementById('wk-days').value),
-    weight: document.getElementById('wk-weight').value,
-    gender: document.getElementById('wk-gender').value,
+    goal:          document.getElementById('wk-goal').value,
+    level:         document.getElementById('wk-level').value,
+    days:          selectedDays.length || 1,
+    customPattern: selectedDays,
+    weight:        document.getElementById('wk-weight').value,
+    gender:        document.getElementById('wk-gender').value,
   };
   if (!p.weight || parseFloat(p.weight) < 30) {
     showToast('請輸入體重（用於推薦重量）');
+    return;
+  }
+  if (selectedDays.length === 0) {
+    showToast('請至少選擇一天訓練日');
     return;
   }
   _wkSaveProfile(p);
