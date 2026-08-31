@@ -6586,6 +6586,795 @@ function autoCalcWater() {
   showToast(`💧 飲水目標設為 ${goal} ml（${w}kg × 35ml）`);
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── 健身菜單 (Workout Planner) ─────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+const WK_EX = {
+  // ── 胸 ──────────────────────────────────────────────────────────────────────
+  bench: {
+    name:'槓鈴臥推', icon:'🏋️', cat:'chest', equip:'槓鈴', diff:2,
+    muscles:['胸大肌','三角肌前束','三頭肌'],
+    steps:['平躺臥推椅，眼睛對準槓鈴正下方','雙手比肩略寬握槓，手腕中立','肩胛下沉夾緊，腳踩穩地板','深吸氣，控制下放至乳頭線，手肘約 75°','呼氣，爆發推起至手臂伸直（不鎖死）'],
+    tips:['槓鈴垂直移動','背部可自然拱起但臀不離椅','下放時感受胸肌拉伸'],
+    wt:{mb:0.5,mi:0.8,ma:1.15,fb:0.3,fi:0.5,fa:0.75}
+  },
+  db_bench: {
+    name:'啞鈴臥推', icon:'🏋️', cat:'chest', equip:'啞鈴', diff:2,
+    muscles:['胸大肌','三角肌前束','三頭肌'],
+    steps:['坐臥推椅邊，啞鈴立於膝上','仰臥同時將啞鈴推至胸口兩側','吸氣控制下放，啞鈴降至胸口高度','呼氣推起，啞鈴在頂端靠攏（不碰）','核心全程收緊'],
+    tips:['活動範圍比槓鈴臥推大','手肘不要完全打開成180°','啞鈴路徑微弧形'],
+    wt:{mb:0.2,mi:0.33,ma:0.5,fb:0.13,fi:0.22,fa:0.35}
+  },
+  incline_db: {
+    name:'上斜啞鈴臥推', icon:'💪', cat:'chest', equip:'啞鈴', diff:2,
+    muscles:['上胸','三角肌前束','三頭肌'],
+    steps:['椅背調至 30–45°','坐上椅，啞鈴置膝，仰臥同時推起','吸氣控制下放，啞鈴至鎖骨高度','呼氣推起，感受上胸收縮','全程核心收緊、腰不過度拱起'],
+    tips:['角度 30° 對上胸效果最佳','避免角度過陡變成肩推','動作末端稍微夾胸'],
+    wt:{mb:0.18,mi:0.3,ma:0.45,fb:0.12,fi:0.2,fa:0.32}
+  },
+  pushup: {
+    name:'伏地挺身', icon:'🤸', cat:'chest', equip:'徒手', diff:1,
+    muscles:['胸大肌','三角肌前束','三頭肌','核心'],
+    steps:['手掌比肩略寬撐地，身體一直線','核心、臀部全程收緊','吸氣控制身體下降，胸部靠近地面','呼氣爆發推起至手臂伸直','頭頸不前伸，眼看地面'],
+    tips:['身體保持一直線（不塌腰不翹臀）','下降時手肘約 45° 夾角','進階可做鑽石伏地挺身強化三頭'],
+    wt:null
+  },
+  // ── 背 ──────────────────────────────────────────────────────────────────────
+  lat_pull: {
+    name:'高位下拉', icon:'🏋️', cat:'back', equip:'機械', diff:1,
+    muscles:['背闊肌','菱形肌','二頭肌'],
+    steps:['調好大腿墊片，坐穩固定下肢','雙手比肩略寬正握橫槓','微微後傾（約 15°）','呼氣將槓下拉至鎖骨，手肘往腰部收','吸氣控制回起，感受背肌拉伸'],
+    tips:['以手肘帶動動作（想像手肘插向口袋）','不要過度後仰成划船','下拉時肩胛下沉後收'],
+    wt:{mb:0.55,mi:0.75,ma:1.0,fb:0.4,fi:0.55,fa:0.75}
+  },
+  row_bar: {
+    name:'槓鈴划船', icon:'🏋️', cat:'back', equip:'槓鈴', diff:3,
+    muscles:['中背','背闊肌','後三角','二頭肌'],
+    steps:['腰寬站距，俯身約 45°，背部打直','雙手正握槓鈴（略比肩寬）','呼氣將槓拉向下腹部，手肘夾緊','收縮時稍作停頓感受背部收縮','吸氣控制放下，手臂幾乎伸直'],
+    tips:['背部全程中立，不駝背','重量過重時容易借腰—先降重','以手肘帶動非手掌'],
+    wt:{mb:0.5,mi:0.75,ma:1.1,fb:0.3,fi:0.5,fa:0.75}
+  },
+  seated_row: {
+    name:'坐姿划船機', icon:'🏋️', cat:'back', equip:'機械', diff:1,
+    muscles:['中背','背闊肌','後三角','二頭肌'],
+    steps:['坐穩，雙腳踩在踏板上，膝微彎','身體直立，雙手握握把','呼氣把手柄拉向下腹，肩胛後收','收縮停頓 1 秒','吸氣控制回伸，讓肩胛前伸拉伸背部'],
+    tips:['不要靠身體搖晃借力','動作末端確實夾背','脊椎中立，不駝背'],
+    wt:{mb:0.5,mi:0.7,ma:0.95,fb:0.35,fi:0.5,fa:0.7}
+  },
+  pullup: {
+    name:'引體向上', icon:'🤸', cat:'back', equip:'徒手', diff:3,
+    muscles:['背闊肌','二頭肌','核心'],
+    steps:['正握或反握單槓，比肩略寬','核心收緊，身體穩定','呼氣以背闊肌拉起身體，下巴過槓','吸氣控制下降，手臂完全伸直','避免晃動身體借力'],
+    tips:['做不到可先用輔助機或彈力帶','每次下降到底才算完整動作','反握（chin-up）二頭參與更多'],
+    wt:null
+  },
+  back_ext: {
+    name:'山羊挺身', icon:'🤸', cat:'back', equip:'器材', diff:1,
+    muscles:['豎脊肌','臀肌','腿後腱'],
+    steps:['調好羅馬椅，髖部固定在墊頂邊緣','雙手交叉胸前或放頭後','身體向下彎曲至 90°','呼氣以下背力量挺起至身體與地面平行','不要過度後仰（避免腰椎過伸）'],
+    tips:['挺起速度不要過快','如需增加強度可手持槓片','動作全程保持下背中立'],
+    wt:null
+  },
+  // ── 腿 ──────────────────────────────────────────────────────────────────────
+  squat: {
+    name:'槓鈴深蹲', icon:'🏋️', cat:'legs', equip:'槓鈴', diff:3,
+    muscles:['股四頭肌','臀大肌','腿後腱','核心'],
+    steps:['槓置於斜方肌上（高槓）或後三角（低槓）','站距略比肩寬，腳尖微微外轉 15–30°','深吸氣，收核心，屈髖向後坐下','大腿至少平行地面，膝朝腳尖方向','呼氣用力蹬地站起，全程背部中立'],
+    tips:['膝蓋不要向內塌陷','腳跟全程踩地（必要時墊腳跟）','視線平視或微微向上'],
+    wt:{mb:0.65,mi:1.0,ma:1.4,fb:0.45,fi:0.7,fa:1.0}
+  },
+  leg_press: {
+    name:'腿推機', icon:'🏋️', cat:'legs', equip:'機械', diff:1,
+    muscles:['股四頭肌','臀大肌','腿後腱'],
+    steps:['背部貼緊椅墊，雙腳踩踏板（與肩同寬）','解開安全閂，吸氣控制腿部彎曲至 90°','呼氣以腳跟發力推起至膝微彎','不要讓膝蓋鎖死（避免關節壓力）'],
+    tips:['腳位較高可強化臀部，較低強化大腿前側','每次完全彎曲到底再推','重量可比深蹲大很多'],
+    wt:{mb:1.0,mi:1.5,ma:2.2,fb:0.7,fi:1.1,fa:1.6}
+  },
+  rdl: {
+    name:'羅馬尼亞硬舉', icon:'🏋️', cat:'legs', equip:'槓鈴', diff:2,
+    muscles:['腿後腱','臀大肌','豎脊肌'],
+    steps:['直立握槓（肩寬），槓緊貼大腿','微彎膝關節（不完全伸直），保持全程','呼氣，髖部後推，身體前傾（背打直）','感受腿後腱強烈拉伸，槓沿腿下滑至小腿中段','吸氣臀部發力站起，臀部夾緊完成動作'],
+    tips:['背部全程中立，不圓背','膝蓋彎曲幅度不變','動作末端不需過度後仰'],
+    wt:{mb:0.5,mi:0.8,ma:1.15,fb:0.35,fi:0.6,fa:0.85}
+  },
+  leg_curl: {
+    name:'大腿彎舉機', icon:'🏋️', cat:'legs', equip:'機械', diff:1,
+    muscles:['腿後腱'],
+    steps:['俯臥在機器上，腳踝置於滾輪下方','膝關節對齊機器轉軸','呼氣彎曲膝關節，腳跟向臀部收縮','頂端停頓 1 秒','吸氣控制緩慢回放'],
+    tips:['髖部貼緊墊子，不要抬起','不要用爆發力甩動','也可使用坐姿版腿彎舉'],
+    wt:{mb:0.3,mi:0.45,ma:0.6,fb:0.22,fi:0.33,fa:0.45}
+  },
+  lunge: {
+    name:'弓步蹲', icon:'🤸', cat:'legs', equip:'啞鈴/徒手', diff:1,
+    muscles:['股四頭肌','臀大肌','平衡肌群'],
+    steps:['直立站好，雙手可持啞鈴或叉腰','一腳向前跨大步','後膝垂直下落至離地約 2–3cm','前膝不超過腳尖太多','用前腳蹬起回到起始位，換腳'],
+    tips:['身體保持直立不前傾','步距要夠大（約肩寬 1.5 倍）','初學者先徒手，熟練再加重'],
+    wt:{mb:0.12,mi:0.2,ma:0.3,fb:0.08,fi:0.14,fa:0.22}
+  },
+  // ── 肩 ──────────────────────────────────────────────────────────────────────
+  ohp: {
+    name:'槓鈴肩推', icon:'🏋️', cat:'shoulders', equip:'槓鈴', diff:2,
+    muscles:['三角肌中束','三角肌前束','三頭肌','斜方肌'],
+    steps:['站立或坐姿，槓置於鎖骨上方','握距略比肩寬，手肘在槓下方','深吸氣，核心收緊','呼氣垂直推起，頭微後退讓路','到達頂端時手臂完全伸直（不鎖死）','吸氣控制下放回鎖骨'],
+    tips:['不要過度腰椎前凸（核心要收緊）','頂端讓槓通過頭部而非繞開','坐姿做可以減少借力'],
+    wt:{mb:0.35,mi:0.55,ma:0.8,fb:0.2,fi:0.35,fa:0.52}
+  },
+  db_ohp: {
+    name:'啞鈴肩推', icon:'💪', cat:'shoulders', equip:'啞鈴', diff:2,
+    muscles:['三角肌中束','三角肌前束','三頭肌'],
+    steps:['坐調背靠椅（90°），啞鈴置肩上','掌心朝前或旋轉（Neutral grip）','呼氣推起，啞鈴在頂端靠攏（不碰）','吸氣控制下放至肩膀高度'],
+    tips:['比槓鈴版需要更多穩定性','活動範圍可以更大','頂端不要讓啞鈴碰在一起'],
+    wt:{mb:0.15,mi:0.25,ma:0.37,fb:0.1,fi:0.17,fa:0.26}
+  },
+  lateral: {
+    name:'啞鈴側平舉', icon:'💪', cat:'shoulders', equip:'啞鈴', diff:1,
+    muscles:['三角肌中束'],
+    steps:['站立或坐姿，雙手各持啞鈴垂於身側','膝微彎，身體微微前傾（約 10°）','呼氣將雙臂側舉至肩膀高度（小指略高）','短暫停頓','吸氣控制緩慢下放'],
+    tips:['使用輕重量、感受中束燃燒感','不要聳肩借力','以 15-20 reps 高次數效果佳'],
+    wt:{mb:0.05,mi:0.09,ma:0.14,fb:0.03,fi:0.06,fa:0.1}
+  },
+  // ── 手臂 ─────────────────────────────────────────────────────────────────────
+  curl: {
+    name:'啞鈴二頭彎舉', icon:'💪', cat:'arms', equip:'啞鈴', diff:1,
+    muscles:['肱二頭肌','肱肌'],
+    steps:['站立或坐姿，雙手各持啞鈴，掌心朝前','上臂緊貼身體側面（不要晃動）','呼氣彎舉啞鈴至肩膀高度，頂端收縮','吸氣控制下放，手臂幾乎完全伸直'],
+    tips:['上臂不要前後晃動（固定就是訓練效果的關鍵）','也可交替彎舉增加動作範圍','控制下放速度（2秒）'],
+    wt:{mb:0.08,mi:0.14,ma:0.2,fb:0.05,fi:0.09,fa:0.13}
+  },
+  tricep_push: {
+    name:'繩索三頭下推', icon:'💪', cat:'arms', equip:'機械', diff:1,
+    muscles:['肱三頭肌'],
+    steps:['站在繩索機前，抓住直槓或繩子','上臂緊貼身側，身體微前傾','呼氣將槓推至手臂完全伸直，三頭完全收縮','吸氣控制回起至前臂與地面平行'],
+    tips:['上臂固定不動（只動前臂）','頂端收縮停留 1 秒','避免過度聳肩'],
+    wt:{mb:0.2,mi:0.35,ma:0.5,fb:0.13,fi:0.23,fa:0.35}
+  },
+  dips: {
+    name:'雙槓撐體', icon:'🤸', cat:'arms', equip:'器材', diff:2,
+    muscles:['肱三頭肌','胸大肌下束','三角肌前束'],
+    steps:['雙手握雙槓，手臂伸直撐起身體','稍微前傾（強化胸）或直立（強化三頭）','吸氣彎曲手肘下降，至上臂與地面平行','呼氣伸直手臂推起'],
+    tips:['初學者可用輔助機（負重版）','手肘夾緊身側強化三頭','前傾角度越大胸肌參與越多'],
+    wt:null
+  },
+  // ── 核心 ─────────────────────────────────────────────────────────────────────
+  plank: {
+    name:'平板支撐', icon:'🤸', cat:'core', equip:'徒手', diff:1,
+    muscles:['腹橫肌','核心','肩帶'],
+    steps:['前臂撐地，手肘在肩膀正下方','腳尖撐地，身體形成一直線','縮肛收腹，不憋氣正常呼吸','保持規定時間'],
+    tips:['臀部不要抬高或下塌','眼睛看地面（頸椎中立）','初學者可從膝蓋撐地版開始'],
+    wt:null
+  },
+  crunch: {
+    name:'捲腹', icon:'🤸', cat:'core', equip:'徒手', diff:1,
+    muscles:['腹直肌'],
+    steps:['仰臥，膝蓋彎曲踩地，雙手輕放耳側','呼氣，上背離地，以腹肌捲起（非坐起）','肩胛骨離地即可，感受腹部收縮','吸氣控制緩慢躺回（但肩膀不貼地）'],
+    tips:['不要拉頭頸（頸椎易受傷）','動作範圍小但精準','速度放慢效果更好'],
+    wt:null
+  },
+};
+
+const WK_PLANS = {
+  // ── 增肌 ──────────────────────────────────────────────────────────────────
+  '增肌_3': {
+    name:'全身增肌計畫（週 3 天）', desc:'週一、三、五訓練，充分休息',
+    pattern:[1,3,5],
+    rotation:['A','B','A','B','A','B'],
+    workouts:{
+      'A':{ name:'全身訓練 A', focus:'胸背腿', exs:[
+        {id:'squat',   sets:4, reps:'6-8',  rest:120},
+        {id:'bench',   sets:4, reps:'6-8',  rest:120},
+        {id:'row_bar', sets:3, reps:'8-10', rest:90},
+        {id:'ohp',     sets:3, reps:'8-10', rest:90},
+        {id:'curl',    sets:3, reps:'10-12',rest:60},
+      ]},
+      'B':{ name:'全身訓練 B', focus:'腿肩核心', exs:[
+        {id:'rdl',        sets:4, reps:'6-8',  rest:120},
+        {id:'incline_db', sets:4, reps:'8-10', rest:90},
+        {id:'lat_pull',   sets:3, reps:'8-10', rest:90},
+        {id:'lateral',    sets:4, reps:'15-20',rest:60},
+        {id:'crunch',     sets:3, reps:'15-20',rest:45},
+      ]},
+    }
+  },
+  '增肌_4': {
+    name:'上下分化增肌計畫（週 4 天）', desc:'週一二、四五訓練',
+    pattern:[1,2,4,5],
+    rotation:['上A','下A','上B','下B'],
+    workouts:{
+      '上A':{ name:'上肢 A', focus:'胸背', exs:[
+        {id:'bench',     sets:4, reps:'6-8',  rest:120},
+        {id:'row_bar',   sets:4, reps:'6-8',  rest:120},
+        {id:'incline_db',sets:3, reps:'8-10', rest:90},
+        {id:'lat_pull',  sets:3, reps:'8-10', rest:90},
+        {id:'curl',      sets:3, reps:'10-12',rest:60},
+        {id:'dips',      sets:3, reps:'8-12', rest:60},
+      ]},
+      '下A':{ name:'下肢 A', focus:'股四頭臀', exs:[
+        {id:'squat',    sets:4, reps:'5-7',  rest:150},
+        {id:'leg_press',sets:3, reps:'8-12', rest:90},
+        {id:'lunge',    sets:3, reps:'10-12',rest:90},
+        {id:'leg_curl', sets:3, reps:'10-15',rest:60},
+        {id:'plank',    sets:3, reps:'40s',  rest:45},
+      ]},
+      '上B':{ name:'上肢 B', focus:'肩手臂', exs:[
+        {id:'ohp',       sets:4, reps:'6-8',  rest:120},
+        {id:'seated_row',sets:4, reps:'8-10', rest:90},
+        {id:'db_bench',  sets:3, reps:'8-10', rest:90},
+        {id:'lateral',   sets:4, reps:'15-20',rest:60},
+        {id:'tricep_push',sets:3,reps:'10-15',rest:60},
+        {id:'curl',      sets:3, reps:'10-12',rest:60},
+      ]},
+      '下B':{ name:'下肢 B', focus:'腿後鍊核心', exs:[
+        {id:'rdl',       sets:4, reps:'8-10', rest:120},
+        {id:'leg_curl',  sets:3, reps:'10-12',rest:90},
+        {id:'lunge',     sets:3, reps:'12-15',rest:90},
+        {id:'back_ext',  sets:3, reps:'12-15',rest:60},
+        {id:'crunch',    sets:3, reps:'20',   rest:45},
+      ]},
+    }
+  },
+  '增肌_5': {
+    name:'推拉腿計畫（週 5 天）', desc:'週一至五各訓練，週末休息',
+    pattern:[1,2,3,4,5],
+    rotation:['推','拉','腿','推B','拉B'],
+    workouts:{
+      '推':{ name:'推日（胸肩三頭）', focus:'推力肌群', exs:[
+        {id:'bench',     sets:4, reps:'6-8',  rest:120},
+        {id:'incline_db',sets:3, reps:'8-10', rest:90},
+        {id:'ohp',       sets:4, reps:'8-10', rest:90},
+        {id:'lateral',   sets:3, reps:'15-20',rest:60},
+        {id:'tricep_push',sets:3,reps:'12-15',rest:60},
+      ]},
+      '拉':{ name:'拉日（背二頭）', focus:'拉力肌群', exs:[
+        {id:'row_bar',   sets:4, reps:'6-8',  rest:120},
+        {id:'lat_pull',  sets:3, reps:'8-10', rest:90},
+        {id:'seated_row',sets:3, reps:'8-10', rest:90},
+        {id:'pullup',    sets:3, reps:'最大',  rest:90},
+        {id:'curl',      sets:3, reps:'10-12',rest:60},
+      ]},
+      '腿':{ name:'腿日', focus:'下肢全面', exs:[
+        {id:'squat',    sets:4, reps:'5-7',  rest:150},
+        {id:'rdl',      sets:3, reps:'8-10', rest:90},
+        {id:'leg_press',sets:3, reps:'10-12',rest:90},
+        {id:'leg_curl', sets:3, reps:'10-15',rest:60},
+        {id:'plank',    sets:3, reps:'45s',  rest:45},
+      ]},
+      '推B':{ name:'推日 B', focus:'推力變化', exs:[
+        {id:'db_bench',  sets:4, reps:'8-10', rest:90},
+        {id:'incline_db',sets:3, reps:'10-12',rest:90},
+        {id:'db_ohp',    sets:3, reps:'10-12',rest:90},
+        {id:'lateral',   sets:4, reps:'15-20',rest:60},
+        {id:'dips',      sets:3, reps:'10-15',rest:60},
+      ]},
+      '拉B':{ name:'拉日 B', focus:'拉力變化', exs:[
+        {id:'pullup',    sets:4, reps:'最大',  rest:90},
+        {id:'seated_row',sets:4, reps:'8-10', rest:90},
+        {id:'row_bar',   sets:3, reps:'8-10', rest:90},
+        {id:'back_ext',  sets:3, reps:'12-15',rest:60},
+        {id:'curl',      sets:3, reps:'10-15',rest:60},
+      ]},
+    }
+  },
+  // ── 減脂 ──────────────────────────────────────────────────────────────────
+  '減脂_3': {
+    name:'全身減脂計畫（週 3 天）', desc:'每次訓練後接 20 分鐘有氧',
+    pattern:[1,3,5],
+    rotation:['甲','乙','甲'],
+    workouts:{
+      '甲':{ name:'全身循環 A', focus:'全身燃脂', exs:[
+        {id:'squat',    sets:3, reps:'12-15',rest:60},
+        {id:'pushup',   sets:3, reps:'15-20',rest:60},
+        {id:'lat_pull', sets:3, reps:'12-15',rest:60},
+        {id:'lunge',    sets:3, reps:'12-15',rest:60},
+        {id:'plank',    sets:3, reps:'30s',  rest:45},
+      ]},
+      '乙':{ name:'全身循環 B', focus:'全身燃脂', exs:[
+        {id:'rdl',       sets:3, reps:'12-15',rest:60},
+        {id:'db_bench',  sets:3, reps:'12-15',rest:60},
+        {id:'seated_row',sets:3, reps:'12-15',rest:60},
+        {id:'lateral',   sets:3, reps:'15-20',rest:45},
+        {id:'crunch',    sets:3, reps:'20-25',rest:45},
+      ]},
+    }
+  },
+  '減脂_4': {
+    name:'上下分化減脂計畫（週 4 天）', desc:'每次接 15 分鐘 HIIT 有氧',
+    pattern:[1,2,4,5],
+    rotation:['上','下','上B','下B'],
+    workouts:{
+      '上':{ name:'上肢燃脂', focus:'胸背肩', exs:[
+        {id:'bench',     sets:3, reps:'10-12',rest:75},
+        {id:'row_bar',   sets:3, reps:'10-12',rest:75},
+        {id:'ohp',       sets:3, reps:'10-12',rest:75},
+        {id:'lateral',   sets:3, reps:'15-20',rest:45},
+        {id:'curl',      sets:2, reps:'12-15',rest:45},
+        {id:'tricep_push',sets:2,reps:'12-15',rest:45},
+      ]},
+      '下':{ name:'下肢燃脂', focus:'腿臀', exs:[
+        {id:'squat',    sets:4, reps:'12-15',rest:75},
+        {id:'rdl',      sets:3, reps:'12-15',rest:75},
+        {id:'lunge',    sets:3, reps:'15-20',rest:60},
+        {id:'leg_curl', sets:3, reps:'12-15',rest:60},
+        {id:'crunch',   sets:3, reps:'20',   rest:45},
+      ]},
+      '上B':{ name:'上肢燃脂 B', focus:'肩臂', exs:[
+        {id:'incline_db', sets:3, reps:'12-15',rest:75},
+        {id:'lat_pull',   sets:3, reps:'12-15',rest:75},
+        {id:'db_ohp',     sets:3, reps:'12-15',rest:75},
+        {id:'lateral',    sets:3, reps:'15-20',rest:45},
+        {id:'dips',       sets:3, reps:'12-15',rest:60},
+      ]},
+      '下B':{ name:'下肢燃脂 B', focus:'腿後鍊', exs:[
+        {id:'leg_press',sets:4, reps:'15-20',rest:75},
+        {id:'rdl',      sets:3, reps:'15-20',rest:75},
+        {id:'lunge',    sets:3, reps:'15-20',rest:60},
+        {id:'leg_curl', sets:3, reps:'15-20',rest:60},
+        {id:'plank',    sets:3, reps:'40s',  rest:45},
+      ]},
+    }
+  },
+  '減脂_5': {
+    name:'PPL 減脂計畫（週 5 天）', desc:'週一至五，週末充分休息',
+    pattern:[1,2,3,4,5],
+    rotation:['推','拉','腿','推B','有氧核心'],
+    workouts:{
+      '推':{ name:'推日減脂', focus:'胸肩三頭', exs:[
+        {id:'bench',     sets:3, reps:'10-12',rest:75},
+        {id:'incline_db',sets:3, reps:'12-15',rest:75},
+        {id:'ohp',       sets:3, reps:'10-12',rest:75},
+        {id:'lateral',   sets:3, reps:'15-20',rest:45},
+        {id:'tricep_push',sets:3,reps:'12-15',rest:45},
+      ]},
+      '拉':{ name:'拉日減脂', focus:'背二頭', exs:[
+        {id:'lat_pull',  sets:4, reps:'10-12',rest:75},
+        {id:'seated_row',sets:3, reps:'10-12',rest:75},
+        {id:'pullup',    sets:3, reps:'最大',  rest:90},
+        {id:'curl',      sets:3, reps:'12-15',rest:45},
+      ]},
+      '腿':{ name:'腿日減脂', focus:'下肢燃脂', exs:[
+        {id:'squat',    sets:4, reps:'12-15',rest:75},
+        {id:'rdl',      sets:3, reps:'12-15',rest:75},
+        {id:'lunge',    sets:3, reps:'15',   rest:60},
+        {id:'leg_curl', sets:3, reps:'12-15',rest:60},
+        {id:'plank',    sets:3, reps:'45s',  rest:45},
+      ]},
+      '推B':{ name:'推日 B 減脂', focus:'推力變化', exs:[
+        {id:'db_bench',  sets:3, reps:'12-15',rest:75},
+        {id:'pushup',    sets:3, reps:'最大',  rest:60},
+        {id:'db_ohp',    sets:3, reps:'12-15',rest:75},
+        {id:'lateral',   sets:3, reps:'15-20',rest:45},
+        {id:'crunch',    sets:3, reps:'25',   rest:45},
+      ]},
+      '有氧核心':{ name:'有氧 + 核心', focus:'燃脂收尾', exs:[
+        {id:'plank',    sets:4, reps:'1分鐘', rest:30},
+        {id:'crunch',   sets:4, reps:'25',    rest:30},
+        {id:'back_ext', sets:3, reps:'15',    rest:45},
+        {id:'lunge',    sets:3, reps:'20',    rest:45},
+      ]},
+    }
+  },
+  // ── 維持 ──────────────────────────────────────────────────────────────────
+  '維持_3': {
+    name:'體態維持計畫（週 3 天）', desc:'適合忙碌時期保持體能',
+    pattern:[1,3,5],
+    rotation:['A','B','A'],
+    workouts:{
+      'A':{ name:'維持全身 A', focus:'全身均衡', exs:[
+        {id:'squat',   sets:3, reps:'8-10', rest:90},
+        {id:'bench',   sets:3, reps:'8-10', rest:90},
+        {id:'row_bar', sets:3, reps:'8-10', rest:90},
+        {id:'lateral', sets:2, reps:'15',   rest:60},
+        {id:'plank',   sets:2, reps:'30s',  rest:30},
+      ]},
+      'B':{ name:'維持全身 B', focus:'全身均衡', exs:[
+        {id:'rdl',      sets:3, reps:'10',   rest:90},
+        {id:'lat_pull', sets:3, reps:'10-12',rest:90},
+        {id:'db_ohp',   sets:3, reps:'10-12',rest:90},
+        {id:'curl',     sets:2, reps:'12',   rest:60},
+        {id:'crunch',   sets:2, reps:'20',   rest:45},
+      ]},
+    }
+  },
+  '維持_4': {
+    name:'體態維持計畫（週 4 天）', desc:'上下分化，效率高',
+    pattern:[1,2,4,5],
+    rotation:['上','下','上','下'],
+    workouts:{
+      '上':{ name:'上肢維持', focus:'上半身', exs:[
+        {id:'bench',   sets:3, reps:'8-10', rest:90},
+        {id:'row_bar', sets:3, reps:'8-10', rest:90},
+        {id:'ohp',     sets:3, reps:'10',   rest:90},
+        {id:'curl',    sets:2, reps:'12',   rest:60},
+        {id:'dips',    sets:2, reps:'10',   rest:60},
+      ]},
+      '下':{ name:'下肢維持', focus:'下半身', exs:[
+        {id:'squat',   sets:3, reps:'10',   rest:90},
+        {id:'rdl',     sets:3, reps:'10',   rest:90},
+        {id:'lunge',   sets:2, reps:'12',   rest:75},
+        {id:'plank',   sets:3, reps:'40s',  rest:30},
+        {id:'crunch',  sets:2, reps:'20',   rest:30},
+      ]},
+    }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _wkProfile() {
+  try { return JSON.parse(localStorage.getItem('nm_wk_profile') || 'null'); } catch { return null; }
+}
+function _wkSaveProfile(p) {
+  localStorage.setItem('nm_wk_profile', JSON.stringify(p));
+}
+function _wkCount(delta) {
+  const k = 'nm_wk_done_count';
+  const n = (parseInt(localStorage.getItem(k) || '0')) + (delta || 0);
+  if (delta) localStorage.setItem(k, n);
+  return n;
+}
+function _wkTodayDone() {
+  return localStorage.getItem('nm_wk_done_date') === todayStr();
+}
+function _wkMarkDone() {
+  localStorage.setItem('nm_wk_done_date', todayStr());
+  _wkCount(1);
+}
+
+function _wkPlanKey(profile) {
+  if (!profile) return null;
+  const days = profile.days <= 3 ? 3 : profile.days <= 4 ? 4 : 5;
+  const key = `${profile.goal}_${days}`;
+  return WK_PLANS[key] ? key : `${profile.goal}_3`;
+}
+
+function _wkTodaySlot(plan) {
+  const dow = new Date().getDay(); // 0=Sun,1=Mon,...
+  return plan.pattern.includes(dow);
+}
+
+function _wkTodayWorkout(profile) {
+  const key = _wkPlanKey(profile);
+  if (!key) return null;
+  const plan = WK_PLANS[key];
+  const dow = new Date().getDay();
+  if (!plan.pattern.includes(dow)) return null; // rest day
+  const count = _wkCount();
+  const rotIdx = count % plan.rotation.length;
+  const wName = plan.rotation[rotIdx];
+  return { planName: plan.name, ...plan.workouts[wName], wName };
+}
+
+function _getWtRec(exId, profile) {
+  const ex = WK_EX[exId];
+  if (!ex || !ex.wt || !profile) return null;
+  const bw = parseFloat(profile.weight) || 70;
+  const g = profile.gender === 'female' ? 'f' : 'm';
+  const l = profile.level === 'advanced' ? 'a' : profile.level === 'intermediate' ? 'i' : 'b';
+  const pct = ex.wt[`${g}${l}`] || ex.wt.mb;
+  const raw = bw * pct;
+  const r25 = Math.round(raw / 2.5) * 2.5;
+  const lo = Math.max(2.5, r25 - 2.5);
+  const hi = r25 + 2.5;
+  return `${lo}–${hi} kg`;
+}
+
+function _wkDietAdvice(profile) {
+  if (!profile) return null;
+  const today = todayStr();
+  const foods = DB.getFoods().filter(f => f.date === today);
+  const totProt = foods.reduce((s, f) => s + (f.protein || 0), 0);
+  const totCal  = foods.reduce((s, f) => s + (f.calories || 0), 0);
+  const g = DB.getGoals();
+  const targetProt = parseFloat(g.protein) || (profile.goal === '增肌' ? parseFloat(profile.weight || 70) * 2 : parseFloat(profile.weight || 70) * 1.6);
+  const targetCal  = parseFloat(g.calories) || 2000;
+  const protRatio  = totProt / targetProt;
+  const calDiff    = totCal - targetCal;
+
+  let msg = '', color = 'var(--green)';
+  if (protRatio < 0.5) {
+    msg = `⚠️ 今日蛋白質攝取 ${totProt.toFixed(0)}g，僅達目標 ${Math.round(protRatio*100)}%。建議今日改為輕重量高次數訓練，並先補充蛋白質再進健身房。`;
+    color = 'var(--red)';
+  } else if (protRatio < 0.8) {
+    msg = `🔶 蛋白質攝取 ${totProt.toFixed(0)}g（目標 ${targetProt.toFixed(0)}g），建議訓練後立即補充蛋白質食物。`;
+    color = 'var(--orange)';
+  } else if (profile.goal === '減脂' && calDiff > 200) {
+    msg = `💡 今日熱量偏高（多攝取 ${calDiff.toFixed(0)} kcal），建議今日訓練後加做 20 分鐘有氧。`;
+    color = 'var(--orange)';
+  } else {
+    msg = `✅ 蛋白質攝取良好（${totProt.toFixed(0)}g），適合今日${profile.goal === '減脂' ? '燃脂' : '重量'}訓練！`;
+    color = 'var(--green)';
+  }
+  return { msg, color, prot: totProt, targetProt, cal: totCal, targetCal };
+}
+
+function _catLabel(cat) {
+  return {chest:'胸',back:'背',legs:'腿',shoulders:'肩',arms:'手臂',core:'核心',cardio:'有氧'}[cat] || cat;
+}
+function _catColor(cat) {
+  return {chest:'#EF4444',back:'#3B82F6',legs:'#10B981',shoulders:'#F59E0B',arms:'#8B5CF6',core:'#6B7280',cardio:'#F97316'}[cat] || '#9CA3AF';
+}
+function _diffStars(d) { return '★'.repeat(d) + '☆'.repeat(3-d); }
+
+let _wkOpenEx = null;
+
+function renderWorkoutTab() {
+  const el = document.getElementById('wk-tab-content');
+  if (!el) return;
+  const profile = _wkProfile();
+
+  if (!profile) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:40px 16px">
+        <div style="font-size:3rem;margin-bottom:16px">💪</div>
+        <div style="font-size:1.2rem;font-weight:800;margin-bottom:8px">設定你的健身目標</div>
+        <div style="font-size:0.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6">完成設定後 NutriMate 會根據你的目標、<br>體重和訓練天數為你量身規劃菜單</div>
+        <button class="btn-primary" style="justify-content:center" onclick="openFitnessSetup()">
+          <i class="bi bi-sliders"></i> 開始設定
+        </button>
+      </div>`;
+    return;
+  }
+
+  const planKey = _wkPlanKey(profile);
+  const plan = WK_PLANS[planKey];
+  const todayWorkout = _wkTodayWorkout(profile);
+  const advice = _wkDietAdvice(profile);
+  const isDone = _wkTodayDone();
+  const dow = new Date().getDay();
+  const isTrainingDay = plan.pattern.includes(dow);
+
+  const dayNames = ['日','一','二','三','四','五','六'];
+  const weekDots = [0,1,2,3,4,5,6].map(d => {
+    const isTrain = plan.pattern.includes(d);
+    const isToday = d === dow;
+    const bg = isToday ? (isTrain ? 'var(--green)' : '#6B7280') : (isTrain ? 'var(--green-light)' : '#F3F4F6');
+    const fg = isToday ? 'white' : (isTrain ? 'var(--green)' : 'var(--muted)');
+    const bd = isToday ? 'none' : (isTrain ? '1.5px solid var(--green)' : 'none');
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="width:32px;height:32px;border-radius:50%;background:${bg};border:${bd};display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:${fg}">
+        ${isTrain ? '<i class="bi bi-lightning-charge-fill"></i>' : '休'}
+      </div>
+      <div style="font-size:0.62rem;color:${isToday?'var(--green)':'var(--muted)'};font-weight:${isToday?700:400}">週${dayNames[d]}</div>
+    </div>`;
+  }).join('');
+
+  let workoutSection = '';
+  if (!isTrainingDay) {
+    workoutSection = `
+      <div class="card fade-in" style="background:linear-gradient(135deg,#F8FAFC,#EFF6FF);border:none">
+        <div class="card-body" style="text-align:center;padding:24px 16px">
+          <div style="font-size:2.5rem">😴</div>
+          <div style="font-size:1rem;font-weight:800;margin:8px 0 4px">今日：休息日</div>
+          <div style="font-size:0.8rem;color:var(--muted)">充分休息讓肌肉修復，明日再戰！</div>
+        </div>
+      </div>`;
+  } else if (isDone) {
+    workoutSection = `
+      <div class="card fade-in" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border:none">
+        <div class="card-body" style="text-align:center;padding:24px 16px">
+          <div style="font-size:2.5rem">🎉</div>
+          <div style="font-size:1rem;font-weight:800;margin:8px 0 4px">今日訓練完成！</div>
+          <div style="font-size:0.8rem;color:var(--muted)">繼續保持，明日繼續加油！</div>
+        </div>
+      </div>`;
+  } else if (todayWorkout) {
+    const exRows = todayWorkout.exs.map(e => {
+      const ex = WK_EX[e.id];
+      if (!ex) return '';
+      const wt = _getWtRec(e.id, profile);
+      const catC = _catColor(ex.cat);
+      return `
+        <div class="wk-ex-row" onclick="toggleWkEx('${e.id}')">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:10px;background:${catC}22;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${ex.icon}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:0.92rem;color:var(--text)">${ex.name}</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:1px">${ex.muscles.join(' · ')}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-weight:800;font-size:0.88rem;color:var(--text)">${e.sets}×${e.reps}</div>
+              ${wt ? `<div style="font-size:0.72rem;color:${catC};font-weight:700">${wt}</div>` : ''}
+            </div>
+            <i class="bi bi-chevron-down wk-chev" id="wkchev-${e.id}" style="font-size:0.8rem;color:var(--muted);flex-shrink:0;transition:transform 0.2s"></i>
+          </div>
+          <div id="wkex-${e.id}" class="wk-ex-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+              <span style="font-size:0.7rem;background:${catC}22;color:${catC};padding:2px 8px;border-radius:8px;font-weight:700">${_catLabel(ex.cat)}</span>
+              <span style="font-size:0.7rem;background:#F3F4F6;color:var(--muted);padding:2px 8px;border-radius:8px">${ex.equip}</span>
+              <span style="font-size:0.7rem;color:#F59E0B;padding:2px 8px;border-radius:8px;background:#FFFBEB">${_diffStars(ex.diff)}</span>
+              ${wt ? `<span style="font-size:0.7rem;background:#ECFDF5;color:var(--green);padding:2px 8px;border-radius:8px;font-weight:700">建議 ${wt}</span>` : ''}
+            </div>
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text-2);margin-bottom:6px">動作要領</div>
+            ${ex.steps.map((s,i) => `<div style="display:flex;gap:8px;margin-bottom:5px;font-size:0.78rem;color:var(--text)"><span style="flex-shrink:0;width:18px;height:18px;background:var(--green);color:white;border-radius:50%;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><span>${s}</span></div>`).join('')}
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text-2);margin:10px 0 6px">💡 重點提示</div>
+            ${ex.tips.map(t => `<div style="font-size:0.77rem;color:var(--muted);margin-bottom:4px;padding-left:4px">• ${t}</div>`).join('')}
+            <div style="margin-top:10px;font-size:0.72rem;color:var(--muted)">休息：${e.rest} 秒 / 組間</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    workoutSection = `
+      <div class="card fade-in">
+        <div class="card-body" style="padding:14px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px">今日訓練</div>
+              <div style="font-weight:800;font-size:1rem;color:var(--text)">${todayWorkout.name}</div>
+              <div style="font-size:0.75rem;color:var(--green);font-weight:600">💪 主練：${todayWorkout.focus}</div>
+            </div>
+            <div style="background:var(--green-light);border-radius:12px;padding:6px 12px;text-align:center">
+              <div style="font-size:0.65rem;color:var(--green);font-weight:700">組數</div>
+              <div style="font-size:1.1rem;font-weight:800;color:var(--green)">${todayWorkout.exs.reduce((s,e)=>s+e.sets,0)}</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${exRows}
+          </div>
+          <button class="btn-primary" style="width:100%;justify-content:center;margin-top:16px" onclick="completeWkToday()">
+            <i class="bi bi-check-circle"></i> 完成今日訓練！
+          </button>
+        </div>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <!-- Diet advice -->
+    ${advice ? `
+    <div class="card fade-in" style="border-left:4px solid ${advice.color};background:${advice.color}10">
+      <div class="card-body" style="padding:12px 14px">
+        <div style="font-size:0.8rem;color:var(--text);line-height:1.6">${advice.msg}</div>
+        <div style="display:flex;gap:16px;margin-top:10px">
+          <div style="flex:1">
+            <div style="font-size:0.68rem;color:var(--muted);margin-bottom:3px">今日蛋白質</div>
+            <div style="height:5px;background:#E5E7EB;border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${Math.min(100,Math.round((advice.prot/advice.targetProt)*100))}%;background:${advice.color};border-radius:4px;transition:width 0.5s"></div>
+            </div>
+            <div style="font-size:0.7rem;color:var(--text-2);margin-top:2px">${advice.prot.toFixed(0)}g / ${advice.targetProt.toFixed(0)}g</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:0.68rem;color:var(--muted);margin-bottom:3px">今日熱量</div>
+            <div style="height:5px;background:#E5E7EB;border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${Math.min(100,Math.round((advice.cal/advice.targetCal)*100))}%;background:var(--blue);border-radius:4px;transition:width 0.5s"></div>
+            </div>
+            <div style="font-size:0.7rem;color:var(--text-2);margin-top:2px">${advice.cal.toFixed(0)} / ${advice.targetCal.toFixed(0)} kcal</div>
+          </div>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <!-- Profile summary -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span style="font-size:0.72rem;background:var(--green-light);color:var(--green);padding:3px 10px;border-radius:8px;font-weight:700">${profile.goal}</span>
+        <span style="font-size:0.72rem;background:#EDE9FE;color:#7C3AED;padding:3px 10px;border-radius:8px;font-weight:700">${{beginner:'初學者',intermediate:'中級',advanced:'進階'}[profile.level]||profile.level}</span>
+        <span style="font-size:0.72rem;background:#FFF7ED;color:var(--orange);padding:3px 10px;border-radius:8px;font-weight:700">週${profile.days}天</span>
+      </div>
+      <button onclick="openFitnessSetup()" style="font-size:0.75rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 8px"><i class="bi bi-pencil"></i> 編輯</button>
+    </div>
+
+    <!-- Weekly plan dots -->
+    <div class="card fade-in" style="margin-bottom:0">
+      <div class="card-body" style="padding:12px 16px">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text-2);margin-bottom:10px">本週訓練排程</div>
+        <div style="display:flex;justify-content:space-between">${weekDots}</div>
+      </div>
+    </div>
+
+    ${workoutSection}
+
+    <!-- Exercise encyclopedia -->
+    <div class="card fade-in">
+      <div class="card-body" style="padding:14px 16px">
+        <div style="font-weight:700;font-size:0.9rem;margin-bottom:10px">📚 動作百科</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+          ${['all','chest','back','legs','shoulders','arms','core'].map(cat =>
+            `<button onclick="filterWkEnc('${cat}')" class="wk-enc-filter${cat==='all'?' active':''}" data-cat="${cat}" style="font-size:0.72rem;padding:3px 10px;border-radius:8px;border:1.5px solid ${cat==='all'?'var(--green)':'var(--border)'};background:${cat==='all'?'var(--green-light)':'transparent'};color:${cat==='all'?'var(--green)':'var(--muted)'};cursor:pointer;font-weight:600">${{all:'全部',chest:'胸',back:'背',legs:'腿',shoulders:'肩',arms:'手臂',core:'核心'}[cat]}</button>`
+          ).join('')}
+        </div>
+        <div id="wk-enc-list" style="display:flex;flex-direction:column;gap:6px">
+          ${Object.entries(WK_EX).map(([id, ex]) => `
+            <div class="wk-ex-row wk-enc-item" data-cat="${ex.cat}" onclick="toggleWkEx('enc-${id}')">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:36px;height:36px;border-radius:10px;background:${_catColor(ex.cat)}22;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${ex.icon}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:700;font-size:0.88rem;color:var(--text)">${ex.name}</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:1px">${ex.muscles.join(' · ')}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+                  <span style="font-size:0.68rem;background:${_catColor(ex.cat)}22;color:${_catColor(ex.cat)};padding:2px 7px;border-radius:6px;font-weight:700">${_catLabel(ex.cat)}</span>
+                  <span style="font-size:0.68rem;color:#F59E0B">${_diffStars(ex.diff)}</span>
+                </div>
+                <i class="bi bi-chevron-down" id="wkchev-enc-${id}" style="font-size:0.8rem;color:var(--muted);flex-shrink:0;transition:transform 0.2s"></i>
+              </div>
+              <div id="wkex-enc-${id}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                  <span style="font-size:0.7rem;background:#F3F4F6;color:var(--muted);padding:2px 8px;border-radius:8px">${ex.equip}</span>
+                  ${_getWtRec(id,_wkProfile()) ? `<span style="font-size:0.7rem;background:#ECFDF5;color:var(--green);padding:2px 8px;border-radius:8px;font-weight:700">建議 ${_getWtRec(id,_wkProfile())}</span>` : ''}
+                </div>
+                <div style="font-size:0.78rem;font-weight:700;color:var(--text-2);margin-bottom:6px">動作要領</div>
+                ${ex.steps.map((s,i) => `<div style="display:flex;gap:8px;margin-bottom:5px;font-size:0.78rem;color:var(--text)"><span style="flex-shrink:0;width:18px;height:18px;background:var(--green);color:white;border-radius:50%;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><span>${s}</span></div>`).join('')}
+                <div style="font-size:0.78rem;font-weight:700;color:var(--text-2);margin:10px 0 6px">💡 重點提示</div>
+                ${ex.tips.map(t => `<div style="font-size:0.77rem;color:var(--muted);margin-bottom:4px;padding-left:4px">• ${t}</div>`).join('')}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleWkEx(id) {
+  const det = document.getElementById(`wkex-${id}`);
+  const chev = document.getElementById(`wkchev-${id}`);
+  if (!det) return;
+  const open = det.style.display !== 'none';
+  det.style.display = open ? 'none' : 'block';
+  if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function filterWkEnc(cat) {
+  document.querySelectorAll('.wk-enc-filter').forEach(b => {
+    const active = b.dataset.cat === cat;
+    b.style.borderColor = active ? 'var(--green)' : 'var(--border)';
+    b.style.background   = active ? 'var(--green-light)' : 'transparent';
+    b.style.color        = active ? 'var(--green)' : 'var(--muted)';
+  });
+  document.querySelectorAll('.wk-enc-item').forEach(el => {
+    el.style.display = (cat === 'all' || el.dataset.cat === cat) ? '' : 'none';
+  });
+}
+
+function completeWkToday() {
+  _wkMarkDone();
+  showToast('🎉 今日訓練完成！記得補充蛋白質');
+  renderWorkoutTab();
+}
+
+function openFitnessSetup() {
+  const p = _wkProfile() || { goal:'增肌', level:'beginner', days:3, weight:'', gender:'male' };
+  const bw = p.weight || (DB.getGoals && DB.getGoals().weight) || '';
+  document.getElementById('wk-setup-modal').style.display = 'flex';
+  document.getElementById('wk-goal').value   = p.goal;
+  document.getElementById('wk-level').value  = p.level;
+  document.getElementById('wk-days').value   = p.days;
+  document.getElementById('wk-weight').value = bw;
+  document.getElementById('wk-gender').value = p.gender;
+}
+
+function closeFitnessSetup() {
+  document.getElementById('wk-setup-modal').style.display = 'none';
+}
+
+function saveFitnessProfile() {
+  const p = {
+    goal:   document.getElementById('wk-goal').value,
+    level:  document.getElementById('wk-level').value,
+    days:   parseInt(document.getElementById('wk-days').value),
+    weight: document.getElementById('wk-weight').value,
+    gender: document.getElementById('wk-gender').value,
+  };
+  if (!p.weight || parseFloat(p.weight) < 30) {
+    showToast('請輸入體重（用於推薦重量）');
+    return;
+  }
+  _wkSaveProfile(p);
+  closeFitnessSetup();
+  renderWorkoutTab();
+  showToast('✅ 健身設定已儲存！');
+}
+
+function setExPageTab(tab) {
+  document.getElementById('ex-tab-log').style.display   = tab === 'log'     ? '' : 'none';
+  document.getElementById('ex-tab-plan').style.display  = tab === 'workout' ? '' : 'none';
+  document.querySelectorAll('.ex-page-tab').forEach(b => {
+    const active = b.dataset.tab === tab;
+    b.style.color      = active ? 'var(--green)'  : 'var(--muted)';
+    b.style.fontWeight = active ? '800' : '500';
+    b.style.borderBottom = active ? '2.5px solid var(--green)' : '2.5px solid transparent';
+  });
+  if (tab === 'workout') renderWorkoutTab();
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {

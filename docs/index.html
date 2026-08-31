@@ -354,6 +354,20 @@
 
   <!-- Exercise -->
   <div id="page-exercise" class="page">
+    <!-- Sub-tab switcher -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;gap:0">
+      <button class="ex-page-tab" data-tab="log" onclick="setExPageTab('log')"
+        style="flex:1;background:none;border:none;border-bottom:2.5px solid var(--green);padding:10px 0;font-size:0.88rem;font-weight:800;color:var(--green);cursor:pointer">
+        <i class="bi bi-fire"></i> 運動記錄
+      </button>
+      <button class="ex-page-tab" data-tab="workout" onclick="setExPageTab('workout')"
+        style="flex:1;background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 0;font-size:0.88rem;font-weight:500;color:var(--muted);cursor:pointer">
+        <i class="bi bi-dumbbell"></i> 健身菜單
+      </button>
+    </div>
+
+    <!-- ── 運動記錄 tab ── -->
+    <div id="ex-tab-log">
     <div style="margin-bottom:12px">
       <div class="greeting">運動記錄 <span style="color:var(--orange)">💪</span></div>
     </div>
@@ -461,6 +475,72 @@
           • 運動後 <strong>30 分鐘內</strong>補充蛋白質幫助肌肉修復<br>
           • MET 值越高代表每分鐘消耗熱量越多
         </div>
+      </div>
+    </div>
+    </div><!-- /#ex-tab-log -->
+
+    <!-- ── 健身菜單 tab ── -->
+    <div id="ex-tab-plan" style="display:none">
+      <div id="wk-tab-content"></div>
+    </div>
+  </div>
+
+  <!-- Fitness setup modal -->
+  <div id="wk-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-end;justify-content:center">
+    <div style="background:var(--card-bg);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:20px 20px 32px;max-height:85vh;overflow-y:auto">
+      <div style="width:40px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 20px"></div>
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:20px">⚙️ 健身目標設定</div>
+
+      <div style="margin-bottom:14px">
+        <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">訓練目標</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <label style="cursor:pointer"><input type="radio" name="wk-goal-r" value="增肌" style="display:none" onchange="document.getElementById('wk-goal').value=this.value">
+            <div class="wk-goal-card" data-val="增肌" onclick="this.parentElement.querySelector('input').checked=true;document.getElementById('wk-goal').value='增肌';document.querySelectorAll('.wk-goal-card').forEach(c=>c.style.borderColor='var(--border)');this.style.borderColor='var(--green)'">💪<br><span>增肌</span></div></label>
+          <label style="cursor:pointer"><input type="radio" name="wk-goal-r" value="減脂" style="display:none" onchange="document.getElementById('wk-goal').value=this.value">
+            <div class="wk-goal-card" data-val="減脂" onclick="this.parentElement.querySelector('input').checked=true;document.getElementById('wk-goal').value='減脂';document.querySelectorAll('.wk-goal-card').forEach(c=>c.style.borderColor='var(--border)');this.style.borderColor='var(--green)'">🔥<br><span>減脂</span></div></label>
+          <label style="cursor:pointer"><input type="radio" name="wk-goal-r" value="維持" style="display:none" onchange="document.getElementById('wk-goal').value=this.value">
+            <div class="wk-goal-card" data-val="維持" onclick="this.parentElement.querySelector('input').checked=true;document.getElementById('wk-goal').value='維持';document.querySelectorAll('.wk-goal-card').forEach(c=>c.style.borderColor='var(--border)');this.style.borderColor='var(--green)'">⚖️<br><span>維持</span></div></label>
+        </div>
+        <input type="hidden" id="wk-goal" value="增肌">
+      </div>
+
+      <div style="margin-bottom:14px">
+        <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">訓練等級</label>
+        <select id="wk-level" class="form-input">
+          <option value="beginner">初學者（健身不到 1 年）</option>
+          <option value="intermediate">中級（1–3 年訓練經驗）</option>
+          <option value="advanced">進階（3 年以上）</option>
+        </select>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div>
+          <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">每週訓練天數</label>
+          <select id="wk-days" class="form-input">
+            <option value="3">3 天</option>
+            <option value="4">4 天</option>
+            <option value="5">5 天</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">性別</label>
+          <select id="wk-gender" class="form-input">
+            <option value="male">男性</option>
+            <option value="female">女性</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="font-size:0.82rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">體重（kg）— 用於推薦訓練重量</label>
+        <input id="wk-weight" type="number" class="form-input" placeholder="例：70" min="30" max="200" step="0.5">
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button class="btn-outline" style="flex:1;justify-content:center" onclick="closeFitnessSetup()">取消</button>
+        <button class="btn-primary" style="flex:2;justify-content:center" onclick="saveFitnessProfile()">
+          <i class="bi bi-check-circle"></i> 儲存設定
+        </button>
       </div>
     </div>
   </div>
