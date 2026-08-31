@@ -1,7 +1,8 @@
 :root {
-    --green: #22C55E;
-    --green-dark: #16A34A;
-    --green-light: #DCFCE7;
+    --green: #16C060;
+    --green-dark: #0EA350;
+    --green-light: #D1FAE5;
+    --green-mid: #6EE7B7;
     --blue: #3B82F6;
     --blue-light: #EFF6FF;
     --orange: #F97316;
@@ -13,16 +14,20 @@
     --pink: #EC4899;
     --pink-light: #FDF2F8;
     --red: #EF4444;
-    --bg: #F0FDF4;
+    --bg: #F2FDF5;
     --card: #FFFFFF;
-    --text: #111827;
-    --text-2: #374151;
-    --muted: #6B7280;
-    --border: #E5E7EB;
-    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --card-bg: #FFFFFF;
+    --text: #0F172A;
+    --text-2: #334155;
+    --muted: #64748B;
+    --border: #E2E8F0;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 4px 6px rgba(0,0,0,0.05), 0 10px 40px rgba(0,0,0,0.1);
+    --card-bg: #FFFFFF;
     --nav-h: 68px;
     --header-h: 58px;
-    --radius: 16px;
+    --radius: 18px;
+    --radius-sm: 12px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,8 +46,10 @@ body {
     position: fixed;
     top: 0; left: 0; right: 0;
     height: var(--header-h);
-    background: white;
-    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(226,232,240,0.8);
     z-index: 200;
     display: flex;
     align-items: center;
@@ -51,11 +58,12 @@ body {
 }
 
 .app-logo {
-    width: 32px; height: 32px;
+    width: 34px; height: 34px;
     background: linear-gradient(135deg, var(--green), var(--cyan));
-    border-radius: 10px;
+    border-radius: 11px;
     display: flex; align-items: center; justify-content: center;
     font-size: 1.1rem; color: white;
+    box-shadow: 0 2px 8px rgba(22,192,96,0.35);
 }
 
 .app-name {
@@ -95,13 +103,15 @@ body {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     height: var(--nav-h);
-    background: white;
-    border-top: 1px solid var(--border);
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(226,232,240,0.8);
     display: flex;
     align-items: center;
     justify-content: space-evenly;
     z-index: 200;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.07);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.06);
     padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -111,20 +121,21 @@ body {
     color: var(--muted);
     text-decoration: none;
     font-size: 0.58rem;
-    font-weight: 500;
+    font-weight: 600;
     padding: 6px 0;
     border-radius: 12px;
-    transition: color 0.15s;
+    transition: color 0.2s, transform 0.15s;
     flex: 1;
 }
+.nav-item:active { transform: scale(0.9); }
 
-.nav-item i { font-size: 1.2rem; }
+.nav-item i { font-size: 1.25rem; transition: transform 0.2s; }
 .nav-item.active { color: var(--green); }
-.nav-item.active i { color: var(--green); }
+.nav-item.active i { color: var(--green); transform: scale(1.1); }
 .nav-exercise { color: var(--orange); }
 .nav-exercise i { color: var(--orange); }
 .nav-exercise.active { color: var(--orange); }
-.nav-exercise.active i { color: var(--orange); }
+.nav-exercise.active i { color: var(--orange); transform: scale(1.1); }
 
 .scan-nav-btn {
     display: flex; flex-direction: column;
@@ -137,17 +148,17 @@ body {
 }
 
 .scan-circle {
-    width: 50px; height: 50px;
-    background: linear-gradient(135deg, var(--green), var(--cyan));
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--green), #00D47E);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     color: white;
-    font-size: 1.25rem;
-    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.45);
-    margin-top: -16px;
-    transition: transform 0.15s;
+    font-size: 1.35rem;
+    box-shadow: 0 4px 18px rgba(22,192,96,0.5);
+    margin-top: -18px;
+    transition: transform 0.15s, box-shadow 0.15s;
 }
-.scan-circle:hover { transform: scale(1.05); }
+.scan-circle:hover { transform: scale(1.07); box-shadow: 0 6px 22px rgba(22,192,96,0.6); }
 
 /* ── Cards ─────────────────────────────────────────────────── */
 .card {
@@ -157,7 +168,9 @@ body {
     box-shadow: var(--shadow);
     margin-bottom: 14px;
     overflow: hidden;
+    transition: box-shadow 0.2s;
 }
+.card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08); }
 
 .card-body { padding: 18px 20px; }
 .card-title { font-size: 0.9rem; font-weight: 700; color: var(--text-2); margin-bottom: 14px; }
@@ -416,32 +429,36 @@ body {
 
 /* ── Buttons ───────────────────────────────────────────────── */
 .btn-primary {
-    background: var(--green);
+    background: linear-gradient(135deg, var(--green), #00C070);
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     color: white;
     font-weight: 700;
-    padding: 12px 24px;
+    padding: 13px 24px;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: background 0.15s, transform 0.1s;
+    font-size: 0.92rem;
+    transition: all 0.2s;
     display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 3px 12px rgba(22,192,96,0.35);
+    letter-spacing: 0.01em;
 }
-.btn-primary:hover { background: var(--green-dark); }
+.btn-primary:hover { background: linear-gradient(135deg, var(--green-dark), var(--green)); box-shadow: 0 4px 16px rgba(22,192,96,0.45); }
 .btn-primary:active { transform: scale(0.97); }
 
 .btn-outline {
     background: white;
     border: 2px solid var(--green);
-    border-radius: 12px;
+    border-radius: 14px;
     color: var(--green);
     font-weight: 700;
-    padding: 10px 20px;
+    padding: 11px 20px;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.15s;
+    font-size: 0.92rem;
+    transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 6px;
 }
-.btn-outline:hover { background: var(--green-light); }
+.btn-outline:hover { background: var(--green-light); border-color: var(--green-dark); }
+.btn-outline:active { transform: scale(0.97); }
 
 .btn-water {
     flex: 1;
@@ -707,11 +724,20 @@ body {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes slideUpSheet {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+@keyframes popIn {
+    0% { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: scale(1); }
+}
 
-.fade-in { animation: slideUp 0.3s ease; }
+.fade-in { animation: slideUp 0.28s ease; }
+.pop-in { animation: popIn 0.22s cubic-bezier(.34,1.56,.64,1); }
 
 /* ── Gender buttons ────────────────────────────────────────── */
 .gender-btn {
@@ -786,27 +812,212 @@ body {
 .nm-toggle input:checked + span::before { transform: translateX(20px); }
 
 /* ── 健身菜單 Workout Planner ───────────────────────────────── */
-.wk-ex-row {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 14px;
-    cursor: pointer;
-    transition: box-shadow 0.15s;
-}
-.wk-ex-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
+/* Sub-tab switcher (pill style) */
+.ex-page-tabs {
+    display: flex;
+    background: #F1F5F9;
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 18px;
+    gap: 4px;
+}
+.ex-page-tab-pill {
+    flex: 1;
+    border: none;
+    background: transparent;
+    border-radius: 11px;
+    padding: 9px 0;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.ex-page-tab-pill.active {
+    background: white;
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.ex-page-tab-pill.active-workout { color: var(--orange); }
+
+/* Exercise cards */
+.wk-ex-row {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 13px 15px;
+    cursor: pointer;
+    transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+    margin-bottom: 8px;
+}
+.wk-ex-row:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); border-color: #CBD5E1; transform: translateY(-1px); }
+.wk-ex-row:active { transform: scale(0.99); }
+
+/* Goal cards in modal */
 .wk-goal-card {
+    border: 2.5px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 8px 12px;
+    text-align: center;
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #F8FAFC;
+    color: var(--text);
+    line-height: 1.3;
+    position: relative;
+    overflow: hidden;
+}
+.wk-goal-card span {
+    font-size: 0.8rem;
+    font-weight: 800;
+    display: block;
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+}
+.wk-goal-card:hover { transform: translateY(-2px); }
+.wk-goal-card.selected-增肌 { border-color: var(--green); background: linear-gradient(135deg, #F0FDF4, #DCFCE7); box-shadow: 0 3px 12px rgba(22,192,96,0.2); }
+.wk-goal-card.selected-減脂 { border-color: var(--orange); background: linear-gradient(135deg, #FFF7ED, #FFEDD5); box-shadow: 0 3px 12px rgba(249,115,22,0.2); }
+.wk-goal-card.selected-維持 { border-color: var(--blue); background: linear-gradient(135deg, #EFF6FF, #DBEAFE); box-shadow: 0 3px 12px rgba(59,130,246,0.2); }
+
+/* Workout day schedule dots */
+.wk-day-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 2px;
+}
+
+/* Diet advice card */
+.wk-diet-card {
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border: 1.5px solid;
+}
+
+/* Weight recommendation badge */
+.wk-weight-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
+    border: 1px solid #A7F3D0;
+    color: var(--green-dark);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Today workout card */
+.wk-today-card {
+    background: linear-gradient(135deg, #F0FDF4, #ECFDF5);
+    border: 1.5px solid #A7F3D0;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+/* Complete button */
+.wk-complete-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--orange), #FB923C);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 3px 12px rgba(249,115,22,0.35);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: inherit;
+    letter-spacing: 0.01em;
+}
+.wk-complete-btn:hover { background: linear-gradient(135deg, #EA6C0A, var(--orange)); box-shadow: 0 4px 16px rgba(249,115,22,0.45); }
+.wk-complete-btn:active { transform: scale(0.98); }
+.wk-complete-btn.done {
+    background: linear-gradient(135deg, #10B981, #34D399);
+    box-shadow: 0 3px 12px rgba(16,185,129,0.35);
+}
+
+/* Setup prompt card */
+.wk-setup-prompt {
+    background: linear-gradient(135deg, #F8FAFC, #F1F5F9);
+    border: 2px dashed #CBD5E1;
+    border-radius: 18px;
+    padding: 36px 24px;
+    text-align: center;
+}
+
+/* Modal improvements */
+.wk-modal-inner {
+    background: white;
+    border-radius: 28px 28px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 0 0 32px;
+    max-height: 88vh;
+    overflow-y: auto;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+}
+.wk-modal-header {
+    padding: 16px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: white;
+    border-radius: 28px 28px 0 0;
+    z-index: 1;
+}
+.wk-modal-body {
+    padding: 20px 20px 0;
+}
+.wk-section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: block;
+}
+.wk-select {
+    width: 100%;
+    padding: 12px 16px;
     border: 2px solid var(--border);
     border-radius: 12px;
-    padding: 14px 8px;
-    text-align: center;
-    font-size: 1.4rem;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-    background: var(--card-bg);
+    font-size: 0.9rem;
+    outline: none;
+    background: #F8FAFC;
     color: var(--text);
-    line-height: 1.4;
+    font-family: inherit;
+    transition: border-color 0.15s, background 0.15s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
 }
-.wk-goal-card span { font-size: 0.82rem; font-weight: 700; display: block; }
-.wk-goal-card:hover { border-color: var(--green); }
+.wk-select:focus { border-color: var(--green); background: white; }
+
+/* Cat filter chips */
+.wk-cat-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: white;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+}
+.wk-cat-chip.active { background: var(--text); border-color: var(--text); color: white; }
+.wk-cat-chip:hover:not(.active) { border-color: var(--text-2); color: var(--text-2); }
