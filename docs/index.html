@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
   <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/style.css?v=20260831b">
+  <link rel="stylesheet" href="css/style.css?v=20260831d">
   <style>
     .page { display: none; }
     .page.active { display: block; }
@@ -528,25 +528,28 @@
           </select>
         </div>
 
-        <!-- Days + Gender -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-          <div>
-            <span class="wk-section-label">每週訓練天數</span>
-            <select id="wk-days" class="wk-select">
-              <option value="1">1 天</option>
-              <option value="2">2 天</option>
-              <option value="3">3 天</option>
-              <option value="4">4 天</option>
-              <option value="5">5 天</option>
-            </select>
+        <!-- Day picker -->
+        <div style="margin-bottom:16px">
+          <span class="wk-section-label">選擇訓練日（點選切換）</span>
+          <div id="wk-day-picker" style="display:flex;gap:5px">
+            <button class="wk-day-btn" type="button" data-day="0" onclick="toggleWkDay(0)">日</button>
+            <button class="wk-day-btn" type="button" data-day="1" onclick="toggleWkDay(1)">一</button>
+            <button class="wk-day-btn" type="button" data-day="2" onclick="toggleWkDay(2)">二</button>
+            <button class="wk-day-btn" type="button" data-day="3" onclick="toggleWkDay(3)">三</button>
+            <button class="wk-day-btn" type="button" data-day="4" onclick="toggleWkDay(4)">四</button>
+            <button class="wk-day-btn" type="button" data-day="5" onclick="toggleWkDay(5)">五</button>
+            <button class="wk-day-btn" type="button" data-day="6" onclick="toggleWkDay(6)">六</button>
           </div>
-          <div>
-            <span class="wk-section-label">性別</span>
-            <select id="wk-gender" class="wk-select">
-              <option value="male">男性 ♂</option>
-              <option value="female">女性 ♀</option>
-            </select>
-          </div>
+          <input type="hidden" id="wk-days" value="3">
+        </div>
+
+        <!-- Gender -->
+        <div style="margin-bottom:16px">
+          <span class="wk-section-label">性別</span>
+          <select id="wk-gender" class="wk-select">
+            <option value="male">男性 ♂</option>
+            <option value="female">女性 ♀</option>
+          </select>
         </div>
 
         <!-- Weight -->
@@ -1146,6 +1149,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20260831b"></script>
+<script src="js/app.js?v=20260831d"></script>
 </body>
 </html>
