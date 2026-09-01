@@ -3639,6 +3639,8 @@ function navigate(page) {
     n.classList.toggle('active', n.dataset.page === page));
   const el = document.getElementById(`page-${page}`);
   if (el) el.classList.add('active');
+  const fab = document.getElementById('bgt-fab');
+  if (fab) fab.style.display = page === 'budget' ? 'flex' : 'none';
 
   if (page !== 'trends') {
     ['tCalChart','tWaterChart','tMacroChart','tWeightChart','tWeeklyChart'].forEach(k => {
@@ -3658,6 +3660,7 @@ function navigate(page) {
     case 'trends':    renderTrends(7);   break;
     case 'settings':  renderSettings();  break;
     case 'goals':     renderGoals();     break;
+    case 'budget':    renderBudgetPage(); break;
   }
 }
 
@@ -7619,6 +7622,530 @@ function setExPageTab(tab) {
   if (tab === 'workout') renderWorkoutTab();
 }
 
+// ── Budget / Expense Tracker ─────────────────────────────────────────────────
+
+const BGT_EXP_CATS = [
+  { key:'food',      icon:'🍜', name:'餐飲',  color:'#F97316' },
+  { key:'shop',      icon:'🛒', name:'購物',  color:'#8B5CF6' },
+  { key:'transport', icon:'🚌', name:'交通',  color:'#3B82F6' },
+  { key:'home',      icon:'🏠', name:'住宿',  color:'#6B7280' },
+  { key:'fun',       icon:'🎮', name:'娛樂',  color:'#EC4899' },
+  { key:'health',    icon:'💊', name:'醫療',  color:'#EF4444' },
+  { key:'edu',       icon:'📚', name:'教育',  color:'#10B981' },
+  { key:'fit',       icon:'💪', name:'健身',  color:'#16C060' },
+  { key:'cloth',     icon:'👔', name:'服飾',  color:'#F59E0B' },
+  { key:'bill',      icon:'💡', name:'水電',  color:'#14B8A6' },
+  { key:'tel',       icon:'📱', name:'通訊',  color:'#64748B' },
+  { key:'pet',       icon:'🐾', name:'寵物',  color:'#A78BFA' },
+  { key:'gift',      icon:'🎁', name:'送禮',  color:'#FB7185' },
+  { key:'sub',       icon:'🌐', name:'訂閱',  color:'#0EA5E9' },
+  { key:'other',     icon:'📦', name:'其他',  color:'#94A3B8' },
+];
+
+const BGT_INC_CATS = [
+  { key:'salary',   icon:'💼', name:'薪資',  color:'#16C060' },
+  { key:'invest',   icon:'📈', name:'投資',  color:'#3B82F6' },
+  { key:'bonus',    icon:'🎀', name:'獎金',  color:'#F59E0B' },
+  { key:'interest', icon:'🏦', name:'利息',  color:'#10B981' },
+  { key:'part',     icon:'🤝', name:'兼職',  color:'#8B5CF6' },
+  { key:'other_in', icon:'💸', name:'其他',  color:'#64748B' },
+];
+
+const BGT_ALL_CATS = [...BGT_EXP_CATS, ...BGT_INC_CATS];
+function _bgtCat(key) { return BGT_ALL_CATS.find(c => c.key === key) || { icon:'💰', name:key, color:'#94A3B8' }; }
+
+const BGT = {
+  getTxns:    () => DB._get('nm_bgt_txns', '[]'),
+  saveTxns:   d  => localStorage.setItem('nm_bgt_txns', JSON.stringify(d)),
+  getLimits:  () => DB._get('nm_bgt_limits', '{}'),
+  saveLimits: d  => localStorage.setItem('nm_bgt_limits', JSON.stringify(d)),
+  addTxn(t) { t.id = DB.newId(); const a = BGT.getTxns(); a.push(t); BGT.saveTxns(a); return t; },
+  deleteTxn(id) { BGT.saveTxns(BGT.getTxns().filter(t => t.id !== id)); },
+  updateTxn(id, patch) { BGT.saveTxns(BGT.getTxns().map(t => t.id === id ? { ...t, ...patch } : t)); },
+};
+
+let _bgtMonth   = new Date().toISOString().slice(0, 7);
+let _bgtTab     = 'overview';
+let _bgtAddType = 'expense';
+let _bgtEditId  = null;
+let _bgtFilter  = 'all';
+
+function _bgtMonthLabel(ym) {
+  const [y, m] = ym.split('-');
+  return `${y}年 ${parseInt(m)}月`;
+}
+
+function bgtPrevMonth() {
+  const d = new Date(_bgtMonth + '-01');
+  d.setMonth(d.getMonth() - 1);
+  _bgtMonth = d.toISOString().slice(0, 7);
+  document.getElementById('bgt-month-label').textContent = _bgtMonthLabel(_bgtMonth);
+  renderBgtContent();
+}
+
+function bgtNextMonth() {
+  const d = new Date(_bgtMonth + '-01');
+  d.setMonth(d.getMonth() + 1);
+  _bgtMonth = d.toISOString().slice(0, 7);
+  document.getElementById('bgt-month-label').textContent = _bgtMonthLabel(_bgtMonth);
+  renderBgtContent();
+}
+
+function setBgtTab(tab) {
+  _bgtTab = tab;
+  document.querySelectorAll('.bgt-sub-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  renderBgtContent();
+}
+
+function renderBudgetPage() {
+  _bgtMonth = new Date().toISOString().slice(0, 7);
+  _bgtTab = 'overview';
+  const lbl = document.getElementById('bgt-month-label');
+  if (lbl) lbl.textContent = _bgtMonthLabel(_bgtMonth);
+  document.querySelectorAll('.bgt-sub-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === 'overview'));
+  // Auto-apply recurring transactions for this month
+  _bgtApplyRecurring();
+  renderBgtContent();
+}
+
+function _bgtApplyRecurring() {
+  const ym = new Date().toISOString().slice(0, 7);
+  const key = `nm_bgt_rec_${ym}`;
+  if (localStorage.getItem(key)) return;
+  const recurring = BGT.getTxns().filter(t => t.recurring === 'monthly');
+  recurring.forEach(t => {
+    BGT.addTxn({ ...t, id: undefined, date: `${ym}-01`, recurring: 'monthly', _fromRecur: true });
+  });
+  localStorage.setItem(key, '1');
+}
+
+function renderBgtContent() {
+  const el = document.getElementById('bgt-tab-content');
+  if (!el) return;
+  const txns = BGT.getTxns().filter(t => t.date.startsWith(_bgtMonth));
+  if      (_bgtTab === 'overview') el.innerHTML = _bgtRenderOverview(txns);
+  else if (_bgtTab === 'detail')   el.innerHTML = _bgtRenderDetail(txns);
+  else if (_bgtTab === 'budget')   el.innerHTML = _bgtRenderBudget(txns);
+  else if (_bgtTab === 'stats')    el.innerHTML = _bgtRenderStats();
+}
+
+function _bgtTxnRow(t) {
+  const c = _bgtCat(t.cat);
+  const isExp = t.type === 'expense';
+  return `
+    <div class="bgt-txn-row" onclick="bgtTxnMenu('${t.id}')">
+      <div class="bgt-txn-icon" style="background:${c.color}22">${c.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div class="bgt-txn-note">${t.note || c.name}${t.recurring ? ' 🔁' : ''}</div>
+        <div class="bgt-txn-cat-lbl">${c.name} · ${t.date}</div>
+      </div>
+      <div class="bgt-txn-amt" style="color:${isExp ? '#DC2626' : '#16A34A'}">${isExp ? '-' : '+'}$${t.amount.toLocaleString()}</div>
+    </div>`;
+}
+
+function _bgtRenderOverview(txns) {
+  const income  = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const balance = income - expense;
+  const savingRate = income > 0 ? Math.round(((income - expense) / income) * 100) : null;
+
+  const byCat = {};
+  txns.filter(t => t.type === 'expense').forEach(t => {
+    byCat[t.cat] = (byCat[t.cat] || 0) + t.amount;
+  });
+  const topCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const maxAmt = topCats[0]?.[1] || 1;
+
+  const catBars = topCats.length === 0
+    ? `<div style="text-align:center;color:var(--muted);padding:24px 0;font-size:0.82rem">本月尚無支出記錄</div>`
+    : topCats.map(([key, amt]) => {
+        const c = _bgtCat(key);
+        const pct = Math.round((amt / maxAmt) * 100);
+        const limits = BGT.getLimits();
+        const lim = limits[key];
+        const over = lim && amt > lim;
+        return `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="width:30px;height:30px;border-radius:8px;background:${c.color}22;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">${c.icon}</div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px">
+                <span style="font-weight:700">${c.name}${over ? ' ⚠️' : ''}</span>
+                <span style="color:${c.color};font-weight:800">$${amt.toLocaleString()}</span>
+              </div>
+              <div style="height:5px;background:#E5E7EB;border-radius:4px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:${c.color};border-radius:4px"></div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+  const recent = BGT.getTxns().filter(t => t.date.startsWith(_bgtMonth)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+
+  return `
+    <div class="bgt-summary-grid fade-in">
+      <div class="bgt-summary-card">
+        <div class="bgt-summary-label">收入</div>
+        <div class="bgt-summary-val" style="color:#16A34A">+$${income.toLocaleString()}</div>
+      </div>
+      <div class="bgt-summary-card">
+        <div class="bgt-summary-label">支出</div>
+        <div class="bgt-summary-val" style="color:#DC2626">-$${expense.toLocaleString()}</div>
+      </div>
+      <div class="bgt-summary-card">
+        <div class="bgt-summary-label">${savingRate !== null ? '儲蓄率' : '結餘'}</div>
+        <div class="bgt-summary-val" style="color:${balance >= 0 ? '#16A34A' : '#DC2626'}">
+          ${savingRate !== null ? `${savingRate}%` : `${balance >= 0 ? '+' : ''}$${balance.toLocaleString()}`}
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <button onclick="openBgtAdd('expense')" class="btn-primary" style="flex:1;justify-content:center;background:linear-gradient(135deg,#DC2626,#EF4444)">
+        <i class="bi bi-dash-circle-fill"></i> 記支出
+      </button>
+      <button onclick="openBgtAdd('income')" class="btn-primary" style="flex:1;justify-content:center;background:linear-gradient(135deg,#16A34A,#22C55E)">
+        <i class="bi bi-plus-circle-fill"></i> 記收入
+      </button>
+    </div>
+
+    <div class="card fade-in" style="margin-bottom:12px">
+      <div class="card-body" style="padding:14px 16px">
+        <div style="font-weight:800;font-size:0.9rem;margin-bottom:14px">💸 支出分類</div>
+        ${catBars}
+      </div>
+    </div>
+
+    ${recent.length > 0 ? `
+    <div class="card fade-in">
+      <div class="card-body" style="padding:14px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-weight:800;font-size:0.9rem">最近記錄</div>
+          <button onclick="setBgtTab('detail')" style="font-size:0.73rem;color:var(--green);background:none;border:none;cursor:pointer;font-family:inherit;font-weight:700">查看全部 →</button>
+        </div>
+        ${recent.map(t => _bgtTxnRow(t)).join('')}
+      </div>
+    </div>` : ''}`;
+}
+
+function _bgtRenderDetail(txns) {
+  const filterBar = `
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      ${['all', 'expense', 'income'].map(f => `
+        <button onclick="_bgtFilter='${f}';renderBgtContent()"
+          style="border:none;border-radius:20px;padding:5px 14px;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;
+          background:${_bgtFilter === f ? 'var(--text)' : '#F1F5F9'};color:${_bgtFilter === f ? 'white' : 'var(--muted)'}">
+          ${{ all: '全部', expense: '支出', income: '收入' }[f]}
+        </button>`).join('')}
+      <button onclick="openBgtAdd('expense')" style="margin-left:auto;border:none;border-radius:20px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;background:var(--green);color:white">
+        <i class="bi bi-plus-lg"></i>
+      </button>
+    </div>`;
+
+  const filtered = txns
+    .filter(t => _bgtFilter === 'all' || t.type === _bgtFilter)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  if (filtered.length === 0) {
+    return filterBar + `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.85rem">本月尚無${_bgtFilter === 'all' ? '' : _bgtFilter === 'expense' ? '支出' : '收入'}記錄</div>`;
+  }
+
+  const grouped = {};
+  filtered.forEach(t => { (grouped[t.date] = grouped[t.date] || []).push(t); });
+
+  const groups = Object.entries(grouped).map(([date, ts]) => {
+    const dayNet = ts.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
+    return `
+      <div class="bgt-txn-group">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 2px">
+          <div class="bgt-txn-date-label">${date}</div>
+          <div style="font-size:0.72rem;font-weight:700;color:${dayNet >= 0 ? '#16A34A' : '#DC2626'}">${dayNet >= 0 ? '+' : ''}$${dayNet.toLocaleString()}</div>
+        </div>
+        ${ts.map(t => _bgtTxnRow(t)).join('')}
+      </div>`;
+  }).join('');
+
+  return filterBar + groups;
+}
+
+function _bgtRenderBudget(txns) {
+  const limits = BGT.getLimits();
+  const byCat = {};
+  txns.filter(t => t.type === 'expense').forEach(t => { byCat[t.cat] = (byCat[t.cat] || 0) + t.amount; });
+
+  const totalSpent = Object.values(byCat).reduce((s, v) => s + v, 0);
+  const totalLimit = Object.values(limits).reduce((s, v) => s + v, 0);
+  const overallPct = totalLimit > 0 ? Math.min(100, Math.round((totalSpent / totalLimit) * 100)) : null;
+
+  const rows = BGT_EXP_CATS.map(c => {
+    const spent = byCat[c.key] || 0;
+    const lim = limits[c.key] || 0;
+    const pct = lim > 0 ? Math.min(100, Math.round((spent / lim) * 100)) : 0;
+    const over = lim > 0 && spent > lim;
+    const remain = lim > 0 ? lim - spent : null;
+    return `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:1.05rem">${c.icon}</span>
+            <span style="font-size:0.82rem;font-weight:700">${c.name}</span>
+            ${over ? `<span style="font-size:0.62rem;background:#FEE2E2;color:#DC2626;padding:1px 6px;border-radius:6px;font-weight:700">超支</span>` : ''}
+          </div>
+          <div style="text-align:right;font-size:0.78rem">
+            <span style="font-weight:800;color:${over ? '#DC2626' : 'var(--text)'}">$${spent.toLocaleString()}</span>
+            ${lim > 0 ? `<span style="color:var(--muted)"> / $${lim.toLocaleString()}</span>` : `<span style="color:var(--muted)"> 未設定</span>`}
+          </div>
+        </div>
+        ${lim > 0 ? `
+          <div class="bgt-budget-bar-bg">
+            <div class="bgt-budget-bar-fill" style="width:${pct}%;background:${over ? '#EF4444' : c.color}"></div>
+          </div>
+          <div style="font-size:0.66rem;color:var(--muted)">${pct}% · ${over ? `超支 $${Math.abs(remain).toLocaleString()}` : `剩餘 $${remain.toLocaleString()}`}</div>
+        ` : ''}
+      </div>`;
+  }).join('');
+
+  return `
+    ${overallPct !== null ? `
+    <div class="card fade-in" style="margin-bottom:12px;background:linear-gradient(135deg,${overallPct > 90 ? '#FEF2F2' : '#F0FDF4'},${overallPct > 90 ? '#FEE2E2' : '#DCFCE7'});border:none">
+      <div class="card-body" style="padding:14px 16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <div style="font-weight:800;font-size:0.9rem">本月總預算進度</div>
+          <div style="font-weight:800;color:${overallPct > 90 ? '#DC2626' : '#16A34A'}">${overallPct}%</div>
+        </div>
+        <div class="bgt-budget-bar-bg" style="height:10px">
+          <div class="bgt-budget-bar-fill" style="width:${overallPct}%;background:${overallPct > 90 ? '#EF4444' : '#22C55E'}"></div>
+        </div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:6px">已花 $${totalSpent.toLocaleString()} / 總預算 $${totalLimit.toLocaleString()}</div>
+      </div>
+    </div>` : ''}
+
+    <div class="card fade-in">
+      <div class="card-body" style="padding:14px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-weight:800;font-size:0.9rem">📊 預算管理</div>
+          <button onclick="openBgtLimits()" class="btn-primary" style="padding:7px 14px;font-size:0.75rem">
+            <i class="bi bi-sliders2"></i> 設定
+          </button>
+        </div>
+        ${rows}
+      </div>
+    </div>`;
+}
+
+function _bgtRenderStats() {
+  const months = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(d.toISOString().slice(0, 7));
+  }
+
+  const allTxns = BGT.getTxns();
+  const mData = months.map(ym => {
+    const ts = allTxns.filter(t => t.date.startsWith(ym));
+    const inc = ts.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const exp = ts.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    return { ym, inc, exp, label: ym.slice(5) + '月' };
+  });
+
+  const maxVal = Math.max(...mData.map(m => Math.max(m.inc, m.exp)), 1);
+  const H = 90;
+
+  const bars = mData.map(m => {
+    const incH = Math.max(2, Math.round((m.inc / maxVal) * H));
+    const expH = Math.max(2, Math.round((m.exp / maxVal) * H));
+    const isCur = m.ym === _bgtMonth;
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:3px">
+        <div style="display:flex;gap:2px;align-items:flex-end;height:${H}px">
+          <div style="width:11px;height:${incH}px;background:#22C55E;border-radius:3px 3px 0 0;opacity:${isCur ? 1 : 0.6}"></div>
+          <div style="width:11px;height:${expH}px;background:#EF4444;border-radius:3px 3px 0 0;opacity:${isCur ? 1 : 0.6}"></div>
+        </div>
+        <div style="font-size:0.6rem;color:${isCur ? 'var(--green)' : 'var(--muted)'};font-weight:${isCur ? 800 : 400}">${m.label}</div>
+      </div>`;
+  }).join('');
+
+  // Category breakdown for current month
+  const curExp = allTxns.filter(t => t.date.startsWith(_bgtMonth) && t.type === 'expense');
+  const byCat = {};
+  curExp.forEach(t => { byCat[t.cat] = (byCat[t.cat] || 0) + t.amount; });
+  const total = Object.values(byCat).reduce((s, v) => s + v, 0) || 1;
+  const catRows = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([key, amt]) => {
+    const c = _bgtCat(key);
+    const pct = Math.round((amt / total) * 100);
+    return `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+        <div style="flex:1;font-size:0.8rem">${c.icon} ${c.name}</div>
+        <div style="font-size:0.78rem;font-weight:700;color:${c.color}">${pct}%</div>
+        <div style="font-size:0.78rem;color:var(--muted);min-width:60px;text-align:right">$${amt.toLocaleString()}</div>
+      </div>`;
+  }).join('');
+
+  const total6Inc = mData.reduce((s, m) => s + m.inc, 0);
+  const total6Exp = mData.reduce((s, m) => s + m.exp, 0);
+  const avgExp    = Math.round(total6Exp / 6);
+  const net6      = total6Inc - total6Exp;
+
+  return `
+    <div class="card fade-in" style="margin-bottom:12px">
+      <div class="card-body" style="padding:14px 16px">
+        <div style="font-weight:800;font-size:0.9rem;margin-bottom:6px">📈 近 6 個月趨勢</div>
+        <div style="display:flex;gap:14px;margin-bottom:12px;font-size:0.72rem">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#22C55E;display:inline-block"></span>收入</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#EF4444;display:inline-block"></span>支出</span>
+        </div>
+        <div class="bgt-trend-bar-wrap">${bars}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:14px">
+          <div style="text-align:center;padding:10px 4px;background:#F8FAFC;border-radius:10px">
+            <div style="font-size:0.6rem;color:var(--muted)">總收入</div>
+            <div style="font-size:0.82rem;font-weight:800;color:#16A34A">+$${total6Inc.toLocaleString()}</div>
+          </div>
+          <div style="text-align:center;padding:10px 4px;background:#F8FAFC;border-radius:10px">
+            <div style="font-size:0.6rem;color:var(--muted)">總支出</div>
+            <div style="font-size:0.82rem;font-weight:800;color:#DC2626">-$${total6Exp.toLocaleString()}</div>
+          </div>
+          <div style="text-align:center;padding:10px 4px;background:#F8FAFC;border-radius:10px">
+            <div style="font-size:0.6rem;color:var(--muted)">月均支出</div>
+            <div style="font-size:0.82rem;font-weight:800;color:var(--text)">$${avgExp.toLocaleString()}</div>
+          </div>
+          <div style="text-align:center;padding:10px 4px;background:#F8FAFC;border-radius:10px">
+            <div style="font-size:0.6rem;color:var(--muted)">淨結餘</div>
+            <div style="font-size:0.82rem;font-weight:800;color:${net6 >= 0 ? '#16A34A' : '#DC2626'}">${net6 >= 0 ? '+' : ''}$${net6.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    ${curExp.length > 0 ? `
+    <div class="card fade-in">
+      <div class="card-body" style="padding:14px 16px">
+        <div style="font-weight:800;font-size:0.9rem;margin-bottom:14px">🍰 ${_bgtMonth.slice(5)}月 支出分類</div>
+        ${catRows}
+      </div>
+    </div>` : ''}`;
+}
+
+// ── Add Transaction ──────────────────────────────────────────────────────────
+
+function openBgtAdd(type) {
+  _bgtAddType = type;
+  _bgtEditId  = null;
+  document.getElementById('bgt-add-modal').style.display = 'flex';
+  document.getElementById('bgt-amt').value  = '';
+  document.getElementById('bgt-note').value = '';
+  document.getElementById('bgt-date').value = todayStr();
+  document.getElementById('bgt-recurring').checked = false;
+  setBgtType(type);
+  setTimeout(() => document.getElementById('bgt-amt')?.focus(), 100);
+}
+
+function closeBgtAdd() {
+  document.getElementById('bgt-add-modal').style.display = 'none';
+}
+
+function setBgtType(type) {
+  _bgtAddType = type;
+  document.getElementById('bgt-type-expense').className = 'bgt-type-btn' + (type === 'expense' ? ' active-expense' : '');
+  document.getElementById('bgt-type-income').className  = 'bgt-type-btn' + (type === 'income'  ? ' active-income'  : '');
+  _renderBgtCatGrid(type);
+}
+
+function _renderBgtCatGrid(type) {
+  const cats = type === 'expense' ? BGT_EXP_CATS : BGT_INC_CATS;
+  const cur  = document.getElementById('bgt-cat-val').value;
+  const validKeys = cats.map(c => c.key);
+  const sel  = validKeys.includes(cur) ? cur : cats[0].key;
+  document.getElementById('bgt-cat-val').value = sel;
+  document.getElementById('bgt-cat-grid').innerHTML = cats.map(c => `
+    <button type="button" class="bgt-cat-btn${c.key === sel ? ' active' : ''}" data-ckey="${c.key}" onclick="selectBgtCat('${c.key}')">
+      <span>${c.icon}</span><span>${c.name}</span>
+    </button>`).join('');
+}
+
+function selectBgtCat(key) {
+  document.getElementById('bgt-cat-val').value = key;
+  document.querySelectorAll('.bgt-cat-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.ckey === key));
+}
+
+function saveBgtTxn() {
+  const amt = parseFloat(document.getElementById('bgt-amt').value);
+  if (!amt || amt <= 0) { showToast('請輸入金額'); return; }
+  const cat = document.getElementById('bgt-cat-val').value;
+  if (!cat) { showToast('請選擇類別'); return; }
+  const txn = {
+    type:      _bgtAddType,
+    amount:    Math.round(amt * 100) / 100,
+    cat,
+    note:      document.getElementById('bgt-note').value.trim(),
+    date:      document.getElementById('bgt-date').value || todayStr(),
+    recurring: document.getElementById('bgt-recurring').checked ? 'monthly' : null,
+  };
+  if (_bgtEditId) {
+    BGT.updateTxn(_bgtEditId, txn);
+    _bgtEditId = null;
+  } else {
+    BGT.addTxn(txn);
+  }
+  closeBgtAdd();
+  renderBgtContent();
+  showToast(`✅ ${txn.type === 'expense' ? '支出' : '收入'} $${txn.amount.toLocaleString()} 已記錄`);
+}
+
+function bgtTxnMenu(id) {
+  const txn = BGT.getTxns().find(t => t.id === id);
+  if (!txn) return;
+  const c = _bgtCat(txn.cat);
+  const choice = confirm(`${c.icon} ${txn.note || c.name}\n${txn.type === 'expense' ? '-' : '+'}$${txn.amount.toLocaleString()} · ${txn.date}\n\n確認刪除此筆記錄？`);
+  if (!choice) return;
+  BGT.deleteTxn(id);
+  renderBgtContent();
+  showToast('已刪除');
+}
+
+// ── Budget Limits Modal ──────────────────────────────────────────────────────
+
+function openBgtLimits() {
+  const limits = BGT.getLimits();
+  document.getElementById('bgt-limit-body').innerHTML = `
+    <div style="font-size:0.78rem;color:var(--muted);margin-bottom:18px">設定各類別每月上限，超過時會顯示警示</div>
+    ${BGT_EXP_CATS.map(c => `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:32px;height:32px;border-radius:9px;background:${c.color}22;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">${c.icon}</div>
+        <div style="flex:1;font-size:0.82rem;font-weight:700">${c.name}</div>
+        <div style="position:relative;width:110px">
+          <input type="number" id="bgt-lim-${c.key}" value="${limits[c.key] || ''}" min="0" step="100" placeholder="不限" class="form-input" style="padding-right:28px;text-align:right">
+          <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--muted)">元</span>
+        </div>
+      </div>`).join('')}
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn-outline" style="flex:1;justify-content:center" onclick="closeBgtLimits()">取消</button>
+      <button class="btn-primary" style="flex:2;justify-content:center" onclick="saveBgtLimits()">
+        <i class="bi bi-check-circle-fill"></i> 儲存預算
+      </button>
+    </div>`;
+  document.getElementById('bgt-limit-modal').style.display = 'flex';
+}
+
+function closeBgtLimits() {
+  document.getElementById('bgt-limit-modal').style.display = 'none';
+}
+
+function saveBgtLimits() {
+  const limits = {};
+  BGT_EXP_CATS.forEach(c => {
+    const v = parseFloat(document.getElementById(`bgt-lim-${c.key}`)?.value);
+    if (v > 0) limits[c.key] = v;
+  });
+  BGT.saveLimits(limits);
+  closeBgtLimits();
+  renderBgtContent();
+  showToast('✅ 預算已儲存');
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -7680,6 +8207,15 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (id === 'manualModal')   closeManualModal();
         else if (id === 'manualExModal') closeManualExercise();
         else closePhotoScan();
+      }
+    });
+  });
+
+  ['bgt-add-modal','bgt-limit-modal'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', function(e) {
+      if (e.target === this) {
+        if (id === 'bgt-add-modal')   closeBgtAdd();
+        else closeBgtLimits();
       }
     });
   });
