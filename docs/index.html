@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
   <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/style.css?v=20260901g">
+  <link rel="stylesheet" href="css/style.css?v=20260901h">
   <style>
     .page { display: none; }
     .page.active { display: block; }
@@ -1307,49 +1307,63 @@
       </div>
     </div>
     <div style="padding:20px">
-      <!-- 前置設定提示 -->
-      <div style="background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border:1px solid #FED7AA;border-radius:14px;padding:13px 15px;margin-bottom:14px">
-        <div style="font-weight:800;font-size:0.84rem;margin-bottom:8px">⚙️ 安裝前請先完成（一次即可）</div>
-        <div class="aw-setup-step" style="margin:0 0 6px">
-          <div class="aw-setup-num" style="background:#EA580C">1</div>
-          <div class="aw-setup-text">打開「<strong>設定</strong>」→ 搜尋「<strong>捷徑</strong>」→ 點進去</div>
-        </div>
-        <div class="aw-setup-step" style="margin:0">
-          <div class="aw-setup-num" style="background:#EA580C">2</div>
-          <div class="aw-setup-text">開啟「<strong>允許未受信任的捷徑</strong>」→ 確認後回來點安裝</div>
-        </div>
+      <!-- 說明標題 -->
+      <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.6;margin-bottom:16px">
+        iOS 17 起封鎖自動匯入，請依以下步驟手動建立捷徑（約 2 分鐘，只需一次）
       </div>
 
-      <!-- 一鍵安裝 -->
-      <button onclick="installAwShortcut()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#1C1C1E,#3A3A3C);color:#fff;border:none;border-radius:16px;padding:16px;font-size:1rem;font-weight:800;cursor:pointer;margin-bottom:12px;font-family:inherit">
-        <i class="bi bi-apple" style="font-size:1.3rem"></i>
-        <span>一鍵安裝捷徑</span>
-        <i class="bi bi-arrow-right-circle-fill" style="font-size:1.1rem;margin-left:auto"></i>
-      </button>
-      <div style="font-size:0.74rem;color:var(--text-muted);text-align:center;margin-bottom:18px">
-        點選後捷徑 App 開啟，點「加入捷徑」即完成
-      </div>
-
-      <!-- 自動化設定提示 -->
-      <div style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border-radius:14px;padding:13px 15px;margin-bottom:18px">
-        <div style="font-weight:800;font-size:0.84rem;margin-bottom:6px">⚡ 安裝後設定自動化（一次設定，永久使用）</div>
-        <div class="aw-setup-step" style="margin:0 0 6px">
+      <!-- 步驟一：建立捷徑 -->
+      <div style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border-radius:14px;padding:13px 15px;margin-bottom:14px">
+        <div style="font-weight:800;font-size:0.84rem;margin-bottom:8px">📱 第一步：建立捷徑</div>
+        <div class="aw-setup-step" style="margin:0 0 7px">
           <div class="aw-setup-num">1</div>
-          <div class="aw-setup-text">打開「<strong>捷徑</strong>」App → 底部「<strong>自動化</strong>」頁籤 → 右上角「<strong>+</strong>」</div>
+          <div class="aw-setup-text">打開「<strong>捷徑</strong>」App → 右上角「<strong>＋</strong>」新增捷徑</div>
         </div>
-        <div class="aw-setup-step" style="margin:0 0 6px">
+        <div class="aw-setup-step" style="margin:0 0 7px">
           <div class="aw-setup-num">2</div>
-          <div class="aw-setup-text">選「<strong>健身運動</strong>」→ 勾選「<strong>結束時</strong>」→ 選「<strong>NutriMate Watch</strong>」捷徑</div>
+          <div class="aw-setup-text">搜尋「<strong>取得健康</strong>」→ 加入 → 類型選「<strong>健身運動</strong>」→ 開啟「<strong>限制</strong>」設為 <strong>1</strong>，排序「<strong>最新優先</strong>」</div>
+        </div>
+        <div class="aw-setup-step" style="margin:0 0 7px">
+          <div class="aw-setup-num">3</div>
+          <div class="aw-setup-text">搜尋「<strong>取得列表中的項目</strong>」→ 加入 → 選「<strong>第一個項目</strong>」</div>
+        </div>
+        <div class="aw-setup-step" style="margin:0 0 7px">
+          <div class="aw-setup-num">4</div>
+          <div class="aw-setup-text">搜尋「<strong>打開 URL</strong>」→ 加入 → 輸入以下網址（長按可複製）：</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.06);border-radius:8px;padding:8px 10px;font-size:0.7rem;font-family:monospace;word-break:break-all;margin:0 0 7px 28px;line-height:1.5" onclick="navigator.clipboard?.writeText('https://willy0929716513-debug.github.io/JBO/?wk=1');showToast('已複製網址')">
+          https://willy0929716513-debug.github.io/JBO/?wk=1
         </div>
         <div class="aw-setup-step" style="margin:0">
-          <div class="aw-setup-num">3</div>
-          <div class="aw-setup-text">設定「<strong>立即執行</strong>」（不需確認）→ 完成！之後每次運動結束自動同步</div>
+          <div class="aw-setup-num">5</div>
+          <div class="aw-setup-text">右上角點「<strong>完成</strong>」→ 捷徑命名「<strong>NutriMate Watch</strong>」→ 儲存</div>
         </div>
       </div>
 
-      <!-- 橋接說明 -->
+      <!-- 步驟二：設定自動化 -->
+      <div style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border-radius:14px;padding:13px 15px;margin-bottom:14px">
+        <div style="font-weight:800;font-size:0.84rem;margin-bottom:8px">⚡ 第二步：設定自動化（運動後自動觸發）</div>
+        <div class="aw-setup-step" style="margin:0 0 7px">
+          <div class="aw-setup-num">1</div>
+          <div class="aw-setup-text">捷徑 App → 底部「<strong>自動化</strong>」→ 右上角「<strong>＋</strong>」</div>
+        </div>
+        <div class="aw-setup-step" style="margin:0 0 7px">
+          <div class="aw-setup-num">2</div>
+          <div class="aw-setup-text">搜尋「<strong>健身運動</strong>」→ 觸發時機選「<strong>結束時</strong>」→ 下一步</div>
+        </div>
+        <div class="aw-setup-step" style="margin:0 0 7px">
+          <div class="aw-setup-num">3</div>
+          <div class="aw-setup-text">搜尋並選「<strong>NutriMate Watch</strong>」捷徑</div>
+        </div>
+        <div class="aw-setup-step" style="margin:0">
+          <div class="aw-setup-num">4</div>
+          <div class="aw-setup-text">關閉「<strong>執行前詢問</strong>」→「<strong>完成</strong>」</div>
+        </div>
+      </div>
+
+      <!-- 說明 -->
       <div style="background:#F8FAFC;border-radius:12px;padding:12px 14px;font-size:0.75rem;color:var(--text-muted);line-height:1.7;margin-bottom:16px;border:1px solid var(--border)">
-        🔗 <strong>運作原理：</strong>Apple Watch 運動結束 → 捷徑自動讀取 HealthKit 數據 → 開啟 NutriMate → App 顯示確認卡 → 一鍵儲存到運動記錄
+        🔗 <strong>運作原理：</strong>運動結束 → 捷徑自動開啟 NutriMate → App 顯示確認卡 → 點一下儲存到運動記錄
       </div>
 
       <!-- 支援類型 -->
@@ -1366,6 +1380,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20260901g"></script>
+<script src="js/app.js?v=20260901h"></script>
 </body>
 </html>
