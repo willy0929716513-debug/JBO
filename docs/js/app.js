@@ -8183,6 +8183,32 @@ const AW_TYPE_MAP = {
   Surfing:              { icon:'🏄', name:'衝浪',         met:5.0,  cat:'cardio' },
   MixedCardio:          { icon:'🫀', name:'混合有氧',    met:7.0,  cat:'cardio' },
   Other:                { icon:'⌚', name:'其他運動',    met:5.0,  cat:'other' },
+  // Chinese localized names from Shortcuts on Chinese iOS
+  '跑步':               { icon:'🏃', name:'戶外跑步',    met:9.8,  cat:'cardio' },
+  '戶外跑步':           { icon:'🏃', name:'戶外跑步',    met:9.8,  cat:'cardio' },
+  '步行':               { icon:'🚶', name:'健走',         met:3.5,  cat:'cardio' },
+  '騎自行車':           { icon:'🚴', name:'騎腳踏車',    met:7.5,  cat:'cardio' },
+  '戶外騎自行車':       { icon:'🚴', name:'騎腳踏車',    met:7.5,  cat:'cardio' },
+  '高強度間歇訓練':     { icon:'⚡', name:'高強度間歇',  met:10.0, cat:'cardio' },
+  '傳統力量訓練':       { icon:'🏋️', name:'重量訓練',    met:5.0,  cat:'strength' },
+  '功能性力量訓練':     { icon:'🤸', name:'功能訓練',    met:5.5,  cat:'strength' },
+  '橢圓訓練機':         { icon:'🔄', name:'橢圓機',      met:6.0,  cat:'cardio' },
+  '划船':               { icon:'🚣', name:'划船機',      met:7.0,  cat:'cardio' },
+  '爬樓梯':             { icon:'🪜', name:'爬樓梯',      met:8.0,  cat:'cardio' },
+  '徒步旅行':           { icon:'🥾', name:'登山健行',    met:6.0,  cat:'cardio' },
+  '乒乓球':             { icon:'🏓', name:'桌球',         met:4.0,  cat:'cardio' },
+  '舞蹈':               { icon:'💃', name:'有氧舞蹈',    met:5.0,  cat:'cardio' },
+  '普拉提':             { icon:'🤸', name:'皮拉提斯',    met:3.5,  cat:'flexibility' },
+  '混合有氧運動':       { icon:'🫀', name:'混合有氧',    met:7.0,  cat:'cardio' },
+  // Shortcuts full English names (may differ from HealthKit enum names)
+  'High Intensity Interval Training': { icon:'⚡', name:'高強度間歇', met:10.0, cat:'cardio' },
+  'Outdoor Run':        { icon:'🏃', name:'戶外跑步',    met:9.8,  cat:'cardio' },
+  'Outdoor Cycle':      { icon:'🚴', name:'騎腳踏車',    met:7.5,  cat:'cardio' },
+  'Indoor Run':         { icon:'🏃', name:'室內跑步',    met:8.5,  cat:'cardio' },
+  'Indoor Cycle':       { icon:'🚴', name:'室內騎車',    met:7.0,  cat:'cardio' },
+  'Open Water Swim':    { icon:'🏊', name:'游泳',         met:8.0,  cat:'cardio' },
+  'Pool Swim':          { icon:'🏊', name:'游泳',         met:8.0,  cat:'cardio' },
+  'Strength Training':  { icon:'🏋️', name:'重量訓練',    met:5.0,  cat:'strength' },
 };
 
 // State for pending import
@@ -8198,20 +8224,45 @@ function _awResolveType(typeStr) {
   return found ? found[1] : { icon:'⌚', name: typeStr, met:5.0, cat:'other' };
 }
 
+function _parseAwNum(s, isDistance) {
+  if (!s) return 0;
+  const str = String(s).trim();
+  // Handle H:MM:SS or MM:SS time format → minutes
+  const hms = str.match(/^(\d+):(\d{2})(?::(\d{2}))?/);
+  if (hms) {
+    const h = parseInt(hms[1]), m = parseInt(hms[2]), sec = parseInt(hms[3] || 0);
+    return hms[3] ? h * 60 + m + sec / 60 : h + m / 60;
+  }
+  const num = parseFloat(str.replace(/[^\d.]/g, '')) || 0;
+  // Convert miles → km for distance values
+  if (isDistance && /\bmi(?:le)?s?\b/i.test(str)) return Math.round(num * 1609.34) / 1000;
+  return num;
+}
+
+function _parseAwDate(s) {
+  if (!s) return todayStr();
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s.trim())) return s.trim();
+  try {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  } catch {}
+  return todayStr();
+}
+
 function _awCheckUrlImport() {
   const params = new URLSearchParams(window.location.search);
   if (!params.get('wk')) return;
-  const type   = params.get('type') || 'Other';
-  const dur    = parseFloat(params.get('dur'))  || 0;
-  const kcal   = parseFloat(params.get('kcal')) || 0;
-  const hr     = parseFloat(params.get('hr'))   || 0;
-  const dist   = parseFloat(params.get('dist')) || 0;
-  const date   = params.get('date') || todayStr();
+  const type = params.get('type') || 'Other';
+  const dur  = _parseAwNum(params.get('dur'));
+  const kcal = _parseAwNum(params.get('kcal'));
+  const hr   = _parseAwNum(params.get('hr'));
+  const dist = _parseAwNum(params.get('dist'), true);
+  const date = _parseAwDate(params.get('date'));
 
   // Clean URL so refreshing doesn't re-trigger
   try {
-    const clean = window.location.pathname + window.location.hash;
-    history.replaceState({}, '', clean);
+    history.replaceState({}, '', window.location.pathname + window.location.hash);
   } catch {}
 
   if (!dur && !kcal) return;
@@ -8267,7 +8318,19 @@ function confirmAwImport() {
 
 // ── Setup Guide Modal ────────────────────────────────────────────────────────
 
-const AW_SHORTCUT_URL = 'https://willy0929716513-debug.github.io/JBO/?wk=1&type=[健身運動類型]&dur=[時長(分)]&kcal=[消耗熱量]&hr=[平均心率]&dist=[距離]&date=[開始日期YYYY-MM-DD]';
+const AW_SHORTCUT_FILE = 'https://willy0929716513-debug.github.io/JBO/nutrimate-watch.shortcut';
+
+function installAwShortcut() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    const installUrl = `shortcuts://import-shortcut?url=${encodeURIComponent(AW_SHORTCUT_FILE)}&name=NutriMate%20Watch`;
+    window.location.href = installUrl;
+  } else {
+    navigator.clipboard?.writeText(AW_SHORTCUT_FILE).then(() => {
+      showToast('📋 捷徑連結已複製！請在 iPhone 的 Safari 中貼上並開啟');
+    }).catch(() => showToast('請在 iPhone 上點選此按鈕'));
+  }
+}
 
 function openAwSetup() {
   document.getElementById('aw-setup-modal').style.display = 'flex';
