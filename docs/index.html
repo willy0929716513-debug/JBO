@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
   <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/style.css?v=20260831d">
+  <link rel="stylesheet" href="css/style.css?v=20260901a">
   <style>
     .page { display: none; }
     .page.active { display: block; }
@@ -572,6 +572,82 @@
     </div>
   </div>
 
+  <!-- Budget: Add Transaction Modal -->
+  <div id="bgt-add-modal" class="bgt-modal">
+    <div class="bgt-modal-inner">
+      <div class="bgt-modal-header">
+        <div style="width:36px;height:4px;background:#E2E8F0;border-radius:4px;margin:0 auto 12px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:900;font-size:1.05rem" id="bgt-add-title">新增記錄</div>
+          <button onclick="closeBgtAdd()" style="background:#F1F5F9;border:none;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted)">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div class="bgt-modal-body">
+        <!-- Type toggle -->
+        <div class="bgt-type-toggle">
+          <button class="bgt-type-btn active-expense" id="bgt-type-expense" onclick="setBgtType('expense')">💸 支出</button>
+          <button class="bgt-type-btn" id="bgt-type-income" onclick="setBgtType('income')">💰 收入</button>
+        </div>
+        <!-- Amount -->
+        <div style="text-align:center;border-bottom:2px solid var(--border);margin-bottom:16px;padding-bottom:4px">
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:2px">金額（NT$）</div>
+          <input class="bgt-amount-input" id="bgt-amt" type="number" min="0" step="1" placeholder="0" inputmode="decimal">
+        </div>
+        <!-- Category grid -->
+        <div style="font-size:0.73rem;font-weight:700;color:var(--text-2);margin-bottom:8px">類別</div>
+        <div class="bgt-cat-grid" id="bgt-cat-grid"></div>
+        <input type="hidden" id="bgt-cat-val">
+        <!-- Date + Note -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--text-2);margin-bottom:6px">日期</div>
+            <input id="bgt-date" type="date" class="form-input">
+          </div>
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--text-2);margin-bottom:6px">備註</div>
+            <input id="bgt-note" type="text" class="form-input" placeholder="選填">
+          </div>
+        </div>
+        <!-- Recurring -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding:12px 14px;background:#F8FAFC;border-radius:12px">
+          <div>
+            <div style="font-size:0.82rem;font-weight:700">每月定期記帳</div>
+            <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">開啟後每月 1 日自動產生此筆</div>
+          </div>
+          <label class="bgt-toggle">
+            <input type="checkbox" id="bgt-recurring">
+            <span class="bgt-toggle-slider"></span>
+          </label>
+        </div>
+        <!-- Action buttons -->
+        <div style="display:flex;gap:10px">
+          <button class="btn-outline" style="flex:1;justify-content:center" onclick="closeBgtAdd()">取消</button>
+          <button class="btn-primary" style="flex:2;justify-content:center" onclick="saveBgtTxn()">
+            <i class="bi bi-check-circle-fill"></i> 儲存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Budget: Set Limits Modal -->
+  <div id="bgt-limit-modal" class="bgt-modal">
+    <div class="bgt-modal-inner">
+      <div class="bgt-modal-header">
+        <div style="width:36px;height:4px;background:#E2E8F0;border-radius:4px;margin:0 auto 12px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:900;font-size:1.05rem">設定每月預算</div>
+          <button onclick="closeBgtLimits()" style="background:#F1F5F9;border:none;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted)">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div class="bgt-modal-body" id="bgt-limit-body"></div>
+    </div>
+  </div>
+
   <!-- Weight -->
   <div id="page-weight" class="page">
     <div style="margin-bottom:16px">
@@ -697,6 +773,41 @@
           • 每天至少飲水 <strong>體重 × 35 ml</strong>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Budget -->
+  <div id="page-budget" class="page">
+    <div style="margin-bottom:14px">
+      <div class="greeting">記帳 <span style="color:#16C060">💰</span></div>
+      <div class="subgreeting">追蹤每筆收支，掌握財務狀況</div>
+    </div>
+
+    <!-- Month navigator -->
+    <div class="bgt-month-nav">
+      <button class="bgt-month-btn" onclick="bgtPrevMonth()"><i class="bi bi-chevron-left"></i></button>
+      <div class="bgt-month-label" id="bgt-month-label">2026年 9月</div>
+      <button class="bgt-month-btn" onclick="bgtNextMonth()"><i class="bi bi-chevron-right"></i></button>
+    </div>
+
+    <!-- Sub-tabs -->
+    <div class="bgt-sub-tabs">
+      <button class="bgt-sub-tab active" data-tab="overview" onclick="setBgtTab('overview')">概覽</button>
+      <button class="bgt-sub-tab" data-tab="detail" onclick="setBgtTab('detail')">明細</button>
+      <button class="bgt-sub-tab" data-tab="budget" onclick="setBgtTab('budget')">預算</button>
+      <button class="bgt-sub-tab" data-tab="stats" onclick="setBgtTab('stats')">統計</button>
+    </div>
+
+    <div id="bgt-tab-content"></div>
+
+    <!-- FAB -->
+    <div id="bgt-fab" class="bgt-fab">
+      <button class="bgt-fab-btn" style="background:#DCFCE7;color:#16A34A" onclick="openBgtAdd('income')" title="新增收入">
+        <i class="bi bi-plus-circle-fill"></i>
+      </button>
+      <button class="bgt-fab-btn" style="background:#FEE2E2;color:#DC2626" onclick="openBgtAdd('expense')" title="新增支出">
+        <i class="bi bi-dash-circle-fill"></i>
+      </button>
     </div>
   </div>
 
@@ -986,6 +1097,9 @@
   <a class="nav-item" data-page="trends" onclick="navigate('trends')">
     <i class="bi bi-graph-up-arrow"></i><span>趨勢</span>
   </a>
+  <a class="nav-item" data-page="budget" onclick="navigate('budget')">
+    <i class="bi bi-wallet2"></i><span>記帳</span>
+  </a>
 </nav>
 
 <div id="toast" class="toast"></div>
@@ -1149,6 +1263,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20260831d"></script>
+<script src="js/app.js?v=20260901a"></script>
 </body>
 </html>
