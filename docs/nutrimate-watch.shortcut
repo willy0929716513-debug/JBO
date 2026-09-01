@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>WFWorkflowActions</key>
+	<array>
+
+		<!-- 1: 取得最新 1 筆健身運動 -->
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.gethealth</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A1000001-0001-0001-0001-000000000001</string>
+				<key>CustomOutputName</key>
+				<string>健身運動</string>
+				<key>WFHealthType</key>
+				<string>Workout</string>
+				<key>WFHealthLimitResults</key>
+				<true/>
+				<key>WFHealthMaximumResults</key>
+				<integer>1</integer>
+				<key>WFHealthSortDirection</key>
+				<string>Latest First</string>
+			</dict>
+		</dict>
+
+		<!-- 2: 取得第一筆 -->
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.getitemfromlist</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A1000002-0002-0002-0002-000000000002</string>
+				<key>CustomOutputName</key>
+				<string>最新運動</string>
+				<key>WFItemSpecifier</key>
+				<string>First Item</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputName</key>
+						<string>健身運動</string>
+						<key>OutputUUID</key>
+						<string>A1000001-0001-0001-0001-000000000001</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+
+		<!-- 3: 格式化日期為 yyyy-MM-dd -->
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.date</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A1000003-0003-0003-0003-000000000003</string>
+				<key>CustomOutputName</key>
+				<string>運動日期</string>
+				<key>WFDateActionMode</key>
+				<string>Format</string>
+				<key>WFDateFormatStyle</key>
+				<string>Custom</string>
+				<key>WFDateFormat</key>
+				<string>yyyy-MM-dd</string>
+				<key>WFDate</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputName</key>
+						<string>最新運動</string>
+						<key>OutputUUID</key>
+						<string>A1000002-0002-0002-0002-000000000002</string>
+						<key>Aggrandizements</key>
+						<array>
+							<dict>
+								<key>Type</key>
+								<string>WFPropertyAggrandizement</string>
+								<key>PropertyName</key>
+								<string>Start Date</string>
+								<key>PropertyUserInfo</key>
+								<integer>0</integer>
+							</dict>
+						</array>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+
+		<!-- 4: 組合 NutriMate URL（含魔法變數） -->
+		<!-- URL template (actual string, & not escaped here):
+		     https://willy0929716513-debug.github.io/JBO/?wk=1&type=<0xFFFC>&dur=<0xFFFC>&kcal=<0xFFFC>&dist=<0xFFFC>&date=<0xFFFC>
+		     Positions (0-indexed): type={55,1} dur={61,1} kcal={68,1} dist={75,1} date={82,1} -->
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.gettext</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A1000004-0004-0004-0004-000000000004</string>
+				<key>CustomOutputName</key>
+				<string>NutriMate URL</string>
+				<key>WFTextActionText</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>https://willy0929716513-debug.github.io/JBO/?wk=1&amp;type=&#xFFFC;&amp;dur=&#xFFFC;&amp;kcal=&#xFFFC;&amp;dist=&#xFFFC;&amp;date=&#xFFFC;</string>
+						<key>attachmentsByRange</key>
+						<dict>
+							<key>{55, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>ActionOutput</string>
+								<key>OutputName</key>
+								<string>最新運動</string>
+								<key>OutputUUID</key>
+								<string>A1000002-0002-0002-0002-000000000002</string>
+								<key>Aggrandizements</key>
+								<array>
+									<dict>
+										<key>Type</key>
+										<string>WFPropertyAggrandizement</string>
+										<key>PropertyName</key>
+										<string>Activity Type</string>
+										<key>PropertyUserInfo</key>
+										<integer>0</integer>
+									</dict>
+								</array>
+							</dict>
+							<key>{61, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>ActionOutput</string>
+								<key>OutputName</key>
+								<string>最新運動</string>
+								<key>OutputUUID</key>
+								<string>A1000002-0002-0002-0002-000000000002</string>
+								<key>Aggrandizements</key>
+								<array>
+									<dict>
+										<key>Type</key>
+										<string>WFPropertyAggrandizement</string>
+										<key>PropertyName</key>
+										<string>Duration</string>
+										<key>PropertyUserInfo</key>
+										<integer>0</integer>
+									</dict>
+								</array>
+							</dict>
+							<key>{68, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>ActionOutput</string>
+								<key>OutputName</key>
+								<string>最新運動</string>
+								<key>OutputUUID</key>
+								<string>A1000002-0002-0002-0002-000000000002</string>
+								<key>Aggrandizements</key>
+								<array>
+									<dict>
+										<key>Type</key>
+										<string>WFPropertyAggrandizement</string>
+										<key>PropertyName</key>
+										<string>Total Energy Burned</string>
+										<key>PropertyUserInfo</key>
+										<integer>0</integer>
+									</dict>
+								</array>
+							</dict>
+							<key>{75, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>ActionOutput</string>
+								<key>OutputName</key>
+								<string>最新運動</string>
+								<key>OutputUUID</key>
+								<string>A1000002-0002-0002-0002-000000000002</string>
+								<key>Aggrandizements</key>
+								<array>
+									<dict>
+										<key>Type</key>
+										<string>WFPropertyAggrandizement</string>
+										<key>PropertyName</key>
+										<string>Total Distance</string>
+										<key>PropertyUserInfo</key>
+										<integer>0</integer>
+									</dict>
+								</array>
+							</dict>
+							<key>{82, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>ActionOutput</string>
+								<key>OutputName</key>
+								<string>運動日期</string>
+								<key>OutputUUID</key>
+								<string>A1000003-0003-0003-0003-000000000003</string>
+							</dict>
+						</dict>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+			</dict>
+		</dict>
+
+		<!-- 5: 開啟 URL -->
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.openurl</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A1000005-0005-0005-0005-000000000005</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputName</key>
+						<string>NutriMate URL</string>
+						<key>OutputUUID</key>
+						<string>A1000004-0004-0004-0004-000000000004</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+
+	</array>
+
+	<key>WFWorkflowClientVersion</key>
+	<string>1289</string>
+	<key>WFWorkflowHasOutputFallback</key>
+	<false/>
+	<key>WFWorkflowIcon</key>
+	<dict>
+		<key>WFWorkflowIconGlyphNumber</key>
+		<integer>59754</integer>
+		<key>WFWorkflowIconStartColor</key>
+		<integer>-2003824128</integer>
+	</dict>
+	<key>WFWorkflowImportQuestions</key>
+	<array/>
+	<key>WFWorkflowInputContentItemClasses</key>
+	<array/>
+	<key>WFWorkflowMinimumClientVersion</key>
+	<integer>900</integer>
+	<key>WFWorkflowMinimumClientVersionString</key>
+	<string>900</string>
+	<key>WFWorkflowOutputContentItemClasses</key>
+	<array/>
+	<key>WFWorkflowTypes</key>
+	<array/>
+	<key>WFQuickActionSurfaces</key>
+	<array/>
+</dict>
+</plist>
