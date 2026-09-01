@@ -8265,8 +8265,6 @@ function _awCheckUrlImport() {
     history.replaceState({}, '', window.location.pathname + window.location.hash);
   } catch {}
 
-  if (!dur && !kcal) return;
-
   _awPendingImport = { type, dur, kcal, hr, dist, date };
   setTimeout(() => _awShowImportModal(_awPendingImport), 600);
 }
