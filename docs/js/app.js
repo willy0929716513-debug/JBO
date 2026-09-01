@@ -8059,7 +8059,11 @@ function _renderBgtCatGrid(type) {
   const validKeys = cats.map(c => c.key);
   const sel  = validKeys.includes(cur) ? cur : cats[0].key;
   document.getElementById('bgt-cat-val').value = sel;
-  document.getElementById('bgt-cat-grid').innerHTML = cats.map(c => `
+  // Use 3 cols for income (6 items → 2 neat rows), 5 cols for expense (15 items → 3 rows)
+  const cols = type === 'income' ? 3 : 5;
+  const grid = document.getElementById('bgt-cat-grid');
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.innerHTML = cats.map(c => `
     <button type="button" class="bgt-cat-btn${c.key === sel ? ' active' : ''}" data-ckey="${c.key}" onclick="selectBgtCat('${c.key}')">
       <span>${c.icon}</span><span>${c.name}</span>
     </button>`).join('');
