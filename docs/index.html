@@ -366,8 +366,11 @@
 
     <!-- ── 運動記錄 tab ── -->
     <div id="ex-tab-log">
-    <div style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div class="greeting">運動記錄 <span style="color:var(--orange)">💪</span></div>
+      <button onclick="openAwSetup()" style="display:flex;align-items:center;gap:5px;background:#F0FDF4;border:1.5px solid var(--green-mid);border-radius:10px;padding:6px 11px;cursor:pointer;font-size:0.73rem;font-weight:700;color:var(--green);font-family:inherit">
+        <i class="bi bi-apple"></i> Apple Watch
+      </button>
     </div>
 
     <!-- Date picker -->
@@ -1262,7 +1265,94 @@
   </div>
 </div>
 
+<!-- Apple Watch Import Confirmation Modal -->
+<div id="aw-import-modal" class="aw-import-modal">
+  <div class="aw-import-card">
+    <div class="aw-import-icon" id="aw-imp-icon">🏃</div>
+    <div class="aw-import-title" id="aw-imp-name">戶外跑步</div>
+    <div class="aw-import-sub" id="aw-imp-date">2026年9月1日 · 來自 Apple Watch</div>
+    <div class="aw-import-stats">
+      <div class="aw-import-stat">
+        <div class="aw-import-stat-val" id="aw-imp-dur">—</div>
+        <div class="aw-import-stat-lbl">時長（分）</div>
+      </div>
+      <div class="aw-import-stat">
+        <div class="aw-import-stat-val" id="aw-imp-kcal">—</div>
+        <div class="aw-import-stat-lbl">消耗熱量</div>
+      </div>
+      <div class="aw-import-stat">
+        <div class="aw-import-stat-val" id="aw-imp-hr">—</div>
+        <div class="aw-import-stat-lbl">平均心率</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-outline" style="flex:1;justify-content:center" onclick="closeAwImport()">略過</button>
+      <button class="btn-primary" style="flex:2;justify-content:center" onclick="confirmAwImport()">
+        <i class="bi bi-apple"></i> 匯入運動記錄
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Apple Watch Setup Guide Modal -->
+<div id="aw-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:1500;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)">
+  <div style="background:var(--card-bg);border-radius:28px 28px 0 0;width:100%;max-width:500px;max-height:92vh;overflow-y:auto">
+    <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card-bg)">
+      <div style="width:36px;height:4px;background:#E2E8F0;border-radius:4px;margin:0 auto 12px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-weight:900;font-size:1.05rem">⌚ Apple Watch 捷徑設定</div>
+        <button onclick="closeAwSetup()" style="background:#F1F5F9;border:none;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+    <div style="padding:20px">
+      <div style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border-radius:14px;padding:14px 16px;margin-bottom:20px">
+        <div style="font-weight:800;font-size:0.88rem;margin-bottom:4px">🔗 捷徑橋接原理</div>
+        <div style="font-size:0.78rem;color:var(--text);line-height:1.7">Apple Watch 完成運動後，Apple 捷徑自動讀取 HealthKit 數據，開啟下方網址帶入資料。NutriMate 偵測到數據後顯示確認卡，一鍵匯入。</div>
+      </div>
+      <div style="font-weight:800;font-size:0.88rem;margin-bottom:14px">設定步驟（一次設定，永久使用）</div>
+      <div class="aw-setup-step">
+        <div class="aw-setup-num">1</div>
+        <div class="aw-setup-text">在 iPhone 打開「<strong>捷徑</strong>」App，點右上角「<strong>+</strong>」建立新捷徑</div>
+      </div>
+      <div class="aw-setup-step">
+        <div class="aw-setup-num">2</div>
+        <div class="aw-setup-text">搜尋「<strong>取得健身運動</strong>」→ 選取，設定為「<strong>最新</strong>」1 筆</div>
+      </div>
+      <div class="aw-setup-step">
+        <div class="aw-setup-num">3</div>
+        <div class="aw-setup-text">搜尋「<strong>開啟 URL</strong>」→ 選取，貼入下方網址（點複製）</div>
+      </div>
+      <div class="aw-url-box" id="aw-shortcut-url">https://willy0929716513-debug.github.io/JBO/?wk=1&amp;type=[健身運動類型]&amp;dur=[時長(分)]&amp;kcal=[消耗熱量]&amp;hr=[平均心率]&amp;dist=[距離]&amp;date=[開始日期]
+        <button class="aw-copy-btn" onclick="copyAwUrl()">📋 複製</button>
+      </div>
+      <div style="background:#FFF7ED;border-radius:10px;padding:10px 12px;font-size:0.74rem;color:#92400E;margin-bottom:16px;line-height:1.6">
+        💡 <strong>URL 中的變數說明：</strong>在捷徑 App 貼上網址後，把 <code>[健身運動類型]</code> 替換成「健身運動類型」變數、把 <code>[時長(分)]</code> 替換成「時長（分鐘）」變數，以此類推。每個 [...] 都對應捷徑變數。
+      </div>
+      <div class="aw-setup-step">
+        <div class="aw-setup-num">4</div>
+        <div class="aw-setup-text">替換完成後儲存捷徑，取名「<strong>同步運動到 NutriMate</strong>」</div>
+      </div>
+      <div class="aw-setup-step">
+        <div class="aw-setup-num">5</div>
+        <div class="aw-setup-text"><strong>（可選）自動化：</strong>捷徑 → 自動化 → + → 健身運動 → 結束時 → 執行此捷徑，即可運動結束自動觸發</div>
+      </div>
+      <div style="margin-top:6px;padding:12px 14px;background:#F0FDF4;border-radius:12px;font-size:0.78rem;color:#15803D;font-weight:700">
+        ✅ 設定完成後運動結束執行捷徑，NutriMate 會自動顯示確認匯入卡片！
+      </div>
+      <div style="margin-top:16px">
+        <div style="font-weight:800;font-size:0.88rem;margin-bottom:10px">⌚ 支援的 Apple Watch 運動類型</div>
+        <div id="aw-type-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <button class="btn-primary" style="width:100%;justify-content:center;margin-top:20px" onclick="closeAwSetup()">
+        <i class="bi bi-check-circle-fill"></i> 我知道了
+      </button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20260901b"></script>
+<script src="js/app.js?v=20260901c"></script>
 </body>
 </html>

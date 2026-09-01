@@ -5329,14 +5329,18 @@ function renderExerciseList() {
       bodyHtml = `<div style="font-size:0.78rem;color:var(--muted);padding:6px 0">無記錄</div>`;
     } else {
       const rows = exes.map(e => {
-        const metLine = e.is_manual
-          ? `${e.duration} 分 · 自訂`
-          : `${e.duration} 分 · ${e.cat || ''}`;
+        const isAw = e.source === 'apple_watch';
+        const metLine = isAw
+          ? `${e.duration} 分${e.distance_km ? ' · 📍' + e.distance_km.toFixed(1) + 'km' : ''}${e.hr_avg ? ' · ❤️' + Math.round(e.hr_avg) + 'bpm' : ''}`
+          : e.is_manual ? `${e.duration} 分 · 自訂` : `${e.duration} 分 · ${e.cat || ''}`;
         return `
           <div class="exercise-item" id="ei-${esc(e.id)}" style="padding:8px 0;border-bottom:1px solid var(--border)">
             <div style="font-size:1.3rem;flex-shrink:0">${e.icon || '💪'}</div>
             <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:0.85rem">${esc(e.exercise_name)}</div>
+              <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+                <span style="font-weight:700;font-size:0.85rem">${esc(e.exercise_name)}</span>
+                ${isAw ? '<span style="display:inline-flex;align-items:center;gap:3px;background:#ECFDF5;color:#15803D;border-radius:6px;padding:1px 6px;font-size:0.62rem;font-weight:700"><i class="bi bi-apple"></i> Watch</span>' : ''}
+              </div>
               <div style="font-size:0.7rem;color:var(--muted)">${metLine}</div>
             </div>
             <div style="font-weight:800;color:var(--orange);font-size:0.88rem;flex-shrink:0">-${Math.round(e.calories_burned)} kcal</div>
@@ -8150,10 +8154,155 @@ function saveBgtLimits() {
   showToast('✅ 預算已儲存');
 }
 
+// ── Apple Watch / Shortcuts Integration ─────────────────────────────────────
+
+const AW_TYPE_MAP = {
+  // Apple HealthKit HKWorkoutActivityType names → { icon, name, met, cat }
+  Running:              { icon:'🏃', name:'戶外跑步',    met:9.8,  cat:'cardio' },
+  Walking:              { icon:'🚶', name:'健走',         met:3.5,  cat:'cardio' },
+  Cycling:              { icon:'🚴', name:'騎腳踏車',    met:7.5,  cat:'cardio' },
+  Swimming:             { icon:'🏊', name:'游泳',         met:8.0,  cat:'cardio' },
+  HIIT:                 { icon:'⚡', name:'高強度間歇',  met:10.0, cat:'cardio' },
+  Yoga:                 { icon:'🧘', name:'瑜伽',         met:3.0,  cat:'flexibility' },
+  TraditionalStrengthTraining: { icon:'🏋️', name:'重量訓練',  met:5.0,  cat:'strength' },
+  FunctionalStrengthTraining:  { icon:'🤸', name:'功能訓練',  met:5.5,  cat:'strength' },
+  CoreTraining:         { icon:'🔥', name:'核心訓練',    met:5.0,  cat:'strength' },
+  Elliptical:           { icon:'🔄', name:'橢圓機',      met:6.0,  cat:'cardio' },
+  Rowing:               { icon:'🚣', name:'划船機',      met:7.0,  cat:'cardio' },
+  StairClimbing:        { icon:'🪜', name:'爬樓梯',      met:8.0,  cat:'cardio' },
+  Hiking:               { icon:'🥾', name:'登山健行',    met:6.0,  cat:'cardio' },
+  Soccer:               { icon:'⚽', name:'足球',         met:9.0,  cat:'cardio' },
+  Basketball:           { icon:'🏀', name:'籃球',         met:8.0,  cat:'cardio' },
+  Tennis:               { icon:'🎾', name:'網球',         met:7.3,  cat:'cardio' },
+  Badminton:            { icon:'🏸', name:'羽毛球',      met:5.5,  cat:'cardio' },
+  TableTennis:          { icon:'🏓', name:'桌球',         met:4.0,  cat:'cardio' },
+  Dance:                { icon:'💃', name:'有氧舞蹈',    met:5.0,  cat:'cardio' },
+  Pilates:              { icon:'🤸', name:'皮拉提斯',    met:3.5,  cat:'flexibility' },
+  JumpRope:             { icon:'🪢', name:'跳繩',         met:10.0, cat:'cardio' },
+  Skateboarding:        { icon:'🛹', name:'滑板',         met:5.0,  cat:'cardio' },
+  Surfing:              { icon:'🏄', name:'衝浪',         met:5.0,  cat:'cardio' },
+  MixedCardio:          { icon:'🫀', name:'混合有氧',    met:7.0,  cat:'cardio' },
+  Other:                { icon:'⌚', name:'其他運動',    met:5.0,  cat:'other' },
+};
+
+// State for pending import
+let _awPendingImport = null;
+
+function _awResolveType(typeStr) {
+  if (!typeStr) return AW_TYPE_MAP.Other;
+  // Direct match
+  if (AW_TYPE_MAP[typeStr]) return AW_TYPE_MAP[typeStr];
+  // Partial / lowercase match
+  const lower = typeStr.toLowerCase();
+  const found = Object.entries(AW_TYPE_MAP).find(([k]) => k.toLowerCase().includes(lower) || lower.includes(k.toLowerCase()));
+  return found ? found[1] : { icon:'⌚', name: typeStr, met:5.0, cat:'other' };
+}
+
+function _awCheckUrlImport() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.get('wk')) return;
+  const type   = params.get('type') || 'Other';
+  const dur    = parseFloat(params.get('dur'))  || 0;
+  const kcal   = parseFloat(params.get('kcal')) || 0;
+  const hr     = parseFloat(params.get('hr'))   || 0;
+  const dist   = parseFloat(params.get('dist')) || 0;
+  const date   = params.get('date') || todayStr();
+
+  // Clean URL so refreshing doesn't re-trigger
+  try {
+    const clean = window.location.pathname + window.location.hash;
+    history.replaceState({}, '', clean);
+  } catch {}
+
+  if (!dur && !kcal) return;
+
+  _awPendingImport = { type, dur, kcal, hr, dist, date };
+  setTimeout(() => _awShowImportModal(_awPendingImport), 600);
+}
+
+function _awShowImportModal(data) {
+  const info = _awResolveType(data.type);
+  document.getElementById('aw-imp-icon').textContent  = info.icon;
+  document.getElementById('aw-imp-name').textContent  = info.name;
+  const dateLabel = data.date ? `${data.date} · 來自 Apple Watch` : '來自 Apple Watch';
+  document.getElementById('aw-imp-date').textContent  = dateLabel;
+  document.getElementById('aw-imp-dur').textContent   = data.dur > 0  ? Math.round(data.dur)  : '—';
+  document.getElementById('aw-imp-kcal').textContent  = data.kcal > 0 ? Math.round(data.kcal) : '—';
+  document.getElementById('aw-imp-hr').textContent    = data.hr > 0   ? Math.round(data.hr) + ' bpm' : '—';
+  document.getElementById('aw-import-modal').style.display = 'flex';
+}
+
+function closeAwImport() {
+  document.getElementById('aw-import-modal').style.display = 'none';
+  _awPendingImport = null;
+}
+
+function confirmAwImport() {
+  const data = _awPendingImport;
+  if (!data) return;
+  const info = _awResolveType(data.type);
+  const dur  = Math.round(data.dur) || 30;
+  const kcal = Math.round(data.kcal) || Math.round(info.met * dur / 60 * 70);
+
+  DB.addExercise({
+    date:            data.date || todayStr(),
+    exercise_name:   info.name,
+    icon:            info.icon,
+    met:             info.met,
+    cat:             info.cat,
+    duration:        dur,
+    calories_burned: kcal,
+    source:          'apple_watch',
+    hr_avg:          data.hr  || null,
+    distance_km:     data.dist || null,
+    aw_type:         data.type,
+  });
+
+  closeAwImport();
+  showToast(`⌚ ${info.icon} ${info.name} 已從 Apple Watch 匯入！`);
+
+  if (document.getElementById('page-exercise')?.classList.contains('active')) renderExercise();
+  if (document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
+}
+
+// ── Setup Guide Modal ────────────────────────────────────────────────────────
+
+const AW_SHORTCUT_URL = 'https://willy0929716513-debug.github.io/JBO/?wk=1&type=[健身運動類型]&dur=[時長(分)]&kcal=[消耗熱量]&hr=[平均心率]&dist=[距離]&date=[開始日期YYYY-MM-DD]';
+
+function openAwSetup() {
+  document.getElementById('aw-setup-modal').style.display = 'flex';
+  // Render supported types
+  const tl = document.getElementById('aw-type-list');
+  if (tl && !tl.children.length) {
+    tl.innerHTML = Object.values(AW_TYPE_MAP).map(t =>
+      `<span style="display:inline-flex;align-items:center;gap:4px;background:#F1F5F9;border-radius:8px;padding:3px 8px;font-size:0.72rem;font-weight:600">${t.icon} ${t.name}</span>`
+    ).join('');
+  }
+}
+
+function closeAwSetup() {
+  document.getElementById('aw-setup-modal').style.display = 'none';
+}
+
+function copyAwUrl() {
+  navigator.clipboard?.writeText(AW_SHORTCUT_URL).then(() => showToast('✅ 網址已複製！貼到捷徑 App 的「開啟 URL」'));
+}
+
+// ── Apple Watch History in Exercise List ────────────────────────────────────
+
+function _awBadge(entry) {
+  if (entry.source !== 'apple_watch') return '';
+  let extra = '';
+  if (entry.hr_avg) extra += ` · ❤️ ${Math.round(entry.hr_avg)} bpm`;
+  if (entry.distance_km) extra += ` · 📍 ${entry.distance_km.toFixed(1)} km`;
+  return `<span class="aw-badge" style="margin-left:6px"><i class="bi bi-apple"></i> Watch${extra}</span>`;
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   navigate('dashboard');
+  _awCheckUrlImport();
 
   let timer;
   const si = document.getElementById('foodSearch');
