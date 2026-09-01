@@ -8318,30 +8318,15 @@ function confirmAwImport() {
 
 // ── Setup Guide Modal ────────────────────────────────────────────────────────
 
-// Binary plist for NutriMate Watch shortcut (base64-encoded)
-const AW_SHORTCUT_B64 = 'YnBsaXN0MDDcAQIDBAUGBwgJCgsMDQ5wcXJ3eHl6e3x9XxAVV0ZRdWlja0FjdGlvblN1cmZhY2VzXxARV0ZXb3JrZmxvd0FjdGlvbnNfEBdXRldvcmtmbG93Q2xpZW50VmVyc2lvbl8QG1dGV29ya2Zsb3dIYXNPdXRwdXRGYWxsYmFja15XRldvcmtmbG93SWNvbl8QGVdGV29ya2Zsb3dJbXBvcnRRdWVzdGlvbnNfECFXRldvcmtmbG93SW5wdXRDb250ZW50SXRlbUNsYXNzZXNfEB5XRldvcmtmbG93TWluaW11bUNsaWVudFZlcnNpb25fECRXRldvcmtmbG93TWluaW11bUNsaWVudFZlcnNpb25TdHJpbmdfECJXRldvcmtmbG93T3V0cHV0Q29udGVudEl0ZW1DbGFzc2VzXxAaV0ZXb3JrZmxvd1JlY29yZElkZW50aWZpZXJfEA9XRldvcmtmbG93VHlwZXOgpQ8gMUdq0hAREhNfEBpXRldvcmtmbG93QWN0aW9uSWRlbnRpZmllcl8QGldGV29ya2Zsb3dBY3Rpb25QYXJhbWV0ZXJzXxAdaXMud29ya2Zsb3cuYWN0aW9ucy5nZXRoZWFsdGjWFBUWFxgZGhscHR4fXxAQQ3VzdG9tT3V0cHV0TmFtZVRVVUlEXxAUV0ZIZWFsdGhMaW1pdFJlc3VsdHNfEBZXRkhlYWx0aE1heGltdW1SZXN1bHRzXxAVV0ZIZWFsdGhTb3J0RGlyZWN0aW9uXFdGSGVhbHRoVHlwZWRQZY6rkEtS1V8QJEExMDAwMDAxLTAwMDEtMDAwMS0wMDAxLTAwMDAwMDAwMDAwMQkQAVxMYXRlc3QgRmlyc3RXV29ya291dNIQESEiXxAjaXMud29ya2Zsb3cuYWN0aW9ucy5nZXRpdGVtZnJvbWxpc3TUFBUjJCUmJzBXV0ZJbnB1dF8QD1dGSXRlbVNwZWNpZmllcmRnAGWwkEtS1V8QJEExMDAwMDAyLTAwMDItMDAwMi0wMDAyLTAwMDAwMDAwMDAwMtIoKSovVVZhbHVlXxATV0ZTZXJpYWxpemF0aW9uVHlwZdMrLC0aGy5aT3V0cHV0TmFtZVpPdXRwdXRVVUlEVFR5cGVcQWN0aW9uT3V0cHV0XxAVV0ZUZXh0VG9rZW5BdHRhY2htZW50WkZpcnN0IEl0ZW3SEBEyM18QGGlzLndvcmtmbG93LmFjdGlvbnMuZGF0ZdYUFTQ1Njc4OTpERUZWV0ZEYXRlXxAQV0ZEYXRlQWN0aW9uTW9kZVxXRkRhdGVGb3JtYXRfEBFXRkRhdGVGb3JtYXRTdHlsZWSQS1LVZeVnH18QJEExMDAwMDAzLTAwMDMtMDAwMy0wMDAzLTAwMDAwMDAwMDAwM9IoKTsv1DwrLC09JSYuXxAPQWdncmFuZGl6ZW1lbnRzoT7TP0AtQUJDXFByb3BlcnR5TmFtZV8QEFByb3BlcnR5VXNlckluZm9aU3RhcnQgRGF0ZRAAXxAYV0ZQcm9wZXJ0eUFnZ3JhbmRpemVtZW50VkZvcm1hdFp5eXl5LU1NLWRkVkN1c3RvbdIQEUhJXxAbaXMud29ya2Zsb3cuYWN0aW9ucy5nZXR0ZXh00xQVSktMTV8QEFdGVGV4dEFjdGlvblRleHRdTnV0cmlNYXRlIFVSTF8QJEExMDAwMDA0LTAwMDQtMDAwNC0wMDA0LTAwMDAwMDAwMDAwNNIoKU5p0k9QUWhfEBJhdHRhY2htZW50c0J5UmFuZ2VWc3RyaW5n1FJTVFVWV1tfY2dXezU1LCAxfVd7NjEsIDF9V3s2OCwgMX1Xezc1LCAxfVd7ODIsIDF91DwrLC1YJSYuoVnTP0AtWkJDXUFjdGl2aXR5IFR5cGXUPCssLVwlJi6hXdM/QC1eQkNYRHVyYXRpb27UPCssLWAlJi6hYdM/QC1iQkNfEBNUb3RhbCBFbmVyZ3kgQnVybmVk1DwrLC1kJSYuoWXTP0AtZkJDXlRvdGFsIERpc3RhbmNl0yssLTg5Lm8QUwBoAHQAdABwAHMAOgAvAC8AdwBpAGwAbAB5ADAAOQAyADkANwAxADYANQAxADMALQBkAGUAYgB1AGcALgBnAGkAdABoAHUAYgAuAGkAbwAvAEoAQgBPAC8APwB3AGsAPQAxACYAdAB5AHAAZQA9//wAJgBkAHUAcgA9//wAJgBrAGMAYQBsAD3//AAmAGQAaQBzAHQAPf/8ACYAZABhAHQAZQA9//xfEBFXRlRleHRUb2tlblN0cmluZ9IQEWtsXxAbaXMud29ya2Zsb3cuYWN0aW9ucy5vcGVudXJs0hUjbW5fECRBMTAwMDAwNS0wMDA1LTAwMDUtMDAwNS0wMDAwMDAwMDAwMDXSKClvL9MrLC1LTC5UMTI4OQjSc3R1dl8QGVdGV29ya2Zsb3dJY29uR2x5cGhOdW1iZXJfEBhXRldvcmtmbG93SWNvblN0YXJ0Q29sb3IR6WoSiJASAKCgEQOEUzkwMKBfECRCREFFMTIzNC01Njc4LTlBQkMtREVGMC0xMjM0NTY3ODkwMTKgAAgAIQA5AE0AZwCFAJQAsADUAPUBHAFBAV4BcAFxAXcBfAGZAbYB1gHjAfYB+wISAisCQwJQAlkCgAKBAoMCkAKYAp0CwwLMAtQC5gLvAxYDGwMhAzcDPgNJA1QDWQNmA34DiQOOA6kDtgO9A9AD3QPxA/oEIQQmBC8EQQRDBEoEVwRqBHUEdwSSBJkEpASrBLAEzgTVBOgE9gUdBSIFJwU8BUMFTgVWBV4FZgVuBXYFfwWBBYgFlgWfBaEFqAWxBboFvAXDBdkF4gXkBesF+gYBBqoGvgbDBuEG5gcNBxIHGQceBx8HJAdAB1sHXgdjB2QHZQdoB2wHbQeUAAAAAAAAAgEAAAAAAAAAfgAAAAAAAAAAAAAAAAAAB5U=';
-
-async function installAwShortcut() {
+function installAwShortcut() {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   if (!isIOS) {
     showToast('請在 iPhone 上開啟此頁面並點選安裝按鈕');
     return;
   }
-  try {
-    const bin = atob(AW_SHORTCUT_B64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const file = new File([bytes], 'NutriMate Watch.shortcut', { type: 'application/octet-stream' });
-    if (navigator.share && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'NutriMate Watch 捷徑' });
-      return;
-    }
-  } catch (e) {
-    if (e?.name === 'AbortError') return;
-  }
-  // Fallback: shortcuts:// URL scheme with raw file URL
-  const rawUrl = 'https://raw.githubusercontent.com/willy0929716513-debug/JBO/main/docs/nutrimate-watch.shortcut';
-  window.location.href = `shortcuts://import-shortcut?url=${encodeURIComponent(rawUrl)}&name=NutriMate%20Watch`;
+  // Service worker intercepts this URL and responds with application/x-shortcuts MIME type,
+  // which causes iOS Safari to offer "Open in Shortcuts" directly (no share sheet needed).
+  window.location.href = './get-shortcut';
 }
 
 function openAwSetup() {
