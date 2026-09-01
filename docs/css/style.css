@@ -1128,3 +1128,22 @@ body {
 .bgt-fab-btn:active { transform:scale(0.91); }
 
 .bgt-trend-bar-wrap { display:flex;align-items:flex-end;gap:3px;padding-bottom:4px; }
+
+/* ── Apple Watch / Shortcuts Integration ──────────────────────────────────── */
+.aw-import-modal { display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:2000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px); }
+.aw-import-card { background:var(--card-bg);border-radius:24px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.25);text-align:center; }
+.aw-import-icon { font-size:3.2rem;margin-bottom:12px;line-height:1; }
+.aw-import-title { font-size:1.1rem;font-weight:900;color:var(--text);margin-bottom:4px; }
+.aw-import-sub { font-size:0.78rem;color:var(--muted);margin-bottom:20px; }
+.aw-import-stats { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:22px; }
+.aw-import-stat { background:#F8FAFC;border-radius:12px;padding:10px 6px;text-align:center; }
+.aw-import-stat-val { font-size:1rem;font-weight:900;color:var(--text); }
+.aw-import-stat-lbl { font-size:0.62rem;color:var(--muted);margin-top:2px; }
+.aw-setup-step { display:flex;gap:10px;align-items:flex-start;margin-bottom:14px; }
+.aw-setup-num { width:24px;height:24px;border-radius:50%;background:var(--green);color:white;font-size:0.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px; }
+.aw-setup-text { font-size:0.8rem;color:var(--text);line-height:1.5; }
+.aw-url-box { background:#0F172A;border-radius:12px;padding:12px 14px;font-size:0.68rem;color:#7DD3FC;font-family:monospace;word-break:break-all;text-align:left;margin:12px 0;position:relative; }
+.aw-copy-btn { position:absolute;top:8px;right:8px;background:#1E293B;border:none;border-radius:6px;padding:4px 8px;color:#94A3B8;font-size:0.65rem;cursor:pointer;font-family:inherit; }
+.aw-history-row { display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border); }
+.aw-history-icon { width:36px;height:36px;border-radius:10px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0; }
+.aw-badge { display:inline-flex;align-items:center;gap:4px;background:#ECFDF5;color:#15803D;border-radius:8px;padding:3px 8px;font-size:0.68rem;font-weight:700; }
