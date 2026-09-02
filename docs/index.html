@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
   <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/style.css?v=20260901i">
+  <link rel="stylesheet" href="css/style.css?v=20260902a">
   <style>
     .page { display: none; }
     .page.active { display: block; }
@@ -362,6 +362,9 @@
       <button class="ex-page-tab-pill" data-tab="workout" onclick="setExPageTab('workout')">
         <i class="bi bi-dumbbell"></i> 健身菜單
       </button>
+      <button class="ex-page-tab-pill" data-tab="target" onclick="setExPageTab('target')">
+        <i class="bi bi-crosshair"></i> 部位瘦身
+      </button>
     </div>
 
     <!-- ── 運動記錄 tab ── -->
@@ -483,6 +486,11 @@
     <!-- ── 健身菜單 tab ── -->
     <div id="ex-tab-plan" style="display:none">
       <div id="wk-tab-content"></div>
+    </div>
+
+    <!-- ── 部位瘦身 tab ── -->
+    <div id="ex-tab-target" style="display:none">
+      <div id="target-tab-content"></div>
     </div>
   </div>
 
@@ -1380,6 +1388,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20260901i"></script>
+<script src="js/app.js?v=20260902a"></script>
 </body>
 </html>
