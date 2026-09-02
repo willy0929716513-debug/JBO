@@ -1147,3 +1147,17 @@ body {
 .aw-history-row { display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border); }
 .aw-history-icon { width:36px;height:36px;border-radius:10px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0; }
 .aw-badge { display:inline-flex;align-items:center;gap:4px;background:#ECFDF5;color:#15803D;border-radius:8px;padding:3px 8px;font-size:0.68rem;font-weight:700; }
+
+/* ── 部位瘦身 Tab ─────────────────────────────────────────────────────────── */
+.tgt-part-grid { display:grid;grid-template-columns:repeat(5,1fr);gap:8px; }
+.tgt-part-btn {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;padding:10px 4px;border-radius:12px;border:2px solid var(--border);
+  background:var(--card-bg);cursor:pointer;transition:all 0.2s;font-family:inherit;
+}
+.tgt-part-btn:hover { border-color:var(--part-color);background:color-mix(in srgb,var(--part-color) 8%,transparent); }
+.tgt-part-btn.selected { border-color:var(--part-color);background:color-mix(in srgb,var(--part-color) 12%,transparent);box-shadow:0 2px 10px color-mix(in srgb,var(--part-color) 25%,transparent); }
+.tgt-part-icon { font-size:1.4rem;line-height:1; }
+.tgt-part-label { font-size:0.65rem;font-weight:700;color:var(--text-2);text-align:center;line-height:1.2; }
+.tgt-part-btn.selected .tgt-part-label { color:var(--part-color); }
+@media(max-width:380px){ .tgt-part-grid{grid-template-columns:repeat(4,1fr);} }

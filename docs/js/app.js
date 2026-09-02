@@ -7615,8 +7615,9 @@ function saveFitnessProfile() {
 }
 
 function setExPageTab(tab) {
-  document.getElementById('ex-tab-log').style.display   = tab === 'log'     ? '' : 'none';
-  document.getElementById('ex-tab-plan').style.display  = tab === 'workout' ? '' : 'none';
+  document.getElementById('ex-tab-log').style.display    = tab === 'log'     ? '' : 'none';
+  document.getElementById('ex-tab-plan').style.display   = tab === 'workout' ? '' : 'none';
+  document.getElementById('ex-tab-target').style.display = tab === 'target'  ? '' : 'none';
   document.querySelectorAll('.ex-page-tab-pill').forEach(b => {
     const active = b.dataset.tab === tab;
     b.classList.toggle('active', active);
@@ -7624,6 +7625,243 @@ function setExPageTab(tab) {
     else b.classList.remove('active-workout');
   });
   if (tab === 'workout') renderWorkoutTab();
+  if (tab === 'target')  renderTargetTab();
+}
+
+// ── 部位瘦身 Tab ─────────────────────────────────────────────────────────────
+
+const _TARGET_PARTS = [
+  { id: 'belly',     label: '小腹',  icon: '🫃', color: '#F97316' },
+  { id: 'waist',     label: '腰側',  icon: '⌛', color: '#EF4444' },
+  { id: 'arms',      label: '手臂',  icon: '💪', color: '#8B5CF6' },
+  { id: 'thighs',    label: '大腿',  icon: '🦵', color: '#EC4899' },
+  { id: 'glutes',    label: '臀部',  icon: '🍑', color: '#F59E0B' },
+  { id: 'back',      label: '背部',  icon: '🔙', color: '#3B82F6' },
+  { id: 'chest',     label: '胸部',  icon: '🫁', color: '#10B981' },
+  { id: 'calves',    label: '小腿',  icon: '🦿', color: '#06B6D4' },
+  { id: 'shoulders', label: '肩膀',  icon: '🏋️', color: '#6366F1' },
+  { id: 'fullbody',  label: '全身燃脂', icon: '🔥', color: '#EF4444' },
+];
+
+const _TARGET_EXERCISES = {
+  belly: [
+    { name: '仰臥捲腹', sets: '3 × 20 下', tip: '下背貼地，捲起時吐氣，感受腹肌收縮', type: '徒手', icon: '🔄' },
+    { name: '腿部上舉', sets: '3 × 15 下', tip: '雙手放臀部旁，抬腿至 90°，緩緩放下', type: '徒手', icon: '⬆️' },
+    { name: '平板支撐', sets: '3 × 45 秒', tip: '核心收緊、臀部不聳起，呼吸自然', type: '徒手', icon: '🏗️' },
+    { name: '俄羅斯轉體', sets: '3 × 20 下', tip: '雙腳抬離地面可增加難度', type: '徒手', icon: '🔀' },
+    { name: '死蟲式', sets: '3 × 12 下（每側）', tip: '對側手腳同時伸展，腰椎保持穩定', type: '徒手', icon: '🐛' },
+  ],
+  waist: [
+    { name: '側平板支撐', sets: '3 × 30 秒（每側）', tip: '身體呈一直線，骨盆不下沉', type: '徒手', icon: '📐' },
+    { name: '站姿側彎（啞鈴）', sets: '3 × 15 下（每側）', tip: '持輕量啞鈴，緩慢往側邊彎，感受側腰延伸', type: '器械', icon: '🏋️' },
+    { name: '俄羅斯轉體', sets: '3 × 20 下', tip: '腰部主動帶動轉動，非手臂甩動', type: '徒手', icon: '🔀' },
+    { name: '側面捲腹', sets: '3 × 15 下（每側）', tip: '一側手放後腦，另一側膝蓋彎曲對肘', type: '徒手', icon: '↔️' },
+  ],
+  arms: [
+    { name: '窄距伏地挺身', sets: '3 × 12 下', tip: '雙手間距與肩同寬或更窄，強化三頭肌', type: '徒手', icon: '⬇️' },
+    { name: '椅撐（三頭撐）', sets: '3 × 12 下', tip: '背對椅子，雙手扶椅緣，身體垂直上下', type: '徒手', icon: '🪑' },
+    { name: '啞鈴彎舉', sets: '3 × 12 下（每側）', tip: '手肘固定不動，只動前臂，控制下降速度', type: '器械', icon: '💪' },
+    { name: '啞鈴頭頂伸展', sets: '3 × 12 下', tip: '雙手握一個啞鈴過頭，屈肘放低後推回', type: '器械', icon: '☝️' },
+    { name: '彈力帶下拉', sets: '3 × 15 下', tip: '彈力帶固定於上方，雙手向下拉至側邊', type: '器械', icon: '⬇️' },
+  ],
+  thighs: [
+    { name: '深蹲', sets: '4 × 20 下', tip: '膝蓋不超過腳尖太多，下蹲至大腿平行地面', type: '徒手', icon: '🏋️' },
+    { name: '跨步蹲', sets: '3 × 12 下（每腳）', tip: '大步向前，前腳膝蓋垂直地面，後腳膝蓋輕觸地', type: '徒手', icon: '🚶' },
+    { name: '側蹲', sets: '3 × 12 下（每側）', tip: '寬站距，重心移向一側彎膝，另一腿打直', type: '徒手', icon: '↔️' },
+    { name: '腿部按壓（器械）', sets: '4 × 15 下', tip: '腳距高低影響訓練部位，腳高針對大腿後側', type: '器械', icon: '🦵' },
+    { name: '壺鈴硬舉', sets: '3 × 15 下', tip: '背打直，啟動臀腿力量，鈴貼腿身上拉', type: '器械', icon: '🏺' },
+  ],
+  glutes: [
+    { name: '臀橋', sets: '4 × 20 下', tip: '背貼地，頂髖時夾緊臀部，停留一秒', type: '徒手', icon: '🌉' },
+    { name: '單腿臀橋', sets: '3 × 15 下（每腳）', tip: '一腳踩地一腳伸直，動作同臀橋', type: '徒手', icon: '🦶' },
+    { name: '消防栓式', sets: '3 × 20 下（每側）', tip: '四足跪姿，膝蓋向外側抬起至髖部高度', type: '徒手', icon: '🐕' },
+    { name: '臀推（負重）', sets: '4 × 15 下', tip: '上背靠椅凳，槓鈴或啞鈴壓骨盆，頂髖夾臀', type: '器械', icon: '💺' },
+    { name: '后退蹲（羅馬尼亞硬舉）', sets: '3 × 12 下', tip: '膝微彎，重心後推，感受臀後鏈拉伸', type: '器械', icon: '⬇️' },
+  ],
+  back: [
+    { name: '超人式', sets: '3 × 15 下', tip: '趴地，同時抬起雙臂雙腿，感受下背收縮', type: '徒手', icon: '🦸' },
+    { name: '反式划船', sets: '3 × 12 下', tip: '桌下或低單槓，身體挺直，胸口拉向槓', type: '徒手', icon: '⬆️' },
+    { name: '啞鈴划船', sets: '3 × 12 下（每側）', tip: '一手扶椅，手肘向後拉高過腰，收縮背肌', type: '器械', icon: '🚣' },
+    { name: '寬握引體向上', sets: '3 × 最大', tip: '無法完成可用輔助帶或高位下拉機替代', type: '徒手', icon: '⬆️' },
+    { name: '坐姿纜繩划船', sets: '3 × 15 下', tip: '背打直，手肘夾緊身體拉向腹部', type: '器械', icon: '🎿' },
+  ],
+  chest: [
+    { name: '標準伏地挺身', sets: '3 × 15 下', tip: '手比肩寬，身體打直，胸口觸地再推起', type: '徒手', icon: '⬇️' },
+    { name: '寬距伏地挺身', sets: '3 × 12 下', tip: '手更寬，強化胸大肌外側', type: '徒手', icon: '📏' },
+    { name: '啞鈴臥推', sets: '4 × 12 下', tip: '背平躺椅上，手肘下降至與肩同高再推起', type: '器械', icon: '🏋️' },
+    { name: '啞鈴飛鳥', sets: '3 × 12 下', tip: '雙臂微彎展開，感受胸肌拉伸後夾合', type: '器械', icon: '🦅' },
+    { name: '上斜伏地挺身', sets: '3 × 15 下', tip: '雙手放高處（椅子），訓練下胸', type: '徒手', icon: '📐' },
+  ],
+  calves: [
+    { name: '站姿提踵', sets: '4 × 25 下', tip: '緩慢上下，頂端停頓 1 秒，感受小腿收縮', type: '徒手', icon: '⬆️' },
+    { name: '單腳提踵', sets: '3 × 20 下（每腳）', tip: '扶牆平衡，動作與雙腳版相同但強度更高', type: '徒手', icon: '🦶' },
+    { name: '跳繩', sets: '3 × 3 分鐘', tip: '保持腳尖落地，不要全腳掌落地', type: '有氧', icon: '⭕' },
+    { name: '坐姿提踵（機器）', sets: '4 × 20 下', tip: '膝上加重量，腳尖踩踏板上下提踵', type: '器械', icon: '💺' },
+  ],
+  shoulders: [
+    { name: '肩推（啞鈴）', sets: '3 × 12 下', tip: '手肘呈 90°，將啞鈴向上推直但不鎖死手肘', type: '器械', icon: '☝️' },
+    { name: '側平舉', sets: '3 × 15 下', tip: '雙臂微彎，向兩側抬至肩高，小指略高於大拇指', type: '器械', icon: '✈️' },
+    { name: '前平舉', sets: '3 × 12 下（交替）', tip: '每次一隻手交替向前抬起至肩高', type: '器械', icon: '⬆️' },
+    { name: 'Y T W 訓練', sets: '3 × 10 下（每個動作）', tip: '趴地或俯身，雙臂擺成 Y、T、W 形', type: '徒手', icon: '🔤' },
+    { name: '俯身側平舉', sets: '3 × 12 下', tip: '身體前傾 45°，練習後三角肌', type: '器械', icon: '✈️' },
+  ],
+  fullbody: [
+    { name: '波比跳', sets: '4 × 10 下', tip: '深蹲跳起 → 伏地挺身位置 → 推起跳起，全程快速', type: '有氧', icon: '💥' },
+    { name: '開合跳', sets: '3 × 60 秒', tip: '持續跳動帶動心率，可作為暖身或 HIIT', type: '有氧', icon: '⭐' },
+    { name: '爬山式', sets: '3 × 45 秒', tip: '平板支撐姿勢，雙腳交替向胸口衝刺', type: '有氧', icon: '⛰️' },
+    { name: '深蹲跳', sets: '4 × 15 下', tip: '深蹲後爆發力跳起，落地後直接進入下一次', type: '有氧', icon: '🚀' },
+    { name: '棒式到伏地挺身', sets: '3 × 10 下', tip: '從低位板支撐撐起到高位，再回低位', type: '徒手', icon: '⬇️' },
+    { name: '跳繩 HIIT', sets: '8 × 20 秒衝刺 / 10 秒休息', tip: '全力衝刺跳，休息時慢走', type: '有氧', icon: '⭕' },
+  ],
+};
+
+const _TARGET_TIPS = {
+  belly:     '腹部脂肪燃燒需搭配整體熱量赤字，無法「局部減脂」，但核心訓練能強化腹肌線條。',
+  waist:     '腰側（馬甲線）主要靠飲食控制搭配核心訓練，有氧運動幫助整體降脂。',
+  arms:      '手臂細化關鍵在於整體體脂率降低，同時訓練二頭 + 三頭肌讓手臂更緊實。',
+  thighs:    '大腿是全身最大肌群，深蹲和蹲系列動作燃脂效率極高，同時幫助提升代謝。',
+  glutes:    '臀部訓練建議每週 2–3 次，給肌肉充足修復時間，才能讓臀型更翹。',
+  back:      '背部訓練改善姿勢，同時搭配有氧可消除背部贅肉，建議訓練時夾背保護脊椎。',
+  chest:     '胸部訓練需注重全程動作，避免借力，搭配核心收緊保護下背。',
+  calves:    '小腿肌纖維耐力強，需要高次數訓練。提踵時下降速度放慢效果更好。',
+  shoulders: '圓肩訓練能讓肩膀更寬，視覺上縮小腰圍比例，建議前中後三角肌均衡訓練。',
+  fullbody:  '全身燃脂 HIIT 每週 3 次效果最佳，配合飲食控制能加速整體脂肪燃燒。',
+};
+
+let _targetSelected = new Set();
+
+function renderTargetTab() {
+  const el = document.getElementById('target-tab-content');
+  if (!el) return;
+
+  const partsHtml = _TARGET_PARTS.map(p => {
+    const sel = _targetSelected.has(p.id);
+    return `<button class="tgt-part-btn${sel ? ' selected' : ''}" data-id="${p.id}"
+      style="--part-color:${p.color}" onclick="toggleTargetPart('${p.id}')">
+      <span class="tgt-part-icon">${p.icon}</span>
+      <span class="tgt-part-label">${p.label}</span>
+    </button>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="margin-bottom:16px">
+      <div class="greeting">部位瘦身 <span style="color:#F97316">🎯</span></div>
+      <div class="subgreeting">選擇想加強的部位，獲取專屬訓練建議</div>
+    </div>
+
+    <div class="card fade-in">
+      <div class="card-body">
+        <div class="card-title" style="margin-bottom:12px">選擇目標部位</div>
+        <div class="tgt-part-grid">${partsHtml}</div>
+        ${_targetSelected.size > 0 ? `<button onclick="clearTargetParts()" style="margin-top:12px;background:none;border:none;font-size:0.75rem;color:var(--muted);cursor:pointer;text-decoration:underline">清除選擇</button>` : ''}
+      </div>
+    </div>
+
+    <div id="tgt-results"></div>
+  `;
+
+  _renderTargetResults();
+}
+
+function toggleTargetPart(id) {
+  if (_targetSelected.has(id)) _targetSelected.delete(id);
+  else _targetSelected.add(id);
+  renderTargetTab();
+}
+
+function clearTargetParts() {
+  _targetSelected.clear();
+  renderTargetTab();
+}
+
+function _renderTargetResults() {
+  const el = document.getElementById('tgt-results');
+  if (!el) return;
+
+  if (_targetSelected.size === 0) {
+    el.innerHTML = `
+      <div class="card fade-in" style="background:linear-gradient(135deg,#FFF7ED,#FEFCE8);border:none">
+        <div class="card-body" style="text-align:center;padding:24px 16px">
+          <div style="font-size:2rem;margin-bottom:10px">👆</div>
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px">選擇上方部位開始</div>
+          <div style="font-size:0.82rem;color:var(--muted)">可以同時選擇多個部位，<br>系統會為你推薦最適合的訓練動作</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const parts = [..._targetSelected];
+  let html = '';
+
+  for (const id of parts) {
+    const part = _TARGET_PARTS.find(p => p.id === id);
+    const exs  = _TARGET_EXERCISES[id] || [];
+    const tip  = _TARGET_TIPS[id] || '';
+
+    const typeColor = { '徒手': '#22C55E', '器械': '#3B82F6', '有氧': '#F97316' };
+
+    html += `
+      <div class="card fade-in" style="border-top:3px solid ${part.color}">
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <span style="font-size:1.4rem">${part.icon}</span>
+            <div>
+              <div style="font-weight:800;font-size:1rem;color:var(--text)">${part.label} 訓練</div>
+              <div style="font-size:0.72rem;color:var(--muted)">推薦 ${exs.length} 個動作</div>
+            </div>
+          </div>
+
+          <div style="background:#F8FAFC;border-radius:10px;padding:10px 12px;margin-bottom:14px;border-left:3px solid ${part.color}">
+            <div style="font-size:0.75rem;color:var(--text-2);line-height:1.7">💡 ${tip}</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            ${exs.map((ex, i) => `
+              <div style="background:#FAFAFA;border:1px solid var(--border);border-radius:12px;padding:12px 14px">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+                  <div style="display:flex;align-items:center;gap:7px">
+                    <span style="font-size:1rem">${ex.icon}</span>
+                    <span style="font-weight:700;font-size:0.9rem;color:var(--text)">${ex.name}</span>
+                  </div>
+                  <span style="font-size:0.68rem;font-weight:700;color:${typeColor[ex.type]||'#666'};background:${typeColor[ex.type]||'#666'}1a;padding:2px 7px;border-radius:6px;flex-shrink:0;margin-left:6px">${ex.type}</span>
+                </div>
+                <div style="font-size:0.8rem;font-weight:600;color:${part.color};margin-bottom:4px">📊 ${ex.sets}</div>
+                <div style="font-size:0.75rem;color:var(--muted);line-height:1.6">✅ ${ex.tip}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <button onclick="addTargetToLog('${id}')"
+            style="margin-top:14px;width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,${part.color},${part.color}cc);color:#fff;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit">
+            <i class="bi bi-plus-circle-fill"></i> 將此部位訓練加入今日記錄
+          </button>
+        </div>
+      </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function addTargetToLog(partId) {
+  const part = _TARGET_PARTS.find(p => p.id === partId);
+  if (!part) return;
+  const metMap = { belly: 3.5, waist: 3.5, arms: 4, thighs: 5, glutes: 4.5, back: 4, chest: 4, calves: 4, shoulders: 3.5, fullbody: 8 };
+  const met = metMap[partId] || 4;
+  const settings = DB.getSettings();
+  const dur = 30;
+  const kcal = calcExerciseCal(met, dur);
+  DB.addExercise({
+    date: currentExerciseDate || todayStr(),
+    exercise_name: `${part.label}訓練`,
+    icon: part.icon,
+    met,
+    cat: partId === 'fullbody' ? '有氧' : '重訓',
+    duration: dur,
+    calories_burned: kcal,
+  });
+  showToast(`✅ 已新增「${part.label}訓練」30 分鐘 · 消耗約 ${kcal} 大卡`);
+  renderExercise();
+  setExPageTab('log');
 }
 
 // ── Budget / Expense Tracker ─────────────────────────────────────────────────
