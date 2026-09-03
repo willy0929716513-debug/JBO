@@ -7429,9 +7429,14 @@ function renderWorkoutTab() {
           <div style="display:flex;flex-direction:column;gap:8px">
             ${exRows}
           </div>
-          <button class="wk-complete-btn" onclick="completeWkToday()" style="margin-top:16px">
-            <i class="bi bi-check-circle-fill"></i> 完成今日訓練！
-          </button>
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="btn-primary" style="flex:2;justify-content:center;background:linear-gradient(135deg,#F97316,#EF4444)" onclick="openStrengthTracker()">
+              <i class="bi bi-stopwatch-fill"></i> 開始紀錄訓練
+            </button>
+            <button class="btn-outline" style="flex:1;justify-content:center;font-size:0.8rem;color:var(--muted)" onclick="completeWkToday()">
+              <i class="bi bi-check"></i> 只標記
+            </button>
+          </div>
         </div>
       </div>`;
   }
@@ -7481,6 +7486,36 @@ function renderWorkoutTab() {
     </div>
 
     ${workoutSection}
+
+    <!-- Strength training history -->
+    ${(() => {
+      const sessions = _swGetSessions().slice(-5).reverse();
+      if (!sessions.length) return '';
+      return `
+      <div class="card fade-in">
+        <div class="card-body" style="padding:14px 16px">
+          <div style="font-weight:700;font-size:0.9rem;margin-bottom:12px">📊 訓練記錄</div>
+          ${sessions.map(s => {
+            const totalSets = s.exercises.reduce((a,e)=>a+(e.sets||[]).length,0);
+            const totalVol  = s.exercises.reduce((a,e)=>a+(e.sets||[]).reduce((b,st)=>b+((st.weight||0)*(st.reps||0)),0),0);
+            const dur = s.completedAt && s.startedAt ? Math.round((s.completedAt-s.startedAt)/60000) : 0;
+            return `
+              <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                  <div style="font-weight:700;font-size:0.85rem">${s.date}</div>
+                  <div style="display:flex;gap:6px">
+                    ${totalVol>0?`<span style="font-size:0.7rem;background:#F0FDF4;color:var(--green-dark);padding:2px 8px;border-radius:8px;font-weight:700">${Math.round(totalVol).toLocaleString()} kg</span>`:''}
+                    ${totalSets>0?`<span style="font-size:0.7rem;background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:8px;font-weight:700">${totalSets} 組</span>`:''}
+                    ${dur>0?`<span style="font-size:0.7rem;background:#FFF7ED;color:var(--orange);padding:2px 8px;border-radius:8px;font-weight:700">${dur}分</span>`:''}
+                  </div>
+                </div>
+                <div style="font-size:0.75rem;color:var(--muted)">${s.exercises.map(e=>e.name).join(' · ')}</div>
+                ${(s.newPRs||[]).length>0?`<div style="font-size:0.7rem;color:#D97706;margin-top:3px">🏆 ${s.newPRs.map(p=>p.name).join('、')} 新PR</div>`:''}
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    })()}
 
     <!-- Exercise encyclopedia -->
     <div class="card fade-in">
@@ -7545,6 +7580,251 @@ function completeWkToday() {
   _wkMarkDone();
   showToast('🎉 今日訓練完成！記得補充蛋白質');
   renderWorkoutTab();
+}
+
+// ── Strength Tracker ──────────────────────────────────────────────────────────
+
+const _swGetSessions = () => { try { return JSON.parse(localStorage.getItem('nm_strength_log')||'[]'); } catch { return []; } };
+const _swSaveSessions = s => localStorage.setItem('nm_strength_log', JSON.stringify(s));
+
+function _swGetPR(exId) {
+  let best = null;
+  for (const sess of _swGetSessions()) {
+    for (const ex of (sess.exercises||[])) {
+      if (ex.exId !== exId) continue;
+      for (const set of (ex.sets||[])) {
+        if (!set.weight || !set.reps) continue;
+        const e1rm = set.weight * (1 + set.reps / 30);
+        if (!best || e1rm > best.e1rm) best = { weight: set.weight, reps: set.reps, e1rm };
+      }
+    }
+  }
+  return best;
+}
+
+function _swEpley(weight, reps) { return Math.round(weight * (1 + reps / 30)); }
+function _swFmtTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+let _sw = null;
+let _swRestItv = null;
+
+function openStrengthTracker() {
+  const profile = _wkProfile();
+  if (!profile) { openFitnessSetup(); return; }
+  const todayWorkout = _wkTodayWorkout(profile);
+  if (!todayWorkout) { showToast('今日為休息日，可在設定中調整訓練日'); return; }
+
+  const exercises = todayWorkout.exs.map(e => {
+    const ex = WK_EX[e.id];
+    const planned = [];
+    for (let i = 0; i < e.sets; i++) planned.push({ weight: null, reps: e.reps, done: false });
+    return { exId: e.id, name: ex ? ex.name : e.id, muscles: ex ? ex.muscles : [], sets: e.sets, repsTarget: e.reps, rest: e.rest || 90, logged: planned };
+  });
+
+  _sw = { startedAt: Date.now(), planKey: _wkPlanKey(profile), exercises, exIdx: 0, restRemaining: 0, restTotal: 90, newPRs: [] };
+
+  document.getElementById('strength-tracker-modal').style.display = 'flex';
+  _swRender();
+}
+
+function closeStrengthTracker() {
+  _swStopRest();
+  _sw = null;
+  document.getElementById('strength-tracker-modal').style.display = 'none';
+}
+
+function _swRender() {
+  if (!_sw) return;
+  const inner = document.getElementById('str-inner');
+  if (!inner) return;
+  const ex    = _sw.exercises[_sw.exIdx];
+  const total = _sw.exercises.length;
+  const idx   = _sw.exIdx;
+  const pr    = _swGetPR(ex.exId);
+  const suggWt = _getWtRec(ex.exId, _wkProfile());
+
+  const setRows = ex.logged.map((s, i) => {
+    const e1rm = (s.weight && s.reps) ? _swEpley(s.weight, s.reps) : null;
+    const isPR = pr && e1rm && e1rm > pr.e1rm;
+    return `
+      <div class="str-set-row${s.done?' done':''}">
+        <span class="str-set-num">${i+1}</span>
+        <input class="str-set-input" type="number" value="${s.weight??''}" min="0" max="500" step="2.5" placeholder="kg" inputmode="decimal"
+          onchange="_sw.exercises[_sw.exIdx].logged[${i}].weight=parseFloat(this.value)||0;_swUpdateE1rm(${i})">
+        <span style="font-size:0.85rem;color:var(--muted);flex-shrink:0">×</span>
+        <input class="str-set-input" type="number" value="${s.reps??''}" min="1" max="100" step="1" placeholder="次" inputmode="numeric"
+          onchange="_sw.exercises[_sw.exIdx].logged[${i}].reps=parseInt(this.value)||0;_swUpdateE1rm(${i})">
+        <span id="str-e1rm-${i}" class="str-e1rm-badge${isPR?' pr':''}">${e1rm?(isPR?`🏆 ~${e1rm}`:`~${e1rm}kg`):''}</span>
+        ${s.done
+          ? `<span class="str-done-chip">✓</span>`
+          : `<button class="str-done-btn" onclick="_swDoneSet(${i})"><i class="bi bi-check-lg"></i></button>`}
+      </div>`;
+  }).join('');
+
+  const progressDots = _sw.exercises.map((_,i) => {
+    const done = _sw.exercises[i].logged.length > 0 && _sw.exercises[i].logged.every(s=>s.done);
+    const cur  = i === idx;
+    return `<div style="height:4px;flex:1;border-radius:4px;background:${cur?'var(--orange)':done?'var(--green)':'var(--border)'}"></div>`;
+  }).join('');
+
+  inner.innerHTML = `
+    <div class="str-header">
+      <button onclick="closeStrengthTracker()" class="str-close-btn"><i class="bi bi-x-lg"></i></button>
+      <div style="flex:1;text-align:center;padding:0 8px">
+        <div style="font-size:0.68rem;color:var(--muted);margin-bottom:1px">動作 ${idx+1} / ${total}</div>
+        <div style="font-weight:900;font-size:1rem;color:var(--text)">${ex.name}</div>
+      </div>
+      <div style="width:36px"></div>
+    </div>
+
+    <div style="display:flex;gap:3px;padding:8px 14px 0">${progressDots}</div>
+
+    <div style="padding:10px 16px 4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${ex.muscles.slice(0,3).map(m=>`<span style="font-size:0.68rem;background:#F0FDF4;color:var(--green-dark);padding:2px 7px;border-radius:8px;font-weight:600">${m}</span>`).join('')}
+      </div>
+      <span style="font-size:0.75rem;font-weight:700;color:var(--orange)">${ex.sets}×${ex.repsTarget} 次</span>
+    </div>
+
+    ${pr ? `<div style="padding:0 16px 6px;font-size:0.74rem;color:var(--muted)">最佳紀錄：<strong style="color:var(--text)">${pr.weight}kg×${pr.reps}（推估 1RM ${Math.round(pr.e1rm)}kg）</strong></div>` : `<div style="padding:0 16px 6px;font-size:0.74rem;color:var(--muted)">尚無歷史記錄，努力創造第一個PR！</div>`}
+    ${suggWt ? `<div style="padding:0 16px 8px;font-size:0.74rem;color:var(--muted)">💡 建議重量：<strong style="color:var(--text)">${suggWt}</strong></div>` : ''}
+
+    <div style="flex:1;overflow-y:auto;padding:0 16px">
+      <div style="display:grid;grid-template-columns:22px 1fr 10px 1fr 1fr 32px;gap:6px;align-items:center;font-size:0.7rem;font-weight:700;color:var(--muted);padding:6px 2px;border-bottom:1px solid var(--border);margin-bottom:4px">
+        <span>組</span><span style="text-align:center">重量 kg</span><span></span><span style="text-align:center">次數</span><span style="text-align:center">推估1RM</span><span></span>
+      </div>
+      <div id="str-sets-wrap">${setRows}</div>
+      <button onclick="_swAddSet()" class="str-add-set-btn"><i class="bi bi-plus-lg"></i> 新增一組</button>
+    </div>
+
+    <div id="str-rest-wrap" style="display:${_sw.restRemaining>0?'block':'none'};padding:10px 16px;background:var(--orange-light);border-top:1px solid #FED7AA">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:0.82rem;font-weight:700;color:var(--orange);flex:1">⏱ 休息計時</span>
+        <span id="str-rest-num" style="font-size:1.15rem;font-weight:900;color:var(--orange);font-variant-numeric:tabular-nums">${_swFmtTime(_sw.restRemaining)}</span>
+        <button onclick="_swSkipRest()" style="font-size:0.72rem;color:var(--muted);background:white;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit">跳過</button>
+      </div>
+      <div style="height:6px;background:white;border-radius:4px;overflow:hidden">
+        <div id="str-rest-bar" style="height:100%;background:var(--orange);border-radius:4px;width:${_sw.restTotal?(_sw.restRemaining/_sw.restTotal*100):0}%"></div>
+      </div>
+    </div>
+
+    <div class="str-bottom-nav">
+      <button class="btn-outline" style="flex:1;justify-content:center;font-size:0.82rem" onclick="_swPrev()" ${idx===0?'disabled':''}>
+        <i class="bi bi-chevron-left"></i> 上一個
+      </button>
+      ${idx < total-1
+        ? `<button class="btn-primary" style="flex:2;justify-content:center;background:linear-gradient(135deg,#3B82F6,#6366F1)" onclick="_swNext()">
+            下一個動作 <i class="bi bi-chevron-right"></i>
+           </button>`
+        : `<button class="btn-primary" style="flex:2;justify-content:center" onclick="_swFinish()">
+            <i class="bi bi-trophy-fill"></i> 完成訓練
+           </button>`}
+    </div>`;
+}
+
+function _swUpdateE1rm(idx) {
+  if (!_sw) return;
+  const ex  = _sw.exercises[_sw.exIdx];
+  const s   = ex.logged[idx];
+  const pr  = _swGetPR(ex.exId);
+  const e1rm = (s.weight && s.reps) ? _swEpley(s.weight, s.reps) : null;
+  const isPR = pr && e1rm && e1rm > pr.e1rm;
+  const el = document.getElementById(`str-e1rm-${idx}`);
+  if (!el) return;
+  el.textContent = e1rm ? (isPR ? `🏆 ~${e1rm}` : `~${e1rm}kg`) : '';
+  el.className = `str-e1rm-badge${isPR?' pr':''}`;
+}
+
+function _swDoneSet(idx) {
+  if (!_sw) return;
+  const ex  = _sw.exercises[_sw.exIdx];
+  const set = ex.logged[idx];
+  if (!set.weight || !set.reps) { showToast('請先輸入重量和次數'); return; }
+  set.done = true;
+  const pr  = _swGetPR(ex.exId);
+  const e1rm = _swEpley(set.weight, set.reps);
+  if (!pr || e1rm > pr.e1rm) {
+    if (!_sw.newPRs.find(p => p.exId === ex.exId)) {
+      _sw.newPRs.push({ exId: ex.exId, name: ex.name, weight: set.weight, reps: set.reps, e1rm });
+    }
+  }
+  _swStartRest(ex.rest || 90);
+  if (navigator.vibrate) navigator.vibrate(60);
+  _swRender();
+}
+
+function _swAddSet() {
+  if (!_sw) return;
+  const ex   = _sw.exercises[_sw.exIdx];
+  const last = ex.logged[ex.logged.length - 1];
+  ex.logged.push({ weight: last ? last.weight : null, reps: last ? last.reps : ex.repsTarget, done: false });
+  _swRender();
+}
+
+function _swStartRest(seconds) {
+  _swStopRest();
+  _sw.restRemaining = seconds;
+  _sw.restTotal     = seconds;
+  const rw = document.getElementById('str-rest-wrap');
+  if (rw) rw.style.display = 'block';
+  _swRestItv = setInterval(() => {
+    if (!_sw || _sw.restRemaining <= 0) { _swStopRest(); return; }
+    _sw.restRemaining--;
+    const numEl = document.getElementById('str-rest-num');
+    const barEl = document.getElementById('str-rest-bar');
+    if (numEl) numEl.textContent = _swFmtTime(_sw.restRemaining);
+    if (barEl) barEl.style.width = `${(_sw.restRemaining / _sw.restTotal) * 100}%`;
+    if (_sw.restRemaining === 0) {
+      _swStopRest();
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      showToast('⏱ 休息結束！準備下一組');
+      const rw2 = document.getElementById('str-rest-wrap');
+      if (rw2) rw2.style.display = 'none';
+    }
+  }, 1000);
+}
+
+function _swStopRest() {
+  if (_swRestItv) { clearInterval(_swRestItv); _swRestItv = null; }
+  if (_sw) _sw.restRemaining = 0;
+}
+
+function _swSkipRest() {
+  _swStopRest();
+  const rw = document.getElementById('str-rest-wrap');
+  if (rw) rw.style.display = 'none';
+}
+
+function _swPrev() {
+  if (!_sw || _sw.exIdx === 0) return;
+  _sw.exIdx--;
+  _swRender();
+}
+
+function _swNext() {
+  if (!_sw || _sw.exIdx >= _sw.exercises.length - 1) return;
+  _sw.exIdx++;
+  _swRender();
+}
+
+function _swFinish() {
+  if (!_sw) return;
+  const sessions = _swGetSessions();
+  sessions.push({
+    id: `nm_${Date.now()}`,
+    date: todayStr(),
+    startedAt: _sw.startedAt,
+    completedAt: Date.now(),
+    planKey: _sw.planKey,
+    exercises: _sw.exercises.map(e => ({ exId: e.exId, name: e.name, sets: e.logged.filter(s=>s.done) })),
+    newPRs: _sw.newPRs,
+  });
+  _swSaveSessions(sessions);
+  const totalSets = _sw.exercises.reduce((a,e)=>a+e.logged.filter(s=>s.done).length,0);
+  const prMsg = _sw.newPRs.length > 0 ? ` · 🏆 ${_sw.newPRs.length} 個新PR！` : '';
+  completeWkToday();
+  showToast(`💪 訓練完成！共 ${totalSets} 組${prMsg}`);
+  closeStrengthTracker();
 }
 
 function selectWkGoal(goal) {
