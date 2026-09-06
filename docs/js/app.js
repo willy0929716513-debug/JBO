@@ -8221,7 +8221,7 @@ function setBgtTab(tab) {
 }
 
 function renderBudgetPage() {
-  _bgtMonth = new Date().toISOString().slice(0, 7);
+  const _d = new Date(); _bgtMonth = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}`;
   _bgtTab = 'overview';
   const lbl = document.getElementById('bgt-month-label');
   if (lbl) lbl.textContent = _bgtMonthLabel(_bgtMonth);
@@ -8233,7 +8233,7 @@ function renderBudgetPage() {
 }
 
 function _bgtApplyRecurring() {
-  const ym = new Date().toISOString().slice(0, 7);
+  const _dr = new Date(); const ym = `${_dr.getFullYear()}-${String(_dr.getMonth()+1).padStart(2,'0')}`;
   const key = `nm_bgt_rec_${ym}`;
   if (localStorage.getItem(key)) return;
   const recurring = BGT.getTxns().filter(t => t.recurring === 'monthly');
@@ -8597,27 +8597,32 @@ function selectBgtCat(key) {
 }
 
 function saveBgtTxn() {
-  const amt = parseFloat(document.getElementById('bgt-amt').value);
-  if (!amt || amt <= 0) { showToast('請輸入金額'); return; }
-  const cat = document.getElementById('bgt-cat-val').value;
-  if (!cat) { showToast('請選擇類別'); return; }
-  const txn = {
-    type:      _bgtAddType,
-    amount:    Math.round(amt * 100) / 100,
-    cat,
-    note:      document.getElementById('bgt-note').value.trim(),
-    date:      document.getElementById('bgt-date').value || todayStr(),
-    recurring: document.getElementById('bgt-recurring').checked ? 'monthly' : null,
-  };
-  if (_bgtEditId) {
-    BGT.updateTxn(_bgtEditId, txn);
-    _bgtEditId = null;
-  } else {
-    BGT.addTxn(txn);
+  try {
+    const raw = (document.getElementById('bgt-amt').value || '').replace(/[,，\s ]/g, '').trim();
+    const amt = parseFloat(raw);
+    if (!raw || isNaN(amt) || amt <= 0) { showToast('請輸入有效金額'); return; }
+    const cat = document.getElementById('bgt-cat-val').value || BGT_EXP_CATS[0].key;
+    const txn = {
+      type:      _bgtAddType || 'expense',
+      amount:    Math.round(amt * 100) / 100,
+      cat,
+      note:      document.getElementById('bgt-note').value.trim(),
+      date:      document.getElementById('bgt-date').value || todayStr(),
+      recurring: document.getElementById('bgt-recurring').checked ? 'monthly' : null,
+    };
+    if (_bgtEditId) {
+      BGT.updateTxn(_bgtEditId, txn);
+      _bgtEditId = null;
+    } else {
+      BGT.addTxn(txn);
+    }
+    closeBgtAdd();
+    renderBgtContent();
+    showToast(`✅ ${txn.type === 'expense' ? '支出' : '收入'} $${txn.amount.toLocaleString()} 已記錄`);
+  } catch(e) {
+    showToast('儲存失敗，請再試一次');
+    console.error('saveBgtTxn error:', e);
   }
-  closeBgtAdd();
-  renderBgtContent();
-  showToast(`✅ ${txn.type === 'expense' ? '支出' : '收入'} $${txn.amount.toLocaleString()} 已記錄`);
 }
 
 function bgtTxnMenu(id) {
