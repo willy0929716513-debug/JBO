@@ -1095,8 +1095,8 @@ body {
 .bgt-month-btn { background:#F1F5F9;border:none;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;flex-shrink:0; }
 .bgt-month-label { flex:1;text-align:center;font-weight:800;font-size:0.95rem;color:var(--text); }
 
-.bgt-modal { display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:1000;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px); }
-.bgt-modal-inner { background:var(--card-bg);border-radius:28px 28px 0 0;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateZ(0); }
+.bgt-modal { display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:1000;align-items:flex-end;justify-content:center; }
+.bgt-modal-inner { background:var(--card-bg);border-radius:28px 28px 0 0;width:100%;max-width:500px;max-height:90vh;overflow-y:scroll;-webkit-overflow-scrolling:touch; }
 .bgt-modal-header { padding:16px 20px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card-bg);z-index:1; }
 .bgt-modal-body { padding:18px 20px 24px; }
 
