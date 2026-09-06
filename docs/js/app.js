@@ -8305,20 +8305,26 @@ function _bgtRenderOverview(txns) {
 
   const recent = BGT.getTxns().filter(t => t.date.startsWith(_bgtMonth)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
 
+  const balanceSign = balance >= 0 ? '+' : '';
+  const balanceColor = balance >= 0 ? '#16A34A' : '#DC2626';
+  const balanceBg = balance >= 0
+    ? 'linear-gradient(135deg,#16C060,#10B981)'
+    : 'linear-gradient(135deg,#EF4444,#DC2626)';
+
   return `
-    <div class="bgt-summary-grid fade-in">
-      <div class="bgt-summary-card">
-        <div class="bgt-summary-label">收入</div>
-        <div class="bgt-summary-val" style="color:#16A34A">+$${income.toLocaleString()}</div>
-      </div>
-      <div class="bgt-summary-card">
-        <div class="bgt-summary-label">支出</div>
-        <div class="bgt-summary-val" style="color:#DC2626">-$${expense.toLocaleString()}</div>
-      </div>
-      <div class="bgt-summary-card">
-        <div class="bgt-summary-label">${savingRate !== null ? '儲蓄率' : '結餘'}</div>
-        <div class="bgt-summary-val" style="color:${balance >= 0 ? '#16A34A' : '#DC2626'}">
-          ${savingRate !== null ? `${savingRate}%` : `${balance >= 0 ? '+' : ''}$${balance.toLocaleString()}`}
+    <div class="bgt-balance-hero fade-in" style="background:${balanceBg}">
+      <div class="bgt-balance-label">本月結餘</div>
+      <div class="bgt-balance-amount">${balanceSign}$${Math.abs(balance).toLocaleString()}</div>
+      ${savingRate !== null ? `<div class="bgt-balance-sub">儲蓄率 ${savingRate}%</div>` : ''}
+      <div class="bgt-balance-row">
+        <div class="bgt-balance-stat">
+          <span class="bgt-balance-stat-lbl">收入</span>
+          <span class="bgt-balance-stat-val">+$${income.toLocaleString()}</span>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,0.3);align-self:stretch"></div>
+        <div class="bgt-balance-stat">
+          <span class="bgt-balance-stat-lbl">支出</span>
+          <span class="bgt-balance-stat-val">-$${expense.toLocaleString()}</span>
         </div>
       </div>
     </div>
