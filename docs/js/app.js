@@ -8561,7 +8561,6 @@ function openBgtAdd(type) {
   document.getElementById('bgt-date').value = todayStr();
   document.getElementById('bgt-recurring').checked = false;
   setBgtType(type);
-  setTimeout(() => document.getElementById('bgt-amt')?.focus(), 100);
 }
 
 function closeBgtAdd() {
