@@ -1079,6 +1079,15 @@ body {
 .bgt-summary-label { font-size:0.66rem;color:var(--muted);margin-bottom:4px; }
 .bgt-summary-val { font-size:1rem;font-weight:900;word-break:break-all; }
 
+.bgt-balance-hero { border-radius:20px;padding:22px 20px 18px;margin-bottom:14px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.18); }
+.bgt-balance-label { font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:0.05em;margin-bottom:6px; }
+.bgt-balance-amount { font-size:2.8rem;font-weight:900;color:#fff;line-height:1;margin-bottom:4px;letter-spacing:-0.02em; }
+.bgt-balance-sub { font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:14px; }
+.bgt-balance-row { display:flex;gap:0;background:rgba(0,0,0,0.12);border-radius:12px;margin-top:14px;overflow:hidden; }
+.bgt-balance-stat { flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px; }
+.bgt-balance-stat-lbl { font-size:0.68rem;color:rgba(255,255,255,0.7);font-weight:600; }
+.bgt-balance-stat-val { font-size:0.95rem;font-weight:800;color:#fff; }
+
 .bgt-txn-group { margin-bottom:4px; }
 .bgt-txn-date-label { font-size:0.7rem;color:var(--muted);font-weight:700;padding:6px 0 4px;letter-spacing:0.03em; }
 .bgt-txn-row { background:var(--card-bg);border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px;margin-bottom:6px;box-shadow:var(--shadow);cursor:pointer;transition:transform 0.1s; }
