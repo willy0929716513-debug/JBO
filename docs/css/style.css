@@ -1096,7 +1096,7 @@ body {
 .bgt-month-label { flex:1;text-align:center;font-weight:800;font-size:0.95rem;color:var(--text); }
 
 .bgt-modal { display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:1000;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px); }
-.bgt-modal-inner { background:var(--card-bg);border-radius:28px 28px 0 0;width:100%;max-width:500px;max-height:92vh;overflow-y:auto; }
+.bgt-modal-inner { background:var(--card-bg);border-radius:28px 28px 0 0;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateZ(0); }
 .bgt-modal-header { padding:16px 20px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card-bg);z-index:1; }
 .bgt-modal-body { padding:18px 20px 24px; }
 
@@ -1105,7 +1105,8 @@ body {
 .bgt-type-btn.active-expense { background:#FEE2E2;color:#DC2626; }
 .bgt-type-btn.active-income  { background:#DCFCE7;color:#16A34A; }
 
-.bgt-amount-input { font-size:2.2rem;font-weight:900;border:none;background:transparent;width:100%;text-align:center;color:var(--text);outline:none;font-family:inherit;margin:6px 0 14px;caret-color:var(--green); }
+.bgt-amount-input { font-size:2.2rem;font-weight:900;border:2px solid var(--border);border-radius:14px;background:var(--card-bg);width:100%;text-align:center;color:var(--text);outline:none;font-family:inherit;margin:6px 0 14px;caret-color:var(--green);padding:8px 12px;-webkit-user-select:text;user-select:text; }
+.bgt-amount-input:focus { border-color:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 15%,transparent); }
 .bgt-amount-input::placeholder { color:#CBD5E1; }
 
 .bgt-cat-grid { display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:16px; }
