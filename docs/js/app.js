@@ -8146,6 +8146,12 @@ function addTargetToLog(partId) {
 
 // ── Budget / Expense Tracker ─────────────────────────────────────────────────
 
+const BGT_ACCOUNTS = [
+  { key:'cash', icon:'💵', name:'現金',   color:'#16C060' },
+  { key:'card', icon:'💳', name:'金融卡', color:'#3B82F6' },
+];
+function _bgtAccount(key) { return BGT_ACCOUNTS.find(a => a.key === key) || BGT_ACCOUNTS[0]; }
+
 const BGT_EXP_CATS = [
   { key:'food',      icon:'🍜', name:'餐飲',  color:'#F97316' },
   { key:'shop',      icon:'🛒', name:'購物',  color:'#8B5CF6' },
@@ -8191,6 +8197,7 @@ let _bgtTab     = 'overview';
 let _bgtAddType = 'expense';
 let _bgtEditId  = null;
 let _bgtFilter  = 'all';
+let _bgtAccount = 'cash';
 
 function _bgtMonthLabel(ym) {
   const [y, m] = ym.split('-');
@@ -8255,13 +8262,14 @@ function renderBgtContent() {
 
 function _bgtTxnRow(t) {
   const c = _bgtCat(t.cat);
+  const a = _bgtAccount(t.account || 'cash');
   const isExp = t.type === 'expense';
   return `
     <div class="bgt-txn-row" onclick="bgtTxnMenu('${t.id}')">
       <div class="bgt-txn-icon" style="background:${c.color}22">${c.icon}</div>
       <div style="flex:1;min-width:0">
         <div class="bgt-txn-note">${t.note || c.name}${t.recurring ? ' 🔁' : ''}</div>
-        <div class="bgt-txn-cat-lbl">${c.name} · ${t.date}</div>
+        <div class="bgt-txn-cat-lbl">${c.name} · ${t.date} · <span style="color:${a.color}">${a.icon}${a.name}</span></div>
       </div>
       <div class="bgt-txn-amt" style="color:${isExp ? '#DC2626' : '#16A34A'}">${isExp ? '-' : '+'}$${t.amount.toLocaleString()}</div>
     </div>`;
@@ -8306,14 +8314,34 @@ function _bgtRenderOverview(txns) {
   const recent = BGT.getTxns().filter(t => t.date.startsWith(_bgtMonth)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
 
   const balanceSign = balance >= 0 ? '+' : '';
-  const balanceColor = balance >= 0 ? '#16A34A' : '#DC2626';
   const balanceBg = balance >= 0
     ? 'linear-gradient(135deg,#16C060,#10B981)'
     : 'linear-gradient(135deg,#EF4444,#DC2626)';
 
+  // Per-account breakdown
+  const acctCards = BGT_ACCOUNTS.map(a => {
+    const aInc = txns.filter(t => t.type==='income'  && (t.account||'cash')===a.key).reduce((s,t)=>s+t.amount,0);
+    const aExp = txns.filter(t => t.type==='expense' && (t.account||'cash')===a.key).reduce((s,t)=>s+t.amount,0);
+    const aBal = aInc - aExp;
+    const aSign = aBal >= 0 ? '+' : '';
+    const aColor = aBal >= 0 ? a.color : '#EF4444';
+    return `
+      <div class="bgt-acct-card" onclick="openBgtAdd('expense','${a.key}')">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <span style="font-size:1.1rem">${a.icon}</span>
+          <span style="font-size:0.72rem;font-weight:700;color:var(--text-2)">${a.name}</span>
+        </div>
+        <div style="font-size:1.3rem;font-weight:900;color:${aColor}">${aSign}$${Math.abs(aBal).toLocaleString()}</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.65rem;color:var(--muted)">
+          <span>收 $${aInc.toLocaleString()}</span>
+          <span>支 $${aExp.toLocaleString()}</span>
+        </div>
+      </div>`;
+  }).join('');
+
   return `
     <div class="bgt-balance-hero fade-in" style="background:${balanceBg}">
-      <div class="bgt-balance-label">本月結餘</div>
+      <div class="bgt-balance-label">本月結餘（合計）</div>
       <div class="bgt-balance-amount">${balanceSign}$${Math.abs(balance).toLocaleString()}</div>
       ${savingRate !== null ? `<div class="bgt-balance-sub">儲蓄率 ${savingRate}%</div>` : ''}
       <div class="bgt-balance-row">
@@ -8328,6 +8356,8 @@ function _bgtRenderOverview(txns) {
         </div>
       </div>
     </div>
+
+    <div class="bgt-acct-grid fade-in">${acctCards}</div>
 
     <div style="display:flex;gap:10px;margin-bottom:12px">
       <button onclick="openBgtAdd('expense')" class="btn-primary" style="flex:1;justify-content:center;background:linear-gradient(135deg,#DC2626,#EF4444)">
@@ -8558,15 +8588,29 @@ function _bgtRenderStats() {
 
 // ── Add Transaction ──────────────────────────────────────────────────────────
 
-function openBgtAdd(type) {
+function openBgtAdd(type, account) {
   _bgtAddType = type;
   _bgtEditId  = null;
+  _bgtAccount = account || 'cash';
   document.getElementById('bgt-add-modal').style.display = 'flex';
   document.getElementById('bgt-amt').value  = '';
   document.getElementById('bgt-note').value = '';
   document.getElementById('bgt-date').value = todayStr();
   document.getElementById('bgt-recurring').checked = false;
   setBgtType(type);
+  _renderBgtAccountBtns();
+}
+
+function _renderBgtAccountBtns() {
+  BGT_ACCOUNTS.forEach(a => {
+    const el = document.getElementById(`bgt-acc-${a.key}`);
+    if (el) el.className = 'bgt-acc-btn' + (_bgtAccount === a.key ? ' active' : '');
+  });
+}
+
+function setBgtAccount(key) {
+  _bgtAccount = key;
+  _renderBgtAccountBtns();
 }
 
 function closeBgtAdd() {
@@ -8612,6 +8656,7 @@ function saveBgtTxn() {
       type:      _bgtAddType || 'expense',
       amount:    Math.round(amt * 100) / 100,
       cat,
+      account:   _bgtAccount || 'cash',
       note:      document.getElementById('bgt-note').value.trim(),
       date:      document.getElementById('bgt-date').value || todayStr(),
       recurring: document.getElementById('bgt-recurring').checked ? 'monthly' : null,
