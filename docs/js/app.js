@@ -8150,7 +8150,7 @@ const BGT_ACCOUNTS = [
   { key:'cash', icon:'💵', name:'現金',   color:'#16C060' },
   { key:'card', icon:'💳', name:'金融卡', color:'#3B82F6' },
 ];
-function _bgtAccount(key) { return BGT_ACCOUNTS.find(a => a.key === key) || BGT_ACCOUNTS[0]; }
+function _bgtFindAccount(key) { return BGT_ACCOUNTS.find(a => a.key === key) || BGT_ACCOUNTS[0]; }
 
 const BGT_EXP_CATS = [
   { key:'food',      icon:'🍜', name:'餐飲',  color:'#F97316' },
@@ -8262,7 +8262,7 @@ function renderBgtContent() {
 
 function _bgtTxnRow(t) {
   const c = _bgtCat(t.cat);
-  const a = _bgtAccount(t.account || 'cash');
+  const a = _bgtFindAccount(t.account || 'cash');
   const isExp = t.type === 'expense';
   return `
     <div class="bgt-txn-row" onclick="bgtTxnMenu('${t.id}')">
