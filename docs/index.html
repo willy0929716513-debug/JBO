@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
   <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/style.css?v=20260902i">
+  <link rel="stylesheet" href="css/style.css?v=20260902j">
   <style>
     .page { display: none; }
     .page.active { display: block; }
@@ -616,15 +616,13 @@
         <div class="bgt-cat-grid" id="bgt-cat-grid"></div>
         <input type="hidden" id="bgt-cat-val">
         <!-- Date + Note -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-          <div>
-            <div style="font-size:0.72rem;font-weight:700;color:var(--text-2);margin-bottom:6px">日期</div>
-            <input id="bgt-date" type="date" class="form-input">
-          </div>
-          <div>
-            <div style="font-size:0.72rem;font-weight:700;color:var(--text-2);margin-bottom:6px">備註</div>
-            <input id="bgt-note" type="text" class="form-input" placeholder="選填">
-          </div>
+        <div style="margin-bottom:10px">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--text-2);margin-bottom:6px">日期</div>
+          <input id="bgt-date" type="date" class="form-input" style="box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--text-2);margin-bottom:6px">備註</div>
+          <input id="bgt-note" type="text" class="form-input" placeholder="選填" style="box-sizing:border-box">
         </div>
         <!-- Recurring -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding:12px 14px;background:#F8FAFC;border-radius:12px">
@@ -1398,6 +1396,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20260902i"></script>
+<script src="js/app.js?v=20260902j"></script>
 </body>
 </html>

@@ -609,6 +609,7 @@ body {
 
 .form-input {
     width: 100%;
+    box-sizing: border-box;
     padding: 11px 14px;
     border: 2px solid var(--border);
     border-radius: 12px;
