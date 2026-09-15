@@ -1655,6 +1655,187 @@ const FOOD_DB = {
   '四果湯':       { calories: 85,  protein: 1.0,  carbs: 20.5, fat: 0.5  },
   '楊枝甘露':     { calories: 155, protein: 1.5,  carbs: 28.0, fat: 5.0  },
   '芋泥西米露':   { calories: 170, protein: 2.0,  carbs: 36.0, fat: 3.0  },
+
+  // ══ 炒飯口味大全 ══
+  '培根炒飯':      { calories: 210, protein: 9.0,  carbs: 27.5, fat: 8.0  },
+  '牛肉炒飯':      { calories: 195, protein: 10.5, carbs: 27.0, fat: 6.0  },
+  '豬肉炒飯':      { calories: 185, protein: 9.0,  carbs: 27.5, fat: 5.5  },
+  '海鮮炒飯':      { calories: 180, protein: 10.0, carbs: 26.5, fat: 4.5  },
+  '什錦炒飯':      { calories: 185, protein: 9.0,  carbs: 27.0, fat: 5.0  },
+  '揚州炒飯':      { calories: 190, protein: 9.5,  carbs: 27.5, fat: 5.5  },
+  '星州炒飯':      { calories: 195, protein: 9.5,  carbs: 26.5, fat: 6.5  },
+  '三色蛋炒飯':    { calories: 190, protein: 9.5,  carbs: 26.0, fat: 6.0  },
+  '腸仔炒飯':      { calories: 210, protein: 8.5,  carbs: 27.0, fat: 8.0  },
+  '泡菜豬肉炒飯':  { calories: 185, protein: 9.5,  carbs: 26.5, fat: 5.5  },
+  '明太子炒飯':    { calories: 195, protein: 10.0, carbs: 27.0, fat: 6.0  },
+  '咖哩炒飯':      { calories: 195, protein: 7.5,  carbs: 29.0, fat: 6.0  },
+
+  // ══ 丼飯口味大全 ══
+  '炸蝦丼':        { calories: 340, protein: 16.0, carbs: 44.0, fat: 11.0 },
+  '天婦羅丼':      { calories: 360, protein: 13.0, carbs: 47.0, fat: 13.0 },
+  '燒肉丼':        { calories: 330, protein: 17.0, carbs: 38.0, fat: 12.0 },
+  '照燒雞丼':      { calories: 310, protein: 20.0, carbs: 36.0, fat: 8.5  },
+  '照燒鮭魚丼':    { calories: 295, protein: 18.0, carbs: 34.0, fat: 8.0  },
+  '鰻魚丼':        { calories: 330, protein: 16.0, carbs: 38.0, fat: 12.0 },
+  '牛角煮丼':      { calories: 305, protein: 17.0, carbs: 36.0, fat: 10.0 },
+  '辣雞丼':        { calories: 305, protein: 20.5, carbs: 34.0, fat: 9.0  },
+
+  // ══ 拉麵口味大全 ══
+  '麻辣拉麵':      { calories: 420, protein: 16.0, carbs: 56.0, fat: 15.0 },
+  '海鮮拉麵':      { calories: 380, protein: 20.0, carbs: 52.0, fat: 10.0 },
+  '辣味噌拉麵':    { calories: 415, protein: 17.0, carbs: 55.0, fat: 13.0 },
+  '擔擔拉麵':      { calories: 430, protein: 17.5, carbs: 54.0, fat: 16.0 },
+  '柚子鹽拉麵':    { calories: 355, protein: 15.0, carbs: 53.0, fat: 9.0  },
+  '蔬菜拉麵':      { calories: 340, protein: 11.0, carbs: 56.0, fat: 8.0  },
+  '叉燒拉麵':      { calories: 405, protein: 18.0, carbs: 54.0, fat: 13.0 },
+  '半熟蛋拉麵':    { calories: 430, protein: 20.0, carbs: 54.0, fat: 15.0 },
+
+  // ══ 義大利麵口味大全 ══
+  '花蛤義大利麵':  { calories: 295, protein: 14.0, carbs: 42.0, fat: 7.0  },
+  '海鮮義大利麵':  { calories: 315, protein: 16.0, carbs: 42.0, fat: 8.5  },
+  '煙燻鮭魚義大利麵':{ calories: 340, protein: 15.0, carbs: 40.0, fat: 13.0},
+  '茄子義大利麵':  { calories: 280, protein: 9.0,  carbs: 43.0, fat: 8.5  },
+  '辣雞義大利麵':  { calories: 320, protein: 16.0, carbs: 40.0, fat: 11.0 },
+  '鮪魚義大利麵':  { calories: 295, protein: 15.0, carbs: 41.0, fat: 7.5  },
+  '松露義大利麵':  { calories: 360, protein: 11.0, carbs: 42.0, fat: 17.0 },
+  '起司義大利麵':  { calories: 380, protein: 13.0, carbs: 40.0, fat: 19.0 },
+
+  // ══ 漢堡口味大全 ══
+  '辣雞堡':        { calories: 395, protein: 22.0, carbs: 36.0, fat: 18.0 },
+  '魚堡':          { calories: 340, protein: 15.0, carbs: 37.0, fat: 14.0 },
+  '蘑菇牛堡':      { calories: 420, protein: 22.0, carbs: 35.0, fat: 22.0 },
+  '培根起司堡':    { calories: 480, protein: 25.0, carbs: 33.0, fat: 27.0 },
+  '酪梨雞肉堡':    { calories: 380, protein: 24.0, carbs: 30.0, fat: 18.0 },
+  'BBQ牛肉堡':     { calories: 460, protein: 24.0, carbs: 38.0, fat: 24.0 },
+
+  // ══ 三明治口味大全 ══
+  '雞排三明治':    { calories: 370, protein: 22.0, carbs: 32.0, fat: 16.0 },
+  '燻雞三明治':    { calories: 290, protein: 16.0, carbs: 26.0, fat: 13.0 },
+  '酪梨三明治':    { calories: 320, protein: 11.0, carbs: 30.0, fat: 18.0 },
+  '牛肉三明治':    { calories: 355, protein: 20.0, carbs: 28.0, fat: 17.0 },
+  '沙拉三明治':    { calories: 215, protein: 9.0,  carbs: 28.0, fat: 8.0  },
+  '花生醬三明治':  { calories: 350, protein: 13.0, carbs: 38.0, fat: 17.0 },
+
+  // ══ 蛋餅口味大全 ══
+  '泡菜蛋餅':      { calories: 275, protein: 10.0, carbs: 32.0, fat: 12.0 },
+  '肉鬆蛋餅':      { calories: 310, protein: 14.5, carbs: 33.5, fat: 13.5 },
+  '地瓜蛋餅':      { calories: 270, protein: 9.0,  carbs: 38.0, fat: 9.0  },
+  '九層塔蛋餅':    { calories: 265, protein: 10.5, carbs: 33.0, fat: 11.0 },
+  '蔬菜蛋餅':      { calories: 240, protein: 9.5,  carbs: 33.0, fat: 8.5  },
+  '培根起司蛋餅':  { calories: 345, protein: 18.0, carbs: 32.5, fat: 16.5 },
+
+  // ══ 咖哩口味大全 ══
+  '台式咖哩飯':    { calories: 240, protein: 9.5,  carbs: 38.0, fat: 6.5  },
+  '咖哩烏龍麵':    { calories: 215, protein: 8.5,  carbs: 35.5, fat: 5.0  },
+  '咖哩豬排飯':    { calories: 390, protein: 20.0, carbs: 46.0, fat: 14.0 },
+  '咖哩雞飯':      { calories: 310, protein: 18.0, carbs: 40.0, fat: 9.0  },
+  '咖哩炒麵':      { calories: 230, protein: 9.0,  carbs: 35.0, fat: 7.0  },
+  '咖哩蛋包飯':    { calories: 290, protein: 12.0, carbs: 40.0, fat: 9.0  },
+  '牛肉咖哩':      { calories: 165, protein: 10.5, carbs: 14.0, fat: 7.5  },
+
+  // ══ 牛肉麵口味大全 ══
+  '紅燒牛肉麵':    { calories: 500, protein: 22.0, carbs: 65.0, fat: 16.0 },
+  '清燉牛肉麵':    { calories: 445, protein: 23.0, carbs: 60.0, fat: 12.0 },
+  '番茄牛肉麵':    { calories: 460, protein: 21.0, carbs: 63.0, fat: 12.5 },
+  '辣牛肉麵':      { calories: 510, protein: 22.0, carbs: 64.0, fat: 17.0 },
+  '麻辣牛肉麵':    { calories: 530, protein: 21.5, carbs: 63.0, fat: 19.0 },
+  '半筋半肉牛肉麵':{ calories: 480, protein: 24.0, carbs: 62.0, fat: 14.0 },
+
+  // ══ 炒麵口味大全 ══
+  '海鮮炒麵':      { calories: 195, protein: 11.0, carbs: 29.0, fat: 5.5  },
+  '牛肉炒麵':      { calories: 205, protein: 11.5, carbs: 28.5, fat: 7.0  },
+  '豬肉炒麵':      { calories: 190, protein: 10.0, carbs: 28.5, fat: 6.0  },
+  '什錦炒麵':      { calories: 195, protein: 9.5,  carbs: 29.5, fat: 5.5  },
+  '泡菜炒麵':      { calories: 185, protein: 7.5,  carbs: 30.0, fat: 5.0  },
+  '日式炒麵(豚骨)':{ calories: 200, protein: 9.5,  carbs: 28.5, fat: 6.5  },
+
+  // ══ 粥口味大全 ══
+  '海鮮粥':        { calories: 90,  protein: 7.5,  carbs: 13.0, fat: 1.5  },
+  '雞肉粥':        { calories: 82,  protein: 7.0,  carbs: 11.5, fat: 1.5  },
+  '芋頭粥':        { calories: 75,  protein: 2.5,  carbs: 15.5, fat: 1.0  },
+  '豬肝粥':        { calories: 85,  protein: 7.5,  carbs: 11.5, fat: 1.5  },
+  '魚片粥':        { calories: 78,  protein: 6.5,  carbs: 11.0, fat: 1.0  },
+  '排骨粥':        { calories: 95,  protein: 7.5,  carbs: 12.5, fat: 2.5  },
+  '螃蟹粥':        { calories: 88,  protein: 7.5,  carbs: 11.5, fat: 1.5  },
+  '南瓜粥':        { calories: 62,  protein: 2.0,  carbs: 13.5, fat: 0.5  },
+
+  // ══ 沙拉口味大全 ══
+  '雞肉沙拉':      { calories: 130, protein: 14.0, carbs: 6.5,  fat: 6.0  },
+  '鮭魚沙拉':      { calories: 155, protein: 12.5, carbs: 5.5,  fat: 9.5  },
+  '科布沙拉':      { calories: 170, protein: 12.0, carbs: 7.5,  fat: 11.0 },
+  '水果沙拉':      { calories: 75,  protein: 1.0,  carbs: 17.5, fat: 1.0  },
+  '尼斯沙拉':      { calories: 145, protein: 11.0, carbs: 8.5,  fat: 8.0  },
+  '鮪魚沙拉':      { calories: 120, protein: 12.5, carbs: 5.0,  fat: 6.0  },
+  '蛋沙拉':        { calories: 155, protein: 7.5,  carbs: 4.5,  fat: 12.0 },
+  '酪梨沙拉':      { calories: 175, protein: 4.0,  carbs: 8.5,  fat: 15.0 },
+
+  // ══ 炸物口味大全 ══
+  '炸茄子':        { calories: 165, protein: 2.5,  carbs: 13.0, fat: 12.0 },
+  '炸南瓜':        { calories: 155, protein: 2.5,  carbs: 14.5, fat: 10.0 },
+  '炸地瓜球':      { calories: 240, protein: 2.0,  carbs: 38.0, fat: 9.5  },
+  '炸香蕉':        { calories: 220, protein: 2.0,  carbs: 32.0, fat: 10.5 },
+  '炸牛奶':        { calories: 195, protein: 5.5,  carbs: 22.0, fat: 10.5 },
+  '炸玉米':        { calories: 175, protein: 4.0,  carbs: 19.5, fat: 10.0 },
+  '炸杏鮑菇':      { calories: 180, protein: 4.5,  carbs: 17.5, fat: 10.5 },
+  '炸豆腐':        { calories: 185, protein: 10.0, carbs: 10.5, fat: 12.0 },
+  '炸地瓜條':      { calories: 190, protein: 2.0,  carbs: 28.5, fat: 8.5  },
+
+  // ══ 串燒口味大全 ══
+  '串燒牛舌':      { calories: 215, protein: 16.0, carbs: 1.0,  fat: 16.5 },
+  '串燒雞心':      { calories: 195, protein: 19.0, carbs: 1.5,  fat: 13.0 },
+  '串燒雞皮':      { calories: 310, protein: 14.5, carbs: 1.5,  fat: 28.0 },
+  '串燒豬腸':      { calories: 220, protein: 13.5, carbs: 2.0,  fat: 18.0 },
+  '串燒蔬菜':      { calories: 55,  protein: 2.0,  carbs: 8.0,  fat: 2.5  },
+  '串燒明蝦':      { calories: 105, protein: 13.5, carbs: 2.5,  fat: 5.0  },
+  '串燒花枝':      { calories: 110, protein: 12.5, carbs: 4.5,  fat: 4.5  },
+  '串燒牛肉':      { calories: 195, protein: 17.5, carbs: 2.0,  fat: 13.0 },
+
+  // ══ 火鍋口味大全 ══
+  '麻辣火鍋':      { calories: 215, protein: 13.0, carbs: 10.0, fat: 13.0 },
+  '酸菜白肉鍋':    { calories: 155, protein: 12.0, carbs: 8.0,  fat: 8.0  },
+  '石頭火鍋':      { calories: 175, protein: 12.5, carbs: 9.5,  fat: 8.5  },
+  '鴛鴦鍋':        { calories: 190, protein: 12.5, carbs: 9.5,  fat: 10.5 },
+  '昆布鍋':        { calories: 120, protein: 10.5, carbs: 7.5,  fat: 4.5  },
+  '豆漿鍋':        { calories: 130, protein: 10.0, carbs: 9.0,  fat: 5.5  },
+  '番茄牛肉鍋':    { calories: 155, protein: 12.0, carbs: 9.0,  fat: 7.0  },
+
+  // ══ 焗烤口味大全 ══
+  '焗烤海鮮飯':    { calories: 365, protein: 16.0, carbs: 47.0, fat: 13.0 },
+  '焗烤雞肉飯':    { calories: 355, protein: 17.0, carbs: 45.0, fat: 12.0 },
+  '焗烤薯條':      { calories: 310, protein: 9.5,  carbs: 38.0, fat: 14.0 },
+  '焗烤番茄':      { calories: 140, protein: 5.5,  carbs: 9.5,  fat: 9.0  },
+  '焗烤通心粉':    { calories: 340, protein: 12.0, carbs: 43.0, fat: 14.0 },
+
+  // ══ 手搖飲/奶茶口味大全 ══
+  '冬瓜奶茶':      { calories: 90,  protein: 1.5,  carbs: 18.5, fat: 2.0  },
+  '椰奶拿鐵':      { calories: 110, protein: 2.0,  carbs: 13.5, fat: 6.0  },
+  '燕麥抹茶拿鐵':  { calories: 100, protein: 3.0,  carbs: 16.0, fat: 3.0  },
+  '黑糖鮮奶':      { calories: 95,  protein: 3.5,  carbs: 15.0, fat: 2.5  },
+  '黑糖珍珠鮮奶':  { calories: 155, protein: 3.5,  carbs: 30.0, fat: 3.0  },
+  '芋頭奶茶':      { calories: 100, protein: 1.5,  carbs: 19.5, fat: 2.5  },
+  '草莓奶茶':      { calories: 90,  protein: 1.5,  carbs: 17.5, fat: 2.0  },
+  '烏龍綠茶':      { calories: 5,   protein: 0.1,  carbs: 1.0,  fat: 0.0  },
+  '茉香綠茶':      { calories: 5,   protein: 0.1,  carbs: 1.0,  fat: 0.0  },
+  '檸檬綠茶':      { calories: 30,  protein: 0.1,  carbs: 7.5,  fat: 0.0  },
+  '檸檬紅茶':      { calories: 28,  protein: 0.1,  carbs: 7.0,  fat: 0.0  },
+  '百香果綠茶':    { calories: 45,  protein: 0.3,  carbs: 11.5, fat: 0.0  },
+  '梅子綠茶':      { calories: 38,  protein: 0.1,  carbs: 9.5,  fat: 0.0  },
+  '鮮奶珍珠':      { calories: 135, protein: 3.5,  carbs: 25.5, fat: 2.5  },
+  '椰果奶茶':      { calories: 85,  protein: 1.5,  carbs: 17.0, fat: 1.5  },
+
+  // ══ 飯+配菜組合 ══
+  '三杯雞飯':      { calories: 355, protein: 19.0, carbs: 33.0, fat: 14.5 },
+  '宮保雞丁飯':    { calories: 345, protein: 19.0, carbs: 34.5, fat: 13.0 },
+  '糖醋排骨飯':    { calories: 410, protein: 18.0, carbs: 46.0, fat: 15.5 },
+  '回鍋肉飯':      { calories: 370, protein: 16.0, carbs: 33.0, fat: 18.5 },
+  '魚排飯':        { calories: 345, protein: 20.0, carbs: 36.0, fat: 12.0 },
+  '蒜泥白肉飯':    { calories: 345, protein: 16.0, carbs: 30.0, fat: 17.0 },
+  '麻婆豆腐飯':    { calories: 310, protein: 14.0, carbs: 36.0, fat: 12.0 },
+  '番茄炒蛋飯':    { calories: 275, protein: 10.0, carbs: 32.0, fat: 10.5 },
+  '青椒肉絲飯':    { calories: 310, protein: 14.5, carbs: 33.5, fat: 11.5 },
+  '魚香茄子飯':    { calories: 295, protein: 10.0, carbs: 34.0, fat: 12.5 },
+  '乾煸四季豆飯':  { calories: 285, protein: 9.5,  carbs: 34.5, fat: 10.5 },
+  '蔥爆牛肉飯':    { calories: 360, protein: 18.5, carbs: 31.5, fat: 15.5 },
 };
 
 // ── 食物別名（搜尋關鍵字對應正式名稱）────────────────────────────────────────
