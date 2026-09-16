@@ -8688,13 +8688,28 @@ const BGT_ALL_CATS = [...BGT_EXP_CATS, ...BGT_INC_CATS];
 function _bgtCat(key) { return BGT_ALL_CATS.find(c => c.key === key) || { icon:'💰', name:key, color:'#94A3B8' }; }
 
 const BGT = {
-  getTxns:    () => DB._get('nm_bgt_txns', '[]'),
-  saveTxns:   d  => localStorage.setItem('nm_bgt_txns', JSON.stringify(d)),
-  getLimits:  () => DB._get('nm_bgt_limits', '{}'),
-  saveLimits: d  => localStorage.setItem('nm_bgt_limits', JSON.stringify(d)),
+  getTxns:      () => DB._get('nm_bgt_txns', '[]'),
+  saveTxns:     d  => localStorage.setItem('nm_bgt_txns', JSON.stringify(d)),
+  getLimits:    () => DB._get('nm_bgt_limits', '{}'),
+  saveLimits:   d  => localStorage.setItem('nm_bgt_limits', JSON.stringify(d)),
+  getInitBal:   () => DB._get('nm_bgt_init_bal', '{}'),
+  saveInitBal:  d  => localStorage.setItem('nm_bgt_init_bal', JSON.stringify(d)),
   addTxn(t) { t.id = DB.newId(); const a = BGT.getTxns(); a.push(t); BGT.saveTxns(a); return t; },
   deleteTxn(id) { BGT.saveTxns(BGT.getTxns().filter(t => t.id !== id)); },
   updateTxn(id, patch) { BGT.saveTxns(BGT.getTxns().map(t => t.id === id ? { ...t, ...patch } : t)); },
+  // Returns cumulative balance per account key across all transactions
+  calcSavings() {
+    const init = BGT.getInitBal();
+    const all  = BGT.getTxns();
+    const result = {};
+    BGT_ACCOUNTS.forEach(a => {
+      const base = parseFloat(init[a.key] || 0);
+      const inc  = all.filter(t => t.type === 'income'  && (t.account || 'cash') === a.key).reduce((s, t) => s + t.amount, 0);
+      const exp  = all.filter(t => t.type === 'expense' && (t.account || 'cash') === a.key).reduce((s, t) => s + t.amount, 0);
+      result[a.key] = base + inc - exp;
+    });
+    return result;
+  },
 };
 
 let _bgtMonth   = new Date().toISOString().slice(0, 7);
@@ -8780,6 +8795,33 @@ function _bgtTxnRow(t) {
     </div>`;
 }
 
+function bgtEditInitBal() {
+  const init = BGT.getInitBal();
+  const fields = BGT_ACCOUNTS.map(a => `
+    <div style="margin-bottom:14px">
+      <label style="font-size:0.78rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px">${a.icon} ${a.name} 初始餘額</label>
+      <input id="bgt-init-${a.key}" type="number" inputmode="numeric" value="${init[a.key] || 0}"
+        style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:1rem;font-family:inherit;box-sizing:border-box;background:var(--card)">
+    </div>`).join('');
+  document.getElementById('bgt-modal-body').innerHTML = `
+    <div style="font-weight:800;font-size:1rem;margin-bottom:16px">✏️ 設定初始存款</div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:16px">輸入各帳戶目前實際餘額，App 會在此基礎上累計收支，計算剩餘存款。</div>
+    ${fields}
+    <button onclick="bgtSaveInitBal()" class="btn-primary" style="width:100%;justify-content:center;margin-top:4px">儲存</button>`;
+  document.getElementById('bgt-modal').classList.add('open');
+}
+
+function bgtSaveInitBal() {
+  const d = {};
+  BGT_ACCOUNTS.forEach(a => {
+    const v = parseFloat(document.getElementById(`bgt-init-${a.key}`)?.value || 0);
+    d[a.key] = isNaN(v) ? 0 : v;
+  });
+  BGT.saveInitBal(d);
+  document.getElementById('bgt-modal').classList.remove('open');
+  renderBgtContent();
+}
+
 function _bgtRenderOverview(txns) {
   const income  = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -8844,7 +8886,34 @@ function _bgtRenderOverview(txns) {
       </div>`;
   }).join('');
 
+  // ── Savings summary ──
+  const savings = BGT.calcSavings();
+  const totalSavings = Object.values(savings).reduce((s, v) => s + v, 0);
+  const savingsAcctRows = BGT_ACCOUNTS.map(a => {
+    const bal = savings[a.key];
+    const color = bal >= 0 ? a.color : '#EF4444';
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:1.2rem">${a.icon}</span>
+          <span style="font-size:0.82rem;font-weight:700;color:var(--text-2)">${a.name}</span>
+        </div>
+        <span style="font-size:1.05rem;font-weight:900;color:${color}">${bal >= 0 ? '' : '-'}$${Math.abs(bal).toLocaleString()}</span>
+      </div>`;
+  }).join('');
+
   return `
+    <div class="card fade-in" style="margin-bottom:12px;border:none;background:linear-gradient(135deg,#0F172A,#1E3A5F)">
+      <div class="card-body" style="padding:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:0.78rem;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.03em">💰 剩餘總存款</div>
+          <button onclick="bgtEditInitBal()" style="background:rgba(255,255,255,0.15);border:none;border-radius:16px;padding:4px 10px;font-size:0.7rem;color:white;cursor:pointer;font-family:inherit;font-weight:700">設定初始值</button>
+        </div>
+        <div style="font-size:2.2rem;font-weight:900;color:white;margin-bottom:14px">${totalSavings >= 0 ? '' : '-'}$${Math.abs(totalSavings).toLocaleString()}</div>
+        ${savingsAcctRows}
+      </div>
+    </div>
+
     <div class="bgt-balance-hero fade-in" style="background:${balanceBg}">
       <div class="bgt-balance-label">本月結餘（合計）</div>
       <div class="bgt-balance-amount">${balanceSign}$${Math.abs(balance).toLocaleString()}</div>
