@@ -1,7 +1,7 @@
 // Service worker: versioned caching + push notifications.
 // Bump CACHE_VERSION on every deployment so installed PWAs auto-refresh.
 
-const CACHE_VERSION = '20260916n';
+const CACHE_VERSION = '20260916o';
 const CACHE_NAME = `nutrimate-${CACHE_VERSION}`;
 const PRECACHE = [
   './',
