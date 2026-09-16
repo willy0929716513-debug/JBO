@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
   <title>NutriMate - 智慧飲食追蹤</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/style.css?v=20260916p">
+  <link rel="stylesheet" href="css/style.css?v=20260916q">
   <style>
     .page { display: none; }
     .page.active { display: block; }
@@ -653,7 +653,7 @@
         <div style="width:36px;height:4px;background:#E2E8F0;border-radius:4px;margin:0 auto 12px"></div>
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div style="font-weight:900;font-size:1.05rem" id="bgt-wallet-title">更新餘額</div>
-          <button onclick="document.getElementById('bgt-wallet-modal').classList.remove('open')"
+          <button onclick="closeBgtWallet()"
             style="background:#F1F5F9;border:none;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted)">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -663,7 +663,7 @@
         <input id="bgt-wallet-input" type="number" inputmode="numeric"
           style="width:100%;padding:14px;border:2px solid #6366F1;border-radius:12px;font-size:1.5rem;font-weight:900;font-family:inherit;box-sizing:border-box;background:var(--card);text-align:right;margin-bottom:16px">
         <div style="display:flex;gap:10px">
-          <button onclick="document.getElementById('bgt-wallet-modal').classList.remove('open')"
+          <button onclick="closeBgtWallet()"
             class="btn-outline" style="flex:1;justify-content:center">取消</button>
           <button onclick="bgtSaveWallet()" class="btn-primary" style="flex:2;justify-content:center">
             <i class="bi bi-check-circle-fill"></i> 儲存
@@ -1423,6 +1423,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20260916p"></script>
+<script src="js/app.js?v=20260916q"></script>
 </body>
 </html>

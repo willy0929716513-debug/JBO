@@ -8795,13 +8795,16 @@ function bgtEditWallet(key) {
   const slot = BGT_WALLET_SLOTS.find(s => s.key === key);
   const w    = BGT.getWallet();
   _bgtWalletKey = key;
-  const modal = document.getElementById('bgt-wallet-modal');
   document.getElementById('bgt-wallet-title').textContent = `${slot.icon} 更新${slot.name}`;
   const inp = document.getElementById('bgt-wallet-input');
   inp.value = w[key] ?? 0;
   inp.style.borderColor = slot.color;
-  modal.classList.add('open');
+  document.getElementById('bgt-wallet-modal').style.display = 'flex';
   setTimeout(() => { inp.focus(); inp.select(); }, 80);
+}
+
+function closeBgtWallet() {
+  document.getElementById('bgt-wallet-modal').style.display = 'none';
 }
 
 function bgtSaveWallet() {
@@ -8809,7 +8812,7 @@ function bgtSaveWallet() {
   const w = BGT.getWallet();
   w[_bgtWalletKey] = isNaN(v) ? 0 : v;
   BGT.saveWallet(w);
-  document.getElementById('bgt-wallet-modal').classList.remove('open');
+  closeBgtWallet();
   renderBgtContent();
 }
 
@@ -9559,11 +9562,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  ['bgt-add-modal','bgt-limit-modal'].forEach(id => {
+  ['bgt-add-modal','bgt-limit-modal','bgt-wallet-modal'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', function(e) {
       if (e.target === this) {
-        if (id === 'bgt-add-modal')   closeBgtAdd();
-        else closeBgtLimits();
+        if (id === 'bgt-add-modal')     closeBgtAdd();
+        else if (id === 'bgt-limit-modal') closeBgtLimits();
+        else closeBgtWallet();
       }
     });
   });
