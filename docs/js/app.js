@@ -8789,32 +8789,27 @@ const BGT_WALLET_SLOTS = [
   { key: 'card',    icon: '💳', name: '金融卡',  color: '#3B82F6' },
 ];
 
+let _bgtWalletKey = null;
+
 function bgtEditWallet(key) {
-  const slot  = BGT_WALLET_SLOTS.find(s => s.key === key);
-  const w     = BGT.getWallet();
-  const cur   = w[key] ?? 0;
-  document.getElementById('bgt-modal-body').innerHTML = `
-    <div style="font-weight:800;font-size:1rem;margin-bottom:16px">${slot.icon} 更新${slot.name}</div>
-    <input id="bgt-wallet-input" type="number" inputmode="numeric" value="${cur}"
-      style="width:100%;padding:12px 14px;border:2px solid ${slot.color};border-radius:12px;font-size:1.3rem;font-weight:800;font-family:inherit;box-sizing:border-box;background:var(--card);color:${slot.color};text-align:right">
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button onclick="document.getElementById('bgt-modal').classList.remove('open')"
-        style="flex:1;padding:11px;border:1.5px solid #E2E8F0;border-radius:10px;background:none;font-size:0.88rem;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted)">取消</button>
-      <button onclick="bgtSaveWallet('${key}')" class="btn-primary" style="flex:2;justify-content:center">儲存</button>
-    </div>`;
-  document.getElementById('bgt-modal').classList.add('open');
-  setTimeout(() => {
-    const inp = document.getElementById('bgt-wallet-input');
-    if (inp) { inp.focus(); inp.select(); }
-  }, 50);
+  const slot = BGT_WALLET_SLOTS.find(s => s.key === key);
+  const w    = BGT.getWallet();
+  _bgtWalletKey = key;
+  const modal = document.getElementById('bgt-wallet-modal');
+  document.getElementById('bgt-wallet-title').textContent = `${slot.icon} 更新${slot.name}`;
+  const inp = document.getElementById('bgt-wallet-input');
+  inp.value = w[key] ?? 0;
+  inp.style.borderColor = slot.color;
+  modal.classList.add('open');
+  setTimeout(() => { inp.focus(); inp.select(); }, 80);
 }
 
-function bgtSaveWallet(key) {
+function bgtSaveWallet() {
   const v = parseFloat(document.getElementById('bgt-wallet-input')?.value);
   const w = BGT.getWallet();
-  w[key] = isNaN(v) ? 0 : v;
+  w[_bgtWalletKey] = isNaN(v) ? 0 : v;
   BGT.saveWallet(w);
-  document.getElementById('bgt-modal').classList.remove('open');
+  document.getElementById('bgt-wallet-modal').classList.remove('open');
   renderBgtContent();
 }
 
