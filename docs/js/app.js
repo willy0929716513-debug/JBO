@@ -8822,6 +8822,12 @@ function _bgtRenderOverview(txns) {
   const balance = income - expense;
   const savingRate = income > 0 ? Math.round(((income - expense) / income) * 100) : null;
 
+  // Carry-over: cumulative net of all months before current month
+  const allPrev = BGT.getTxns().filter(t => t.date.slice(0, 7) < _bgtMonth);
+  const carryOver = allPrev.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+                  - allPrev.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const totalBalance = carryOver + balance;
+
   const byCat = {};
   txns.filter(t => t.type === 'expense').forEach(t => {
     byCat[t.cat] = (byCat[t.cat] || 0) + t.amount;
@@ -8854,16 +8860,18 @@ function _bgtRenderOverview(txns) {
 
   const recent = BGT.getTxns().filter(t => t.date.startsWith(_bgtMonth)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
 
-  const balanceSign = balance >= 0 ? '+' : '';
-  const balanceBg = balance >= 0
+  const balanceSign = totalBalance >= 0 ? '+' : '';
+  const balanceBg = totalBalance >= 0
     ? 'linear-gradient(135deg,#16C060,#10B981)'
     : 'linear-gradient(135deg,#EF4444,#DC2626)';
 
-  // Per-account breakdown
+  // Per-account breakdown (this month only, for quick reference)
   const acctCards = BGT_ACCOUNTS.map(a => {
-    const aInc = txns.filter(t => t.type==='income'  && (t.account||'cash')===a.key).reduce((s,t)=>s+t.amount,0);
-    const aExp = txns.filter(t => t.type==='expense' && (t.account||'cash')===a.key).reduce((s,t)=>s+t.amount,0);
-    const aBal = aInc - aExp;
+    const aInc  = txns.filter(t => t.type==='income'  && (t.account||'cash')===a.key).reduce((s,t)=>s+t.amount,0);
+    const aExp  = txns.filter(t => t.type==='expense' && (t.account||'cash')===a.key).reduce((s,t)=>s+t.amount,0);
+    const aPrev = allPrev.filter(t => t.type==='income'  && (t.account||'cash')===a.key).reduce((s,t)=>s+t.amount,0)
+                - allPrev.filter(t => t.type==='expense' && (t.account||'cash')===a.key).reduce((s,t)=>s+t.amount,0);
+    const aBal  = aPrev + aInc - aExp;
     const aSign = aBal >= 0 ? '+' : '';
     const aColor = aBal >= 0 ? a.color : '#EF4444';
     return `
@@ -8908,17 +8916,17 @@ function _bgtRenderOverview(txns) {
     </div>
 
     <div class="bgt-balance-hero fade-in" style="background:${balanceBg}">
-      <div class="bgt-balance-label">本月結餘（合計）</div>
-      <div class="bgt-balance-amount">${balanceSign}$${Math.abs(balance).toLocaleString()}</div>
-      ${savingRate !== null ? `<div class="bgt-balance-sub">儲蓄率 ${savingRate}%</div>` : ''}
+      <div class="bgt-balance-label">累計結餘</div>
+      <div class="bgt-balance-amount">${balanceSign}$${Math.abs(totalBalance).toLocaleString()}</div>
+      ${carryOver !== 0 ? `<div class="bgt-balance-sub">上月結轉 ${carryOver >= 0 ? '+' : ''}$${carryOver.toLocaleString()} · 本月 ${balance >= 0 ? '+' : ''}$${balance.toLocaleString()}</div>` : (savingRate !== null ? `<div class="bgt-balance-sub">儲蓄率 ${savingRate}%</div>` : '')}
       <div class="bgt-balance-row">
         <div class="bgt-balance-stat">
-          <span class="bgt-balance-stat-lbl">收入</span>
+          <span class="bgt-balance-stat-lbl">本月收入</span>
           <span class="bgt-balance-stat-val">+$${income.toLocaleString()}</span>
         </div>
         <div style="width:1px;background:rgba(255,255,255,0.3);align-self:stretch"></div>
         <div class="bgt-balance-stat">
-          <span class="bgt-balance-stat-lbl">支出</span>
+          <span class="bgt-balance-stat-lbl">本月支出</span>
           <span class="bgt-balance-stat-val">-$${expense.toLocaleString()}</span>
         </div>
       </div>
