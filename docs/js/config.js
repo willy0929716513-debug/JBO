@@ -5,13 +5,13 @@
 window.NM_CONFIG = {
   // Cloudflare Worker URL, e.g. 'https://nutrimate-api.yourname.workers.dev' (no trailing slash).
   // Leave empty until deployed: Pro purchase is hidden and the free app keeps working.
-  WORKER_URL: '',
+  WORKER_URL: 'https://nutrimate-api.willy0929716513.workers.dev',
 
   // Public half of the license signing key (printed by cf-worker/tools/gen-keys.mjs).
-  LICENSE_PUBLIC_JWK: null,
+  LICENSE_PUBLIC_JWK: {"kty": "EC", "crv": "P-256", "x": "wJxQPS2HPyO3caoIelv6mQZ_dP7WVfTIFt7jYvdW5i8", "y": "E3g7K4a0btUmM0OIcgv_XYXQ8uuo4J2afMUZNMKcEWs"},
 
   // Where people buy Pro (your Gumroad product page).
-  BUY_URL: '',
+  BUY_URL: 'https://willyverse027.gumroad.com/l/qdscso',
 
   // Shown in error messages and the purchase screen.
   SUPPORT_EMAIL: '',

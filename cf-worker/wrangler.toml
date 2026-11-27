@@ -6,18 +6,19 @@ compatibility_date = "2026-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "nutrimate"
-database_id = "REPLACE_WITH_YOUR_D1_ID"
+database_id = "6ea5f3d7-6cc3-4e4c-a72b-b305e4d5a970"
 
 [vars]
 # Your GitHub Pages origin (no trailing slash). Comma-separate if you have several.
 ALLOWED_ORIGINS = "https://willy0929716513-debug.github.io"
 # Gumroad product ID (Product → Content → License key module). Not secret.
-GUMROAD_PRODUCT_ID = "REPLACE_WITH_GUMROAD_PRODUCT_ID"
+GUMROAD_PRODUCT_ID = "-84qKqijUxh3KqubMUi5Uw=="
 MAX_DEVICES = "3"
 TOKEN_TTL_DAYS = "45"
 # Free plan ≈ 50 outgoing requests per cron run. Raise to ~900 on Workers Paid.
 MAX_PUSH_PER_RUN = "45"
 
+# VAPID_PUBLIC_KEY / VAPID_SUBJECT are set as plain vars in the dashboard.
 # Secrets (set with `wrangler secret put NAME`, never commit them):
 #   LICENSE_SIGNING_JWK   private key from tools/gen-keys.mjs
 #   ADMIN_TOKEN           long random password for /admin routes
