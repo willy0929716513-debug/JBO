@@ -4867,12 +4867,19 @@ function _geminiKeyMsg(status, raw) {
 }
 
 // Sends one request, trying models in order. Returns the parsed JSON response.
+const _noThinkingCfg = new Set();
 async function _geminiGenerate(apiKey, bodyObj, opts = {}) {
   const perTry = opts.timeoutMs || 60000;
   const started = Date.now();
   const budget = opts.totalMs || 150000;
   if (!navigator.onLine) throw _geminiErr('目前沒有網路連線，連上網路後再試一次');
-  const body = JSON.stringify(bodyObj);
+  // Gemini 3.x thinks at MEDIUM/HIGH by default, which can take >20s on the free tier.
+  // Food estimates don't need deep reasoning, so ask for LOW (supported by every 3.x Flash model).
+  const bodyFor = (model, withThinking) => {
+    if (!withThinking || !/^gemini-3/.test(model)) return JSON.stringify(bodyObj);
+    const gc = { ...(bodyObj.generationConfig || {}), thinkingConfig: { thinkingLevel: 'low' } };
+    return JSON.stringify({ ...bodyObj, generationConfig: gc });
+  };
   let models = await _geminiModels(apiKey);
   if (opts.maxModels) models = models.slice(0, opts.maxModels);
   let lastMsg = '', quota = 0, tried = 0, refreshed = false;
@@ -4881,9 +4888,10 @@ async function _geminiGenerate(apiKey, bodyObj, opts = {}) {
     if (Date.now() - started > budget) { lastMsg = lastMsg || 'AI 回應逾時'; break; }
     tried++;
     let resp;
+    const withThinking = !_noThinkingCfg.has(model);
     try {
       resp = await _fetchWithTimeout(`${GEMINI_BASE}/models/${model}:generateContent`, {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body,
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: bodyFor(model, withThinking),
       }, Math.min(perTry, Math.max(5000, budget - (Date.now() - started))));
     } catch (e) {
       lastMsg = e.name === 'AbortError' ? 'Google 沒有回應（逾時）' : '連不上 Google 伺服器';
@@ -4899,6 +4907,9 @@ async function _geminiGenerate(apiKey, bodyObj, opts = {}) {
     }
     const e = await resp.json().catch(() => ({}));
     const msg = e.error?.message || '';
+    if (resp.status === 400 && withThinking && /thinking/i.test(msg)) {
+      _noThinkingCfg.add(model); i--; tried--; continue; // retry same model without thinkingConfig
+    }
     if (resp.status === 401 || resp.status === 403 || (resp.status === 400 && /API key|API_KEY/i.test(msg))) {
       throw _geminiErr(_geminiKeyMsg(resp.status, msg));
     }
@@ -6898,12 +6909,12 @@ async function testApiKey() {
     const s = DB.getSettings(); s.gemini_api_key = typed; DB.saveSettings(s);
     try { _renderApiKeyStatus(); } catch {}
   }
-  _apiKeyResult('🔄 測試中，請稍候（最多約 40 秒）…', null);
+  _apiKeyResult('🔄 測試中，請稍候（最多約 1 分鐘）…', null);
   if (btn) btn.disabled = true;
   try {
     localStorage.removeItem(GEMINI_CACHE_KEY);
     await _geminiModels(key, true);
-    await _geminiGenerate(key, { contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 256 } }, { timeoutMs: 20000, totalMs: 40000, maxModels: 2 });
+    await _geminiGenerate(key, { contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 256 } }, { timeoutMs: 30000, totalMs: 60000, maxModels: 2 });
     _apiKeyResult('✅ 金鑰有效！AI 拍照辨識可以使用了', true);
     showToast('✅ 金鑰有效！', 2500);
   } catch (e) {
