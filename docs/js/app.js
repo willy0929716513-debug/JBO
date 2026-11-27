@@ -4810,7 +4810,7 @@ function _showAskUserHint(reason) {
 // ── Gemini API (robust) ──────────────────────────────────────────────────────
 // Google retires model names every few months (1.5/2.0/2.5 are all shut down now).
 // So we ask the API which models exist, cache the answer, and fall back through a list.
-const GEMINI_FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
+const GEMINI_FALLBACK_MODELS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'];
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const GEMINI_CACHE_KEY = 'nm_gemini_models';
 
@@ -4845,7 +4845,7 @@ async function _geminiModels(apiKey, force = false) {
   try {
     const r = await _fetchWithTimeout(`${GEMINI_BASE}/models?pageSize=200`, { headers: { 'x-goog-api-key': apiKey } }, 10000);
     if (r.ok) {
-      const picked = _pickGeminiModels((await r.json()).models).slice(0, 4);
+      const picked = _pickGeminiModels((await r.json()).models).slice(0, 8);
       const list = [...new Set([...picked, ...GEMINI_FALLBACK_MODELS])];
       if (picked.length) { try { localStorage.setItem(GEMINI_CACHE_KEY, JSON.stringify({ t: Date.now(), list })); } catch {} }
       return list;
@@ -4868,69 +4868,124 @@ function _geminiKeyMsg(status, raw) {
 
 // Sends one request, trying models in order. Returns the parsed JSON response.
 const _noThinkingCfg = new Set();
+// Measured speeds differ a lot between models (the newest is often overloaded), so we try
+// models in a preferred order, remember the last one that worked, and "hedge": if a model
+// hasn't answered after a few seconds we ask the next one in parallel and take the first answer.
+const GEMINI_PREFERRED = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite'];
+const GEMINI_LAST_GOOD = 'nm_gemini_last_good';
+
+function _orderGeminiModels(available) {
+  const avail = [...new Set(available)];
+  const last = localStorage.getItem(GEMINI_LAST_GOOD);
+  const ordered = [];
+  if (last && avail.includes(last)) ordered.push(last);
+  for (const m of GEMINI_PREFERRED) if (avail.includes(m) && !ordered.includes(m)) ordered.push(m);
+  for (const m of avail) if (!ordered.includes(m)) ordered.push(m);
+  return ordered;
+}
+
 async function _geminiGenerate(apiKey, bodyObj, opts = {}) {
-  const perTry = opts.timeoutMs || 60000;
-  const started = Date.now();
-  const budget = opts.totalMs || 150000;
   if (!navigator.onLine) throw _geminiErr('目前沒有網路連線，連上網路後再試一次');
-  // Gemini 3.x thinks at MEDIUM/HIGH by default, which can take >20s on the free tier.
-  // Food estimates don't need deep reasoning, so ask for LOW (supported by every 3.x Flash model).
+  const perTry  = opts.timeoutMs || 45000;
+  const budget  = opts.totalMs || 90000;
+  const hedgeMs = opts.hedgeMs || 10000;
+  let models = _orderGeminiModels(await _geminiModels(apiKey));
+  if (opts.maxModels) models = models.slice(0, opts.maxModels);
+
   const bodyFor = (model, withThinking) => {
     if (!withThinking || !/^gemini-3/.test(model)) return JSON.stringify(bodyObj);
     const gc = { ...(bodyObj.generationConfig || {}), thinkingConfig: { thinkingLevel: 'low' } };
     return JSON.stringify({ ...bodyObj, generationConfig: gc });
   };
-  let models = await _geminiModels(apiKey);
-  if (opts.maxModels) models = models.slice(0, opts.maxModels);
-  let lastMsg = '', quota = 0, tried = 0, refreshed = false;
-  const attempts = []; // for diagnostics: model, result, seconds
-  const note = (m, r, t0) => attempts.push(`${m}:${r}@${((Date.now() - t0) / 1000).toFixed(1)}s`);
-  const fail = msg => { window.nmLogError?.('gemini ' + attempts.join(' | '), 'ai'); return _geminiErr(msg); };
-  for (let i = 0; i < models.length; i++) {
-    const model = models[i];
-    if (Date.now() - started > budget) { lastMsg = lastMsg || 'AI 回應逾時'; break; }
-    tried++;
-    let resp;
+
+  const attempts = [];
+  const controllers = new Set();
+  const started = Date.now();
+  let quota = 0, failed = 0, lastMsg = '';
+
+  // One model, one request (plus a single retry without thinkingConfig if the model rejects it).
+  // Resolves with data, or rejects with {fatal:true} for key problems, or a normal error to move on.
+  const tryModel = async model => {
     const t0 = Date.now();
-    const withThinking = !_noThinkingCfg.has(model);
+    const ctrl = new AbortController();
+    controllers.add(ctrl);
+    const timer = setTimeout(() => ctrl.abort(), perTry);
+    const tag = r => attempts.push(`${model}:${r}@${((Date.now() - t0) / 1000).toFixed(1)}s`);
     try {
-      resp = await _fetchWithTimeout(`${GEMINI_BASE}/models/${model}:generateContent`, {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: bodyFor(model, withThinking),
-      }, Math.min(perTry, Math.max(5000, budget - (Date.now() - started))));
-    } catch (e) {
-      note(model, e.name === 'AbortError' ? 'timeout' : 'neterr', t0);
-      lastMsg = e.name === 'AbortError' ? 'Google 沒有回應（逾時）' : '連不上 Google 伺服器';
-      if (!navigator.onLine) throw _geminiErr('網路中斷了，連上網路後再試一次');
-      continue;
+      for (let pass = 0; pass < 2; pass++) {
+        const withThinking = !_noThinkingCfg.has(model);
+        let resp;
+        try {
+          resp = await fetch(`${GEMINI_BASE}/models/${model}:generateContent`, {
+            method: 'POST', signal: ctrl.signal,
+            headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+            body: bodyFor(model, withThinking),
+          });
+        } catch (e) {
+          tag(e.name === 'AbortError' ? 'timeout' : 'neterr');
+          throw new Error(e.name === 'AbortError' ? 'Google 沒有回應（逾時）' : '連不上 Google 伺服器');
+        }
+        tag(resp.status);
+        if (resp.ok) {
+          const data = await resp.json().catch(() => null);
+          if (!data) throw new Error('AI 回應格式錯誤');
+          const block = data.promptFeedback?.blockReason || (data.candidates?.[0]?.finishReason === 'SAFETY' && 'SAFETY');
+          if (block) { const err = _geminiErr('AI 無法分析這張照片，請換一張只有食物的照片'); err.fatal = true; throw err; }
+          return data;
+        }
+        const e = await resp.json().catch(() => ({}));
+        const msg = e.error?.message || '';
+        if (resp.status === 400 && withThinking && /thinking/i.test(msg)) { _noThinkingCfg.add(model); continue; }
+        if (resp.status === 401 || resp.status === 403 || (resp.status === 400 && /API key|API_KEY/i.test(msg))) {
+          const err = _geminiErr(_geminiKeyMsg(resp.status, msg)); err.fatal = true; throw err;
+        }
+        if (resp.status === 404) { try { localStorage.removeItem(GEMINI_CACHE_KEY); } catch {} }
+        if (resp.status === 429) quota++;
+        throw new Error(resp.status === 503 ? 'Google 目前使用人數太多' : (msg || `錯誤 ${resp.status}`));
+      }
+      throw new Error('模型不支援此設定');
+    } finally {
+      clearTimeout(timer);
+      controllers.delete(ctrl);
     }
-    note(model, resp.status, t0);
-    if (resp.ok) {
-      const data = await resp.json().catch(() => null);
-      if (!data) { lastMsg = 'AI 回應格式錯誤'; continue; }
-      const block = data.promptFeedback?.blockReason || (data.candidates?.[0]?.finishReason === 'SAFETY' && 'SAFETY');
-      if (block) throw _geminiErr('AI 無法分析這張照片，請換一張只有食物的照片');
-      return data;
-    }
-    const e = await resp.json().catch(() => ({}));
-    const msg = e.error?.message || '';
-    if (resp.status === 400 && withThinking && /thinking/i.test(msg)) {
-      _noThinkingCfg.add(model); i--; tried--; continue; // retry same model without thinkingConfig
-    }
-    if (resp.status === 401 || resp.status === 403 || (resp.status === 400 && /API key|API_KEY/i.test(msg))) {
-      throw _geminiErr(_geminiKeyMsg(resp.status, msg));
-    }
-    if (resp.status === 404 && !refreshed) {
-      // Model was retired: re-discover once and continue with the fresh list.
-      refreshed = true;
-      try { localStorage.removeItem(GEMINI_CACHE_KEY); } catch {}
-      const fresh = await _geminiModels(apiKey, true);
-      models = [...models.slice(0, i + 1), ...fresh.filter(m => !models.slice(0, i + 1).includes(m))];
-    }
-    if (resp.status === 429) quota++;
-    lastMsg = msg || `錯誤 ${resp.status}`;
+  };
+
+  try {
+    return await new Promise((resolve, reject) => {
+      let next = 0, active = 0, settled = false;
+      const finish = (fn, v) => { if (settled) return; settled = true; clearTimeout(overall); controllers.forEach(c => c.abort()); fn(v); };
+      const overall = setTimeout(() => finish(reject, new Error('Google 沒有回應（逾時）')), budget);
+      const launch = () => {
+        if (settled) return;
+        if (next >= models.length) { if (active === 0) finish(reject, new Error(lastMsg || 'AI 暫時無法使用')); return; }
+        const model = models[next++];
+        active++;
+        let hedged = false;
+        const hedge = setTimeout(() => { hedged = true; launch(); }, hedgeMs);
+        tryModel(model).then(data => {
+          clearTimeout(hedge);
+          try { localStorage.setItem(GEMINI_LAST_GOOD, model); } catch {}
+          finish(resolve, data);
+        }).catch(err => {
+          clearTimeout(hedge);
+          active--;
+          if (settled) return;
+          if (err.fatal) return finish(reject, err);
+          failed++;
+          lastMsg = err.message;
+          if (localStorage.getItem(GEMINI_LAST_GOOD) === model) { try { localStorage.removeItem(GEMINI_LAST_GOOD); } catch {} }
+          if (!hedged) launch();               // move on right away
+          else if (active === 0) launch();     // the hedge already started another; keep going if it's done too
+        });
+      };
+      launch();
+    });
+  } catch (err) {
+    window.nmLogError?.('gemini ' + attempts.join(' | '), 'ai');
+    if (err.userFacing) throw err;
+    if (quota && quota >= failed) throw _geminiErr('今天的免費 AI 額度用完了，或使用太頻繁。請等幾分鐘再試（每天會自動恢復）');
+    throw _geminiErr('AI 暫時無法使用：' + String(err.message || lastMsg).slice(0, 120) + '。請稍後再試');
   }
-  if (quota && quota === tried) throw fail('今天的免費 AI 額度用完了，或使用太頻繁。請等幾分鐘再試（每天會自動恢復）');
-  throw fail('AI 暫時無法使用：' + String(lastMsg).slice(0, 120) + '。請稍後再試');
 }
 
 function _geminiText(data) {
@@ -6915,12 +6970,12 @@ async function testApiKey() {
     const s = DB.getSettings(); s.gemini_api_key = typed; DB.saveSettings(s);
     try { _renderApiKeyStatus(); } catch {}
   }
-  _apiKeyResult('🔄 測試中，請稍候（最多約 1 分鐘）…', null);
+  _apiKeyResult('🔄 測試中，請稍候（最多約 45 秒）…', null);
   if (btn) btn.disabled = true;
   try {
     localStorage.removeItem(GEMINI_CACHE_KEY);
     await _geminiModels(key, true);
-    await _geminiGenerate(key, { contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 256 } }, { timeoutMs: 30000, totalMs: 60000, maxModels: 2 });
+    await _geminiGenerate(key, { contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 256 } }, { timeoutMs: 30000, totalMs: 45000, hedgeMs: 5000 });
     _apiKeyResult('✅ 金鑰有效！AI 拍照辨識可以使用了', true);
     showToast('✅ 金鑰有效！', 2500);
   } catch (e) {
@@ -7263,7 +7318,7 @@ function markRestDay() {
 // ── Backup / restore ─────────────────────────────────────────────────────────
 // Backs up EVERY nm_* key (foods, water, weight, exercise, workouts, budget, settings…)
 // except secrets and caches. Restore always saves the current data first, so it can be undone.
-const BACKUP_SKIP = /^nm_(license|device_id|errlog|gemini_models|persist_asked|snap_|backup_snooze|preimport)/;
+const BACKUP_SKIP = /^nm_(license|device_id|errlog|gemini_models|gemini_last_good|persist_asked|snap_|backup_snooze|preimport)/;
 
 function _collectBackup() {
   const data = {};

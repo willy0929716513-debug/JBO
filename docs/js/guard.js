@@ -8,7 +8,7 @@
 'use strict';
 
 (function () {
-  const APP_VERSION = '2026.11.27e';
+  const APP_VERSION = '2026.11.27f';
   window.NM_APP_VERSION = APP_VERSION;
 
   const LS = window.localStorage;
