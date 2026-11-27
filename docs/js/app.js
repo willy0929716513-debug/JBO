@@ -6868,18 +6868,44 @@ function saveApiKey() {
   showToast('✅ API 金鑰已儲存！');
 }
 
+function _apiKeyResult(text, ok) {
+  const btn = document.querySelector('button[onclick="testApiKey()"]');
+  let el = document.getElementById('sApiKeyTestResult');
+  if (!el && btn) {
+    el = document.createElement('div');
+    el.id = 'sApiKeyTestResult';
+    btn.parentElement.insertAdjacentElement('afterend', el);
+  }
+  if (!el) return;
+  const color = ok === true ? '#15803D' : ok === false ? '#B91C1C' : '#6B7280';
+  const bg = ok === true ? '#F0FDF4' : ok === false ? '#FEF2F2' : '#F9FAFB';
+  el.style.cssText = `margin-top:10px;padding:10px 12px;border-radius:10px;font-size:0.82rem;line-height:1.6;font-weight:600;color:${color};background:${bg}`;
+  el.textContent = text;
+}
+
 async function testApiKey() {
-  const key = document.getElementById('sApiKey').value.trim() || DB.getSettings().gemini_api_key;
-  if (!key || key.length < 20) { showToast('請先輸入並儲存金鑰'); return; }
-  if (!/^[A-Za-z0-9._-]{20,}$/.test(key)) { showToast('❌ 金鑰裡有空白或特殊字元，請重新複製', 4000); return; }
-  showToast('🔄 測試中…', 8000);
+  const btn = document.querySelector('button[onclick="testApiKey()"]');
+  const typed = (document.getElementById('sApiKey')?.value || '').trim();
+  const key = typed || DB.getSettings().gemini_api_key || '';
+  if (!key || key.length < 20) { _apiKeyResult('請先貼上金鑰，按「儲存金鑰」，再按「測試金鑰」', false); return; }
+  if (!/^[A-Za-z0-9._-]{20,}$/.test(key)) { _apiKeyResult('❌ 金鑰裡有空白或特殊字元，請回到 AI Studio 按複製按鈕重新複製', false); return; }
+  if (typed && typed !== DB.getSettings().gemini_api_key) {
+    const s = DB.getSettings(); s.gemini_api_key = typed; DB.saveSettings(s);
+    try { _renderApiKeyStatus(); } catch {}
+  }
+  _apiKeyResult('🔄 測試中，請稍候（最多約 1 分鐘）…', null);
+  if (btn) btn.disabled = true;
   try {
     localStorage.removeItem(GEMINI_CACHE_KEY);
     await _geminiModels(key, true);
     await _geminiGenerate(key, { contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 256 } });
-    showToast('✅ 金鑰有效！AI 辨識功能可以使用了', 3000);
+    _apiKeyResult('✅ 金鑰有效！AI 拍照辨識可以使用了', true);
+    showToast('✅ 金鑰有效！', 2500);
   } catch (e) {
-    showToast('❌ ' + (e.userFacing ? e.message : '網路錯誤，請確認網路連線'), 5000);
+    _apiKeyResult('❌ ' + (e && e.userFacing ? e.message : '網路錯誤，請確認網路連線後再試一次'), false);
+    window.nmLogError?.('api key test: ' + (e && e.message), 'settings');
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
