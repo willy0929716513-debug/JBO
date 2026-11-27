@@ -4883,21 +4883,27 @@ async function _geminiGenerate(apiKey, bodyObj, opts = {}) {
   let models = await _geminiModels(apiKey);
   if (opts.maxModels) models = models.slice(0, opts.maxModels);
   let lastMsg = '', quota = 0, tried = 0, refreshed = false;
+  const attempts = []; // for diagnostics: model, result, seconds
+  const note = (m, r, t0) => attempts.push(`${m}:${r}@${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  const fail = msg => { window.nmLogError?.('gemini ' + attempts.join(' | '), 'ai'); return _geminiErr(msg); };
   for (let i = 0; i < models.length; i++) {
     const model = models[i];
     if (Date.now() - started > budget) { lastMsg = lastMsg || 'AI 回應逾時'; break; }
     tried++;
     let resp;
+    const t0 = Date.now();
     const withThinking = !_noThinkingCfg.has(model);
     try {
       resp = await _fetchWithTimeout(`${GEMINI_BASE}/models/${model}:generateContent`, {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body: bodyFor(model, withThinking),
       }, Math.min(perTry, Math.max(5000, budget - (Date.now() - started))));
     } catch (e) {
+      note(model, e.name === 'AbortError' ? 'timeout' : 'neterr', t0);
       lastMsg = e.name === 'AbortError' ? 'Google 沒有回應（逾時）' : '連不上 Google 伺服器';
       if (!navigator.onLine) throw _geminiErr('網路中斷了，連上網路後再試一次');
       continue;
     }
+    note(model, resp.status, t0);
     if (resp.ok) {
       const data = await resp.json().catch(() => null);
       if (!data) { lastMsg = 'AI 回應格式錯誤'; continue; }
@@ -4923,8 +4929,8 @@ async function _geminiGenerate(apiKey, bodyObj, opts = {}) {
     if (resp.status === 429) quota++;
     lastMsg = msg || `錯誤 ${resp.status}`;
   }
-  if (quota && quota === tried) throw _geminiErr('今天的免費 AI 額度用完了，或使用太頻繁。請等幾分鐘再試（每天會自動恢復）');
-  throw _geminiErr('AI 暫時無法使用：' + String(lastMsg).slice(0, 120) + '。請稍後再試');
+  if (quota && quota === tried) throw fail('今天的免費 AI 額度用完了，或使用太頻繁。請等幾分鐘再試（每天會自動恢復）');
+  throw fail('AI 暫時無法使用：' + String(lastMsg).slice(0, 120) + '。請稍後再試');
 }
 
 function _geminiText(data) {

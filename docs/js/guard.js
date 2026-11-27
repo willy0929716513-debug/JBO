@@ -8,7 +8,7 @@
 'use strict';
 
 (function () {
-  const APP_VERSION = '2026.11.26';
+  const APP_VERSION = '2026.11.27e';
   window.NM_APP_VERSION = APP_VERSION;
 
   const LS = window.localStorage;
@@ -120,6 +120,7 @@
       `儲存用量: 約 ${(bytes / 1024).toFixed(0)} KB`,
       `Pro: ${window.Pro ? window.Pro.statusText() : '未載入'}`,
       `資料: ${keys.filter(k => !k.startsWith('nm_snap_')).join(', ')}`,
+      `AI 模型: ${(() => { try { return (JSON.parse(LS.getItem('nm_gemini_models')||'{}').list||[]).join(', '); } catch { return '?'; } })()}`,
       `最近錯誤:`,
       ...JSON.parse(LS.getItem('nm_errlog') || '[]').slice(-10).map(e => `  ${e.t} ${e.m} @${e.w}`),
     ].join('\n'); // never includes API keys, license keys or food data
