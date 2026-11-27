@@ -4867,21 +4867,26 @@ function _geminiKeyMsg(status, raw) {
 }
 
 // Sends one request, trying models in order. Returns the parsed JSON response.
-async function _geminiGenerate(apiKey, bodyObj) {
+async function _geminiGenerate(apiKey, bodyObj, opts = {}) {
+  const perTry = opts.timeoutMs || 60000;
+  const started = Date.now();
+  const budget = opts.totalMs || 150000;
   if (!navigator.onLine) throw _geminiErr('目前沒有網路連線，連上網路後再試一次');
   const body = JSON.stringify(bodyObj);
   let models = await _geminiModels(apiKey);
+  if (opts.maxModels) models = models.slice(0, opts.maxModels);
   let lastMsg = '', quota = 0, tried = 0, refreshed = false;
   for (let i = 0; i < models.length; i++) {
     const model = models[i];
+    if (Date.now() - started > budget) { lastMsg = lastMsg || 'AI 回應逾時'; break; }
     tried++;
     let resp;
     try {
       resp = await _fetchWithTimeout(`${GEMINI_BASE}/models/${model}:generateContent`, {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body,
-      }, 60000);
+      }, Math.min(perTry, Math.max(5000, budget - (Date.now() - started))));
     } catch (e) {
-      lastMsg = e.name === 'AbortError' ? 'AI 回應逾時（網路可能太慢）' : '網路連線失敗';
+      lastMsg = e.name === 'AbortError' ? 'Google 沒有回應（逾時）' : '連不上 Google 伺服器';
       if (!navigator.onLine) throw _geminiErr('網路中斷了，連上網路後再試一次');
       continue;
     }
@@ -6893,12 +6898,12 @@ async function testApiKey() {
     const s = DB.getSettings(); s.gemini_api_key = typed; DB.saveSettings(s);
     try { _renderApiKeyStatus(); } catch {}
   }
-  _apiKeyResult('🔄 測試中，請稍候（最多約 1 分鐘）…', null);
+  _apiKeyResult('🔄 測試中，請稍候（最多約 40 秒）…', null);
   if (btn) btn.disabled = true;
   try {
     localStorage.removeItem(GEMINI_CACHE_KEY);
     await _geminiModels(key, true);
-    await _geminiGenerate(key, { contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 256 } });
+    await _geminiGenerate(key, { contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 256 } }, { timeoutMs: 20000, totalMs: 40000, maxModels: 2 });
     _apiKeyResult('✅ 金鑰有效！AI 拍照辨識可以使用了', true);
     showToast('✅ 金鑰有效！', 2500);
   } catch (e) {
