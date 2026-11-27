@@ -6861,7 +6861,7 @@ function _renderApiKeyStatus() {
 function saveApiKey() {
   const key = document.getElementById('sApiKey').value.trim();
   if (!key || key.length < 20) { showToast('請先輸入有效的 API 金鑰'); return; }
-  if (!/^[A-Za-z0-9_-]{20,}$/.test(key)) { showToast('❌ 金鑰裡有空白或特殊字元，請重新複製', 4000); return; }
+  if (!/^[A-Za-z0-9._-]{20,}$/.test(key)) { showToast('❌ 金鑰裡有空白或特殊字元，請重新複製', 4000); return; }
   const s = DB.getSettings();
   DB.saveSettings({ ...s, gemini_api_key: key });
   _renderApiKeyStatus();
@@ -6871,7 +6871,7 @@ function saveApiKey() {
 async function testApiKey() {
   const key = document.getElementById('sApiKey').value.trim() || DB.getSettings().gemini_api_key;
   if (!key || key.length < 20) { showToast('請先輸入並儲存金鑰'); return; }
-  if (!/^[A-Za-z0-9_-]{20,}$/.test(key)) { showToast('❌ 金鑰裡有空白或特殊字元，請重新複製', 4000); return; }
+  if (!/^[A-Za-z0-9._-]{20,}$/.test(key)) { showToast('❌ 金鑰裡有空白或特殊字元，請重新複製', 4000); return; }
   showToast('🔄 測試中…', 8000);
   try {
     localStorage.removeItem(GEMINI_CACHE_KEY);
