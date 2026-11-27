@@ -1,8 +1,10 @@
 'use strict';
 
-// ── Push Worker URL (fill in after deploying Cloudflare Worker) ──────────────
-const PUSH_WORKER_URL = '';
-const VAPID_PUBLIC_KEY = 'BF1Ebypxb5Bi92iqYRtXo-SL2Fz_T9VJJUXLtSj1n7BjyZFqR4aiYpdWkOEXrhLoS4iLFSJ4vQ1hxi6dLSaCbUo';
+// ── Worker URL comes from js/config.js ─────────────────────────────────────
+const PUSH_WORKER_URL = ((window.NM_CONFIG && window.NM_CONFIG.WORKER_URL) || '').replace(/\/+$/, '');
+
+// Pro gate helper: if pro.js failed to load we fail OPEN (never lock paying users out by accident).
+function _proOk(feature) { return !window.Pro || window.Pro.require(feature); }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -4163,7 +4165,7 @@ function navigate(page) {
     case 'water':     renderWater();     break;
     case 'weight':    renderWeight();    break;
     case 'trends':    renderTrends(7);   break;
-    case 'settings':  renderSettings();  break;
+    case 'settings':  renderSettings(); try { window.Pro?.renderSettingsCard(); } catch (e) { console.warn(e); } break;
     case 'goals':     renderGoals();     break;
     case 'budget':    renderBudgetPage(); break;
   }
@@ -4688,6 +4690,7 @@ let scanMediaType   = 'image/jpeg';
 let scanMealType    = 'lunch';
 
 function openPhotoScan() {
+  if (!_proOk('ai_scan')) return;
   scanMealType = activeMeal;
   document.getElementById('photoModal').classList.remove('hidden');
   scanResults     = [];
@@ -4804,7 +4807,132 @@ function _showAskUserHint(reason) {
   document.getElementById('userFoodHint').focus();
 }
 
+// ── Gemini API (robust) ──────────────────────────────────────────────────────
+// Google retires model names every few months (1.5/2.0/2.5 are all shut down now).
+// So we ask the API which models exist, cache the answer, and fall back through a list.
+const GEMINI_FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+const GEMINI_CACHE_KEY = 'nm_gemini_models';
+
+function _geminiErr(msg) { const e = new Error(msg); e.userFacing = true; return e; }
+
+async function _fetchWithTimeout(url, opts = {}, ms = 30000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try { return await fetch(url, { ...opts, signal: ctrl.signal }); }
+  finally { clearTimeout(t); }
+}
+
+// Picks stable "gemini-X.Y-flash" / "-flash-lite" models (no preview/experimental/tts/image/live).
+function _pickGeminiModels(list) {
+  const out = [];
+  for (const m of list || []) {
+    const name = String(m.name || '').replace(/^models\//, '');
+    const mm = /^gemini-(\d+(?:\.\d+)?)-flash(-lite)?$/.exec(name);
+    if (!mm) continue;
+    if (!(m.supportedGenerationMethods || []).includes('generateContent')) continue;
+    out.push({ name, ver: parseFloat(mm[1]), lite: !!mm[2] });
+  }
+  out.sort((a, b) => (b.ver - a.ver) || (a.lite - b.lite));
+  return out.map(m => m.name);
+}
+
+async function _geminiModels(apiKey, force = false) {
+  try {
+    const c = JSON.parse(localStorage.getItem(GEMINI_CACHE_KEY) || 'null');
+    if (!force && c && Date.now() - c.t < 3 * 86400000 && Array.isArray(c.list) && c.list.length) return c.list;
+  } catch {}
+  try {
+    const r = await _fetchWithTimeout(`${GEMINI_BASE}/models?pageSize=200`, { headers: { 'x-goog-api-key': apiKey } }, 10000);
+    if (r.ok) {
+      const picked = _pickGeminiModels((await r.json()).models).slice(0, 4);
+      const list = [...new Set([...picked, ...GEMINI_FALLBACK_MODELS])];
+      if (picked.length) { try { localStorage.setItem(GEMINI_CACHE_KEY, JSON.stringify({ t: Date.now(), list })); } catch {} }
+      return list;
+    }
+    if (r.status === 400 || r.status === 401 || r.status === 403) {
+      const e = await r.json().catch(() => ({}));
+      throw _geminiErr(_geminiKeyMsg(r.status, e.error?.message));
+    }
+  } catch (e) { if (e.userFacing) throw e; }
+  return GEMINI_FALLBACK_MODELS;
+}
+
+function _geminiKeyMsg(status, raw) {
+  const m = String(raw || '');
+  if (/API key not valid|API_KEY_INVALID|invalid api key/i.test(m)) return 'API 金鑰無效，請到「設定」重新貼上（注意不要多複製空白）';
+  if (/location is not supported|User location/i.test(m)) return '你所在的地區目前無法使用 Gemini 免費 API';
+  if (status === 403) return 'API 金鑰沒有權限，請到 aistudio.google.com 重新建立一把金鑰';
+  return 'API 金鑰錯誤：' + m.slice(0, 120);
+}
+
+// Sends one request, trying models in order. Returns the parsed JSON response.
+async function _geminiGenerate(apiKey, bodyObj) {
+  if (!navigator.onLine) throw _geminiErr('目前沒有網路連線，連上網路後再試一次');
+  const body = JSON.stringify(bodyObj);
+  let models = await _geminiModels(apiKey);
+  let lastMsg = '', quota = 0, tried = 0, refreshed = false;
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    tried++;
+    let resp;
+    try {
+      resp = await _fetchWithTimeout(`${GEMINI_BASE}/models/${model}:generateContent`, {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, body,
+      }, 60000);
+    } catch (e) {
+      lastMsg = e.name === 'AbortError' ? 'AI 回應逾時（網路可能太慢）' : '網路連線失敗';
+      if (!navigator.onLine) throw _geminiErr('網路中斷了，連上網路後再試一次');
+      continue;
+    }
+    if (resp.ok) {
+      const data = await resp.json().catch(() => null);
+      if (!data) { lastMsg = 'AI 回應格式錯誤'; continue; }
+      const block = data.promptFeedback?.blockReason || (data.candidates?.[0]?.finishReason === 'SAFETY' && 'SAFETY');
+      if (block) throw _geminiErr('AI 無法分析這張照片，請換一張只有食物的照片');
+      return data;
+    }
+    const e = await resp.json().catch(() => ({}));
+    const msg = e.error?.message || '';
+    if (resp.status === 401 || resp.status === 403 || (resp.status === 400 && /API key|API_KEY/i.test(msg))) {
+      throw _geminiErr(_geminiKeyMsg(resp.status, msg));
+    }
+    if (resp.status === 404 && !refreshed) {
+      // Model was retired: re-discover once and continue with the fresh list.
+      refreshed = true;
+      try { localStorage.removeItem(GEMINI_CACHE_KEY); } catch {}
+      const fresh = await _geminiModels(apiKey, true);
+      models = [...models.slice(0, i + 1), ...fresh.filter(m => !models.slice(0, i + 1).includes(m))];
+    }
+    if (resp.status === 429) quota++;
+    lastMsg = msg || `錯誤 ${resp.status}`;
+  }
+  if (quota && quota === tried) throw _geminiErr('今天的免費 AI 額度用完了，或使用太頻繁。請等幾分鐘再試（每天會自動恢復）');
+  throw _geminiErr('AI 暫時無法使用：' + String(lastMsg).slice(0, 120) + '。請稍後再試');
+}
+
+function _geminiText(data) {
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  return parts.filter(p => !p.thought && typeof p.text === 'string').map(p => p.text).join('');
+}
+
+// Keeps AI numbers sane: no NaN, no negatives, no 50,000 kcal sandwiches.
+function _sanitizeScanItem(f) {
+  const num = (v, max) => { const n = Number(v); return Number.isFinite(n) ? Math.min(Math.max(n, 0), max) : 0; };
+  return {
+    ...f,
+    name: String(f.name || '不明食物').slice(0, 40),
+    amount: num(f.amount, 5000) || 100,
+    unit: f.unit === 'ml' ? 'ml' : 'g',
+    calories: Math.round(num(f.calories, 5000)),
+    protein: Math.round(num(f.protein, 500) * 10) / 10,
+    carbs: Math.round(num(f.carbs, 800) * 10) / 10,
+    fat: Math.round(num(f.fat, 500) * 10) / 10,
+  };
+}
+
 async function analyzePhoto(userHint = '') {
+  if (!_proOk('ai_scan')) return;
   const s      = DB.getSettings();
   const apiKey = s.gemini_api_key;
   if (!apiKey || apiKey.length < 20) {
@@ -4822,14 +4950,6 @@ async function analyzePhoto(userHint = '') {
   document.getElementById('scanResultsContent').innerHTML   =
     '<div class="spinner"></div><div style="text-align:center;font-size:0.82rem;color:var(--muted);margin-top:10px">AI 正在辨識食物…</div>';
 
-  const GEMINI_MODELS = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-flash-002',
-    'gemini-1.5-pro-latest',
-  ];
   const _sysTxt =
     'You are an elite-level nutritionist, registered dietitian, and food analyst with 20+ years of expertise in Asian cuisines — especially Taiwanese home cooking, night market street food, Japanese cuisine, Korean cuisine, Chinese regional dishes, and Western fast food. ' +
     'You have encyclopedic knowledge of the USDA food database, Taiwan TFDA food composition tables, Japan MEXT nutrient database, and Korea NFRI food database. ' +
@@ -4837,14 +4957,11 @@ async function analyzePhoto(userHint = '') {
     'You NEVER refuse or say you cannot identify food. You always provide your best nutritional estimate based on visual evidence and culinary expertise. ' +
     'You understand that accurate food logging helps people manage their health, so you take every analysis seriously and are as precise as possible.';
 
-  // v1beta supports system_instruction; v1 does not — prepend to user content instead
-  const _buildBody = (useSysField, userText) => JSON.stringify(useSysField ? {
+  // temperature/top_p are deprecated on Gemini 3.x, so we only cap the output length.
+  const _buildBody = userText => ({
     system_instruction: { parts: [{ text: _sysTxt }] },
     contents: [{ parts: [{ inline_data: { mime_type: scanMediaType, data: scanImageBase64 } }, { text: userText }] }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
-  } : {
-    contents: [{ parts: [{ inline_data: { mime_type: scanMediaType, data: scanImageBase64 } }, { text: _sysTxt + '\n\n' + userText }] }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+    generationConfig: { maxOutputTokens: 8192, responseMimeType: 'application/json' },
   });
 
   const _geminiUserText = (
@@ -5259,31 +5376,11 @@ async function analyzePhoto(userHint = '') {
   const _promptToUse = userHint
     ? `[USER HINT: The user says this food is "${userHint}". Use this to confirm/refine your identification, cooking method, and portion estimates.]\n\n` + _geminiUserText
     : _geminiUserText;
-  const geminiBodyBeta = _buildBody(true,  _promptToUse);
-  const geminiBodyV1   = _buildBody(false, _promptToUse);
-
-  let resp, lastErr;
-  outer: for (const model of GEMINI_MODELS) {
-    for (const ver of ['v1beta', 'v1']) {
-      resp = await fetch(
-        `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${apiKey}`,
-        { method: 'POST', headers: { 'content-type': 'application/json' }, body: ver === 'v1beta' ? geminiBodyBeta : geminiBodyV1 }
-      );
-      if (resp.ok) break outer;
-      const e = await resp.json().catch(() => ({}));
-      lastErr = e.error?.message || `API 錯誤 ${resp.status}`;
-      if (resp.status === 400 && lastErr.includes('system_instruction')) continue; // skip v1 sys_instr error
-      if (resp.status === 401 || resp.status === 403) break outer;
-    }
-  }
-
   try {
-    if (!resp.ok) throw new Error(lastErr || `API 錯誤 ${resp.status}`);
-
-    const data    = await resp.json();
-    const text    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const data    = await _geminiGenerate(apiKey, _buildBody(_promptToUse));
+    const text    = _geminiText(data);
     const jsonStr = extractJSON(text);
-    if (!jsonStr) throw new Error('無法解析 AI 回應，請重試');
+    if (!jsonStr) throw new Error('辨識');
     let parsed;
     try { parsed = JSON.parse(jsonStr); }
     catch {
@@ -5291,14 +5388,14 @@ async function analyzePhoto(userHint = '') {
       try { parsed = JSON.parse(cleaned); }
       catch { throw new Error('AI 回應格式錯誤，請重試'); }
     }
-    scanResults   = (parsed.foods || []).filter(f => f.name && f.calories > 0);
+    scanResults   = (Array.isArray(parsed.foods) ? parsed.foods : []).filter(f => f && f.name).map(_sanitizeScanItem).filter(f => f.calories > 0);
     if (!scanResults.length) throw new Error('辨識');
     // If every item is unknown and user hasn't hinted yet, ask for help
     if (!userHint && scanResults.every(f => f.name === '不明食物')) throw new Error('辨識');
     scanOriginals = scanResults.map(f => ({ ...f }));
     renderScanResults();
   } catch (err) {
-    const isApiErr = /API 錯誤|金鑰|網路/.test(err.message);
+    const isApiErr = err && err.userFacing;
     if (!isApiErr) {
       _showAskUserHint();
     } else {
@@ -6185,6 +6282,7 @@ function mkWeeklyChart(weekDates, sums, tdee, today) {
 // ── Trends ─────────────────────────────────────────────────────────────────────
 
 function renderTrends(days) {
+  if (days > 14 && !_proOk('trends_long')) return;
   renderWeeklyAnalysis();
   document.querySelectorAll('.period-tab').forEach(t =>
     t.classList.toggle('active', parseInt(t.dataset.days) === days));
@@ -6593,31 +6691,42 @@ function _fireNotif(title, body, tag) {
 
 async function _registerWebPush() {
   if (!PUSH_WORKER_URL) return;
-  if (Notification.permission !== 'granted') return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const reg = await navigator.serviceWorker.ready;
-    const keyResp = await fetch(`${PUSH_WORKER_URL}/vapid-public-key`);
-    const { key } = await keyResp.json();
-
-    // Convert base64url public key to Uint8Array for applicationServerKey
-    const rawKey = Uint8Array.from(
-      atob(key.replace(/-/g, '+').replace(/_/g, '/')),
-      c => c.charCodeAt(0)
-    );
-
+    await window.Pro?.ready;
+    const token = window.Pro?.token();
+    const cfg   = _loadNotifCfg();
     let sub = await reg.pushManager.getSubscription();
+
+    // Not Pro (or reminders switched off): make sure the server stops pushing to this device.
+    if (!token || (cfg.meals === false && cfg.water === false)) {
+      if (sub) {
+        fetch(`${PUSH_WORKER_URL}/push/unsubscribe`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        }).catch(() => {});
+        if (!token) await sub.unsubscribe().catch(() => {});
+      }
+      return;
+    }
+
     if (!sub) {
+      const keyResp = await fetch(`${PUSH_WORKER_URL}/vapid-public-key`);
+      if (!keyResp.ok) return;
+      const { key } = await keyResp.json();
+      const rawKey = Uint8Array.from(atob(key.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
       sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: rawKey });
     }
 
-    const cfg       = _loadNotifCfg();
-    const tzOffset  = -new Date().getTimezoneOffset(); // positive = UTC+ timezone
-    await fetch(`${PUSH_WORKER_URL}/subscribe`, {
+    const tzOffset = -new Date().getTimezoneOffset(); // positive = UTC+ timezone
+    const res = await fetch(`${PUSH_WORKER_URL}/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: sub.toJSON(), schedule: cfg, tzOffset }),
+      body: JSON.stringify({ token, subscription: sub.toJSON(), schedule: cfg, tzOffset }),
     });
+    if (!res.ok) console.warn('push subscribe failed', res.status);
   } catch (e) {
     console.warn('Web Push registration failed:', e);
   }
@@ -6752,6 +6861,7 @@ function _renderApiKeyStatus() {
 function saveApiKey() {
   const key = document.getElementById('sApiKey').value.trim();
   if (!key || key.length < 20) { showToast('請先輸入有效的 API 金鑰'); return; }
+  if (!/^[A-Za-z0-9_-]{20,}$/.test(key)) { showToast('❌ 金鑰裡有空白或特殊字元，請重新複製', 4000); return; }
   const s = DB.getSettings();
   DB.saveSettings({ ...s, gemini_api_key: key });
   _renderApiKeyStatus();
@@ -6761,30 +6871,15 @@ function saveApiKey() {
 async function testApiKey() {
   const key = document.getElementById('sApiKey').value.trim() || DB.getSettings().gemini_api_key;
   if (!key || key.length < 20) { showToast('請先輸入並儲存金鑰'); return; }
-  showToast('🔄 測試中…');
-  const TEST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-002', 'gemini-1.5-pro-latest'];
-  const testBody = JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 5 } });
+  if (!/^[A-Za-z0-9_-]{20,}$/.test(key)) { showToast('❌ 金鑰裡有空白或特殊字元，請重新複製', 4000); return; }
+  showToast('🔄 測試中…', 8000);
   try {
-    let ok = false, lastMsg = '';
-    outer: for (const model of TEST_MODELS) {
-      for (const ver of ['v1beta', 'v1']) {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${key}`,
-          { method: 'POST', headers: { 'content-type': 'application/json' }, body: testBody }
-        );
-        if (res.ok) { ok = true; break outer; }
-        const err = await res.json().catch(() => ({}));
-        lastMsg = err.error?.message || `錯誤 ${res.status}`;
-        if (res.status === 401 || res.status === 403) break outer;
-      }
-    }
-    if (ok) {
-      showToast('✅ 金鑰有效！AI 辨識功能可以使用了', 3000);
-    } else {
-      showToast(`❌ ${lastMsg || '金鑰無效'}`, 4000);
-    }
-  } catch {
-    showToast('❌ 網路錯誤，請確認網路連線', 3000);
+    localStorage.removeItem(GEMINI_CACHE_KEY);
+    await _geminiModels(key, true);
+    await _geminiGenerate(key, { contents: [{ parts: [{ text: 'Reply with OK' }] }], generationConfig: { maxOutputTokens: 256 } });
+    showToast('✅ 金鑰有效！AI 辨識功能可以使用了', 3000);
+  } catch (e) {
+    showToast('❌ ' + (e.userFacing ? e.message : '網路錯誤，請確認網路連線'), 5000);
   }
 }
 
@@ -7117,51 +7212,121 @@ function markRestDay() {
 
 // ── Data Export / Import ──────────────────────────────────────────────────────
 
-function exportData() {
-  const data = {
-    version: '2.0',
-    exported: new Date().toISOString(),
-    settings:  DB.getSettings(),
-    goals:     DB.getGoals(),
-    foods:     DB.getFoods(),
-    water:     DB.getWater(),
-    weights:   DB.getWeights(),
-    exercises: DB.getExercises(),
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `nutrimate-${todayStr()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('✅ 資料已匯出');
+// ── Backup / restore ─────────────────────────────────────────────────────────
+// Backs up EVERY nm_* key (foods, water, weight, exercise, workouts, budget, settings…)
+// except secrets and caches. Restore always saves the current data first, so it can be undone.
+const BACKUP_SKIP = /^nm_(license|device_id|errlog|gemini_models|persist_asked|snap_|backup_snooze|preimport)/;
+
+function _collectBackup() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith('nm_') || BACKUP_SKIP.test(k)) continue;
+    let v = localStorage.getItem(k);
+    if (k === 'nm_settings') {
+      try { const o = JSON.parse(v); delete o.gemini_api_key; v = JSON.stringify(o); } catch {}
+    }
+    data[k] = v;
+  }
+  return { app: 'NutriMate', version: '3', exported: new Date().toISOString(), data };
+}
+
+async function _saveJsonFile(obj, filename) {
+  const text = JSON.stringify(obj, null, 1);
+  const file = new File([text], filename, { type: 'application/json' });
+  // On phones, the share sheet lets people save to Files / iCloud / LINE — more reliable than a download in a home-screen app.
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: filename }); return true; }
+    catch (e) { if (e.name === 'AbortError') return false; }
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return true;
+}
+
+async function exportData() {
+  try {
+    const ok = await _saveJsonFile(_collectBackup(), `nutrimate-backup-${todayStr()}.json`);
+    if (ok) { window.nmMarkBackedUp?.(); showToast('✅ 備份完成，請把檔案存在安全的地方', 3000); }
+  } catch (e) {
+    showToast('❌ 匯出失敗：' + e.message, 4000);
+  }
+}
+
+// Turns any supported backup file into {key: stringValue}
+function _parseBackup(obj) {
+  if (obj && obj.app === 'NutriMate' && obj.data && typeof obj.data === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(obj.data)) {
+      if (!k.startsWith('nm_') || BACKUP_SKIP.test(k) || typeof v !== 'string') continue;
+      try { JSON.parse(v); } catch { if (!/^[\w.:-]{0,64}$/.test(v)) continue; } // keep plain short strings (dates, counters)
+      out[k] = v;
+    }
+    return out;
+  }
+  // v2 format (older app versions)
+  if (obj && (obj.settings || obj.foods)) {
+    const map = { settings: 'nm_settings', goals: 'nm_goals', foods: 'nm_foods', water: 'nm_water', weights: 'nm_weights', exercises: 'nm_exercises' };
+    const out = {};
+    for (const [field, key] of Object.entries(map)) if (obj[field] !== undefined) out[key] = JSON.stringify(obj[field]);
+    return out;
+  }
+  // a daily snapshot file (array of food items)
+  if (Array.isArray(obj) && obj.every(x => x && x.date && x.name !== undefined)) {
+    const existing = DB.getFoods();
+    const ids = new Set(existing.map(f => f.id));
+    return { nm_foods: JSON.stringify([...existing, ...obj.filter(f => !ids.has(f.id))]) };
+  }
+  return null;
 }
 
 function importData(e) {
   const file = e.target.files[0];
+  e.target.value = '';
   if (!file) return;
+  if (file.size > 20 * 1024 * 1024) { showToast('❌ 檔案太大，這不像是 NutriMate 備份檔', 4000); return; }
   const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      if (!data.settings && !data.foods) throw new Error('格式不符');
-      const exported = data.exported ? new Date(data.exported).toLocaleString('zh-TW') : '未知時間';
-      if (!confirm(`匯入將覆蓋現有資料。\n備份時間：${exported}\n確定繼續？`)) return;
-      if (data.settings)  DB.saveSettings(data.settings);
-      if (data.goals)     DB.saveGoals(data.goals);
-      if (data.foods)     localStorage.setItem('nm_foods',     JSON.stringify(data.foods));
-      if (data.water)     localStorage.setItem('nm_water',     JSON.stringify(data.water));
-      if (data.weights)   localStorage.setItem('nm_weights',   JSON.stringify(data.weights));
-      if (data.exercises) localStorage.setItem('nm_exercises', JSON.stringify(data.exercises));
-      showToast('✅ 匯入成功！正在重新整理…');
-      setTimeout(() => location.reload(), 1200);
-    } catch (err) {
-      showToast('❌ 匯入失敗：' + err.message);
+  reader.onerror = () => showToast('❌ 無法讀取檔案', 3000);
+  reader.onload = async ev => {
+    let incoming;
+    try { incoming = _parseBackup(JSON.parse(ev.target.result)); }
+    catch { incoming = null; }
+    if (!incoming || !Object.keys(incoming).length) { showToast('❌ 這不是 NutriMate 的備份檔', 4000); return; }
+
+    let foods = 0; try { foods = JSON.parse(incoming.nm_foods || '[]').length; } catch {}
+    if (!confirm(`要用這個備份還原嗎？\n\n檔案：${file.name}\n飲食記錄：${foods} 筆\n\n還原前會先自動把「目前的資料」存成一個檔案，萬一選錯可以再還原回來。`)) return;
+
+    // 1) Save current data first (so a wrong restore can be undone).
+    const current = _collectBackup();
+    if (Object.keys(current.data).length > 1) {
+      const saved = await _saveJsonFile(current, `nutrimate-還原前備份-${todayStr()}.json`).catch(() => false);
+      if (!saved && !confirm('目前資料的備份沒有存成功（可能是你取消了）。\n仍然要繼續還原並覆蓋目前資料嗎？')) return;
     }
+    // 2) Write everything; if anything fails, put the old values back.
+    const keys = new Set([...Object.keys(current.data), ...Object.keys(incoming)]);
+    const before = {};
+    keys.forEach(k => { before[k] = localStorage.getItem(k); });
+    try {
+      for (const [k, v] of Object.entries(incoming)) {
+        if (k === 'nm_settings') {
+          // keep the API key already on this device
+          try { const o = JSON.parse(v); const cur = DB.getSettings(); if (cur.gemini_api_key && !o.gemini_api_key) o.gemini_api_key = cur.gemini_api_key; localStorage.setItem(k, JSON.stringify(o)); continue; } catch {}
+        }
+        localStorage.setItem(k, v);
+      }
+    } catch (err) {
+      for (const [k, v] of Object.entries(before)) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} }
+      showToast('❌ 還原失敗（儲存空間不足？），資料已恢復原狀', 5000);
+      return;
+    }
+    showToast('✅ 還原成功！正在重新整理…');
+    setTimeout(() => location.reload(), 1200);
   };
   reader.readAsText(file);
-  e.target.value = '';
 }
 
 // ── Settings: Auto Water Goal ─────────────────────────────────────────────────
@@ -8400,6 +8565,7 @@ function saveFitnessProfile() {
 }
 
 function setExPageTab(tab) {
+  if (tab === 'workout' && !_proOk('workout_plan')) return;
   document.getElementById('ex-tab-log').style.display    = tab === 'log'     ? '' : 'none';
   document.getElementById('ex-tab-plan').style.display   = tab === 'workout' ? '' : 'none';
   document.getElementById('ex-tab-target').style.display = tab === 'target'  ? '' : 'none';
@@ -9414,7 +9580,9 @@ function _awCheckUrlImport() {
   } catch {}
 
   _awPendingImport = { type, dur, kcal, hr, dist, date };
-  setTimeout(() => _awShowImportModal(_awPendingImport), 600);
+  Promise.resolve(window.Pro?.ready).then(() => setTimeout(() => {
+    if (_proOk('apple_watch')) _awShowImportModal(_awPendingImport);
+  }, 600));
 }
 
 function _awShowImportModal(data) {
@@ -9476,6 +9644,7 @@ function installAwShortcut() {
 }
 
 function openAwSetup() {
+  if (!_proOk('apple_watch')) return;
   document.getElementById('aw-setup-modal').style.display = 'flex';
   // Render supported types
   const tl = document.getElementById('aw-type-list');
@@ -9608,8 +9777,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Save daily snapshot before switching
       const dayFoods = DB.getFoods().filter(f => f.date === backupDate);
       if (dayFoods.length > 0) {
-        localStorage.setItem(`nm_snap_${backupDate}`, JSON.stringify(dayFoods));
-        showToast(`💾 ${foodDateLabel(backupDate)} 飲食已自動備份（${dayFoods.length} 筆）`);
+        let snapOk = true;
+        try { localStorage.setItem(`nm_snap_${backupDate}`, JSON.stringify(dayFoods)); } catch { snapOk = false; }
+        if (snapOk) showToast(`💾 ${foodDateLabel(backupDate)} 飲食已自動備份（${dayFoods.length} 筆）`);
       }
       currentFoodDate = todayStr();
       if (document.getElementById('page-food-log')?.classList.contains('active')) {

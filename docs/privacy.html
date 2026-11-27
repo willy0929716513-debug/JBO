@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>隱私權政策 · NutriMate</title>
+<style>
+  body{margin:0;background:#F8FAFC;color:#1F2937;font:15px/1.85 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif}
+  main{max-width:720px;margin:0 auto;padding:28px 20px 60px}
+  h1{font-size:1.5rem;margin:0 0 4px} h2{font-size:1.08rem;margin:28px 0 6px}
+  .muted{color:#6B7280;font-size:.85rem} li{margin:4px 0} a{color:#15803D}
+  .box{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:12px 16px}
+</style>
+</head>
+<body><main>
+<h1>隱私權政策</h1>
+<div class="muted">最後更新：2026 年 11 月 26 日</div>
+
+<p class="box"><strong>一句話版本：</strong>你的飲食、體重、運動和記帳資料只存在你自己的裝置上，我們看不到，也沒有收集。</p>
+
+<h2>1. 存在你裝置上的資料</h2>
+<p>你在 NutriMate 輸入的所有記錄（飲食、喝水、體重、運動、訓練、記帳、個人設定）都只儲存在你的瀏覽器／手機本機，不會上傳到我們的伺服器。這也表示：</p>
+<ul>
+  <li>刪除 App 圖示或清除瀏覽器資料時，記錄會一起消失，我們無法幫你找回。請定期到「設定 → 資料備份」匯出備份。</li>
+  <li>備份檔由你自己保管。備份檔不包含你的 Gemini API 金鑰與 Pro 序號。</li>
+</ul>
+
+<h2>2. AI 拍照辨識（Google Gemini）</h2>
+<p>使用 AI 拍照辨識時，照片會直接從你的裝置傳送到 Google Gemini API 進行分析，使用的是你自己申請的 API 金鑰。這段傳輸不經過我們的伺服器。照片的處理方式適用 <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Google Gemini API 條款</a>；使用免費方案時，Google 可能會用這些內容改善服務。請不要拍到臉孔、證件或其他個人資料。</p>
+
+<h2>3. 食物搜尋</h2>
+<p>搜尋食物時，若內建資料庫找不到，App 可能會把你輸入的關鍵字送到 Open Food Facts 公開資料庫查詢。只會傳送搜尋文字。</p>
+
+<h2>4. Pro 授權與推播（我們的伺服器）</h2>
+<p>只有在你啟用 Pro 或開啟背景推播時，App 才會連到我們架在 Cloudflare 上的伺服器，而且只傳送運作需要的最少資料：</p>
+<ul>
+  <li><strong>啟用 Pro：</strong>序號（伺服器只保存經過雜湊處理的版本）、一組隨機產生的裝置代碼、裝置類型（例如「iPhone」）。這些資料用來防止序號被濫用，並限制可啟用的裝置數量。</li>
+  <li><strong>背景推播：</strong>瀏覽器產生的推播訂閱資訊、你設定的提醒時間和時區。關閉提醒或解除裝置後就會刪除。</li>
+  <li>為了防止濫用，伺服器會短暫記錄連線 IP 來限制嘗試次數，不會長期保存。</li>
+</ul>
+<p>付款由 Gumroad 處理，我們不會看到你的信用卡資料。Gumroad 會依其 <a href="https://gumroad.com/privacy" target="_blank" rel="noopener">隱私權政策</a> 提供我們你的 Email 和訂單資訊，用於寄送序號、售後服務與退款。</p>
+
+<h2>5. 我們不做的事</h2>
+<ul>
+  <li>不使用廣告追蹤、不使用分析工具、不販售任何資料。</li>
+  <li>不會讀取你的飲食或健康記錄。</li>
+</ul>
+
+<h2>6. 診斷資訊</h2>
+<p>「設定 → 問題回報」裡的「複製診斷資訊」只會在你主動按下時產生，內容包含 App 版本、裝置型號、錯誤訊息和各類資料的筆數，不包含記錄內容、金鑰或序號。只有你自己貼給我們時，我們才看得到。</p>
+
+<h2>7. 聯絡我們</h2>
+<p>有任何隱私問題，或想刪除伺服器上與你序號相關的資料，請來信：<span class="nm-email">（請見 App「設定 → 問題回報」）</span></p>
+</main>
+<script src="js/config.js"></script>
+<script>
+  var e = (window.NM_CONFIG || {}).SUPPORT_EMAIL;
+  if (e) document.querySelectorAll('.nm-email').forEach(function (n) { n.innerHTML = '<a href="mailto:' + e + '">' + e + '</a>'; });
+</script>
+</body>
+</html>

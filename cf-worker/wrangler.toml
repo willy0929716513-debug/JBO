@@ -1,11 +1,27 @@
-name = "nutrimate-push"
+name = "nutrimate-api"
 main = "src/index.js"
-compatibility_date = "2024-09-23"
+compatibility_date = "2026-11-01"
 
-[[kv_namespaces]]
-binding = "SUBSCRIPTIONS"
-id = "REPLACE_WITH_YOUR_KV_ID"
-preview_id = "REPLACE_WITH_YOUR_KV_ID"
+# D1 database: create with `wrangler d1 create nutrimate`, then paste the id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "nutrimate"
+database_id = "REPLACE_WITH_YOUR_D1_ID"
+
+[vars]
+# Your GitHub Pages origin (no trailing slash). Comma-separate if you have several.
+ALLOWED_ORIGINS = "https://willy0929716513-debug.github.io"
+# Gumroad product ID (Product → Content → License key module). Not secret.
+GUMROAD_PRODUCT_ID = "REPLACE_WITH_GUMROAD_PRODUCT_ID"
+MAX_DEVICES = "3"
+TOKEN_TTL_DAYS = "45"
+# Free plan ≈ 50 outgoing requests per cron run. Raise to ~900 on Workers Paid.
+MAX_PUSH_PER_RUN = "45"
+
+# Secrets (set with `wrangler secret put NAME`, never commit them):
+#   LICENSE_SIGNING_JWK   private key from tools/gen-keys.mjs
+#   ADMIN_TOKEN           long random password for /admin routes
+#   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY_JWK, VAPID_SUBJECT   (push notifications)
 
 [triggers]
 crons = ["* * * * *"]
