@@ -1,19 +1,28 @@
 // Service worker: versioned caching + push notifications.
 // Bump CACHE_VERSION on every deployment so installed PWAs auto-refresh.
 
-const CACHE_VERSION = '20261001r';
+const CACHE_VERSION = '20261126a';
 const CACHE_NAME = `nutrimate-${CACHE_VERSION}`;
 const PRECACHE = [
   './',
   './index.html',
+  `./js/config.js?v=${CACHE_VERSION}`,
+  `./js/guard.js?v=${CACHE_VERSION}`,
   `./js/app.js?v=${CACHE_VERSION}`,
+  `./js/pro.js?v=${CACHE_VERSION}`,
   `./css/style.css?v=${CACHE_VERSION}`,
+  './vendor/chart.umd.min.js',
+  './vendor/bootstrap-icons/bootstrap-icons.min.css',
+  './vendor/bootstrap-icons/fonts/bootstrap-icons.woff2',
+  './manifest.json',
+  './icons/icon-192.png',
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(c => c.addAll(PRECACHE))
+      // add one by one so a single missing file can't break the whole update
+      .then(c => Promise.all(PRECACHE.map(u => c.add(u).catch(err => console.warn('precache miss', u, err)))))
       .then(() => self.skipWaiting())
   );
 });
@@ -54,23 +63,33 @@ self.addEventListener('fetch', event => {
   const isKeyAsset =
     request.mode === 'navigate' ||
     url.pathname.endsWith('.html') ||
-    url.pathname.includes('app.js') ||
+    url.pathname.includes('/js/') ||
     url.pathname.includes('style.css');
+
+  // Never touch API calls (Gemini, license worker, food search) or non-GET requests.
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
   if (isKeyAsset) {
     // Network-first: always try to get fresh copy; fall back to cache offline
     event.respondWith(
       fetch(request).then(resp => {
         if (resp.ok) {
-          caches.open(CACHE_NAME).then(c => c.put(request, resp.clone()));
+          const copy = resp.clone(); // clone now, before the page starts reading the body
+          caches.open(CACHE_NAME).then(c => c.put(request, copy));
         }
         return resp;
-      }).catch(() => caches.match(request))
+      }).catch(() => caches.match(request).then(r => r || caches.match(request, { ignoreSearch: true })))
     );
   } else {
     // Cache-first for everything else (icons, fonts, etc.)
     event.respondWith(
-      caches.match(request).then(cached => cached || fetch(request))
+      caches.match(request).then(cached => cached || fetch(request).then(resp => {
+        if (resp.ok && url.pathname.includes('/vendor/')) {
+          const copy = resp.clone();
+          caches.open(CACHE_NAME).then(c => c.put(request, copy));
+        }
+        return resp;
+      }))
     );
   }
 });

@@ -1,5 +1,11 @@
 {
-  "name": "nutrimate-push-worker",
-  "version": "1.0.0",
-  "private": true
+  "name": "nutrimate-api",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "keys": "node tools/gen-keys.mjs",
+    "deploy": "wrangler deploy"
+  }
 }

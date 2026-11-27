@@ -13,8 +13,8 @@
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
   <title>NutriMate - 智慧飲食追蹤</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/style.css?v=20261001r">
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/style.css?v=20261126a">
   <style>
     .page { display: none; }
     .page.active { display: block; }
@@ -1018,9 +1018,9 @@
           </button>
         </div>
         <div style="font-size:0.72rem;color:var(--muted);line-height:1.8">
-          取得金鑰：前往 <strong>aistudio.google.com</strong> → Get API key → Create API key<br>
-          金鑰名稱填 <strong>NutriMate</strong>，完全免費不需信用卡<br>
-          金鑰儲存於本機瀏覽器，不會上傳任何伺服器
+          還沒有金鑰？<a href="guide-api-key.html" target="_blank" rel="noopener" style="font-weight:700">看 3 分鐘圖文教學 →</a><br>
+          免費、不需信用卡。金鑰只存在這台裝置，只會傳給 Google 用來辨識照片<br>
+          ⚠️ 照片會送到 Google Gemini 分析，請不要拍到臉或個人資料
         </div>
       </div>
     </div>
@@ -1422,7 +1422,10 @@
   <div id="str-inner" style="display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto;width:100%;overflow:hidden;"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/app.js?v=20261001r"></script>
+<script src="js/config.js?v=20261126a"></script>
+<script src="js/guard.js?v=20261126a"></script>
+<script src="vendor/chart.umd.min.js"></script>
+<script src="js/app.js?v=20261126a"></script>
+<script src="js/pro.js?v=20261126a"></script>
 </body>
 </html>

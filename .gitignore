@@ -13,3 +13,9 @@ build/
 instance/
 *.db
 *.sqlite
+
+# NutriMate secrets
+cf-worker/secrets.local.json
+cf-worker/.wrangler/
+cf-worker/node_modules/
+.dev.vars

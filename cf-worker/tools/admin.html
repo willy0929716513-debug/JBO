@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriMate 序號管理（賣家專用）</title>
+<style>
+  body{margin:0;background:#F1F5F9;color:#0F172A;font:14px/1.7 -apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif}
+  main{max-width:720px;margin:0 auto;padding:24px 16px 60px}
+  h1{font-size:1.3rem;margin:0 0 4px} .muted{color:#64748B;font-size:.82rem}
+  section{background:#fff;border-radius:14px;padding:16px;margin-top:14px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  h2{font-size:1rem;margin:0 0 8px}
+  input,textarea{width:100%;box-sizing:border-box;border:1px solid #CBD5E1;border-radius:9px;padding:9px 11px;font:inherit;margin:4px 0}
+  button{border:none;border-radius:9px;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer;background:#16A34A;color:#fff;margin:4px 4px 0 0}
+  button.sec{background:#E2E8F0;color:#0F172A} button.danger{background:#DC2626}
+  pre{background:#0F172A;color:#E2E8F0;border-radius:10px;padding:12px;white-space:pre-wrap;word-break:break-all;min-height:40px;font-size:.8rem}
+  .row{display:flex;gap:8px} .row>*{flex:1}
+</style>
+</head>
+<body><main>
+<h1>🔑 NutriMate 序號管理</h1>
+<div class="muted">這個檔案只放在你自己的電腦，<strong>不要</strong>放進 docs/ 資料夾上傳到網站。管理密碼只會暫存在這個分頁裡。</div>
+
+<section>
+  <h2>連線設定</h2>
+  <input id="url" placeholder="Worker 網址，例如 https://nutrimate-api.xxx.workers.dev">
+  <input id="token" type="password" placeholder="ADMIN_TOKEN（secrets.local.json 裡的那串）">
+  <button class="sec" onclick="health()">測試連線</button>
+</section>
+
+<section>
+  <h2>① 產生手動序號（Pinkoi、蝦皮、送禮、測試用）</h2>
+  <div class="row"><input id="count" type="number" min="1" max="100" value="1" placeholder="數量"><input id="note" placeholder="備註，例如 Pinkoi 訂單 #12345"></div>
+  <button onclick="createKeys()">產生</button>
+</section>
+
+<section>
+  <h2>② 客服：查詢 / 處理某組序號</h2>
+  <input id="key" placeholder="貼上客人的序號（Gumroad 序號或 NM- 開頭的手動序號）">
+  <button class="sec" onclick="act('info')">查詢裝置</button>
+  <button class="sec" onclick="act('reset-devices', '清空這組序號的所有裝置？（客人換手機時用）')">清空裝置（換手機）</button>
+  <button class="danger" onclick="act('revoke', '確定停用這組序號？客人的 Pro 會在下次連網時失效。')">停用（退款後）</button>
+  <button class="sec" onclick="act('restore', '恢復這組序號？')">恢復</button>
+</section>
+
+<section>
+  <h2>結果</h2>
+  <pre id="out">—</pre>
+</section>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  $('url').value = sessionStorage.getItem('nm_admin_url') || localStorage.getItem('nm_admin_url') || '';
+  $('token').value = sessionStorage.getItem('nm_admin_token') || '';
+  const show = v => { $('out').textContent = typeof v === 'string' ? v : JSON.stringify(v, null, 2); };
+  function base() {
+    const u = $('url').value.trim().replace(/\/+$/, '');
+    localStorage.setItem('nm_admin_url', u); sessionStorage.setItem('nm_admin_url', u);
+    sessionStorage.setItem('nm_admin_token', $('token').value.trim());
+    if (!/^https:\/\//.test(u)) { show('請先填 Worker 網址（https:// 開頭）'); return null; }
+    return u;
+  }
+  async function post(path, body) {
+    const u = base(); if (!u) return;
+    show('處理中…');
+    try {
+      const r = await fetch(u + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + $('token').value.trim() }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      show(r.ok ? d : `❌ ${r.status} ${d.message || ''}`);
+      return d;
+    } catch (e) { show('❌ 連不上：' + e.message); }
+  }
+  async function health() {
+    const u = base(); if (!u) return;
+    try { const r = await fetch(u + '/health'); show(r.ok ? '✅ 連線正常 ' + JSON.stringify(await r.json()) : '❌ ' + r.status); }
+    catch (e) { show('❌ 連不上：' + e.message); }
+  }
+  async function createKeys() {
+    const d = await post('/admin/create-keys', { count: Number($('count').value) || 1, note: $('note').value });
+    if (d && d.keys) show('✅ 新序號（請現在複製保存，之後無法再查到原文）：\n\n' + d.keys.join('\n'));
+  }
+  async function act(name, confirmMsg) {
+    const key = $('key').value.trim();
+    if (!key) return show('請先貼上序號');
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    const d = await post('/admin/' + name, { key });
+    if (d && name === 'info' && d.ok) {
+      const L = d.license;
+      const fmt = s => s ? new Date(s * 1000).toLocaleString('zh-TW') : '—';
+      show(!L && !d.devices.length ? '這組序號還沒有被啟用過（或不存在）' :
+        `狀態：${L ? (L.status === 'active' ? '✅ 有效' : '⛔ 已停用') : '—'}　來源：${L?.source || '—'}　備註：${L?.note || '—'}\n` +
+        `最後向 Gumroad 驗證：${fmt(L?.last_verified_at)}\n\n裝置（${d.devices.length}）：\n` +
+        d.devices.map(x => `• ${x.label || '裝置'}　啟用 ${fmt(x.created_at)}　最後使用 ${fmt(x.last_seen_at)}`).join('\n'));
+    }
+  }
+</script>
+</body>
+</html>
